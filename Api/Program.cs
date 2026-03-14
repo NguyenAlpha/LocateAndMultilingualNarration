@@ -71,6 +71,19 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// Middleware để log các request trả về 401 Unauthorized
+app.Use(async (context, next) =>
+{
+    await next();
+
+    if (context.Response.StatusCode == StatusCodes.Status401Unauthorized)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning("Unauthorized(401) request to {Path} from {RemoteIpAddress}",
+            context.Request.Path, context.Connection.RemoteIpAddress);
+    }
+});
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

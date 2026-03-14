@@ -1,6 +1,7 @@
 ﻿using Shared.DTOs.Auth;
 using Api.Application.Services;
 using Api.Domain.Entities;
+using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -56,7 +57,7 @@ namespace Api.Controllers
                 if (existingEmail)
                 {
                     _logger.LogWarning("Email đã được sử dụng: {Email}", request.Email);
-                    return BadRequest(new { message = "Email đã được sử dụng" });
+                    return this.ConflictResult("Email đã được sử dụng", "Email");
                 }
 
                 // 2. Validate UserName đã tồn tại chưa
@@ -67,7 +68,7 @@ namespace Api.Controllers
                 if (existingUserName)
                 {
                     _logger.LogWarning("UserName đã được sử dụng: {UserName}", request.UserName);
-                    return BadRequest(new { message = "UserName đã được sử dụng" });
+                    return this.ConflictResult("UserName đã được sử dụng", "UserName");
                 }
 
                 // 3. Hash password
@@ -144,7 +145,7 @@ namespace Api.Controllers
                     user.Id, user.Email);
 
                 // 8. Trả về response
-                return Ok(new RegisterResponseDto
+                return this.OkResult(new RegisterResponseDto
                 {
                     UserId = user.Id,
                     UserName = user.UserName!,
@@ -155,12 +156,12 @@ namespace Api.Controllers
             catch (DbUpdateException ex)
             {
                 _logger.LogError(ex, "Lỗi database khi đăng ký Business Owner - Email: {Email}", request.Email);
-                return StatusCode(500, new { message = "Lỗi khi lưu dữ liệu. Vui lòng thử lại." });
+                return this.ServerErrorResult("Lỗi khi lưu dữ liệu. Vui lòng thử lại.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi nghiêm trọng khi đăng ký Business Owner - Email: {Email}", request.Email);
-                return StatusCode(500, new { message = "Có lỗi xảy ra. Vui lòng thử lại sau." });
+                return this.ServerErrorResult("Có lỗi xảy ra. Vui lòng thử lại sau.");
             }
         }
 
@@ -189,21 +190,21 @@ namespace Api.Controllers
                 if (user == null)
                 {
                     _logger.LogWarning("Đăng nhập thất bại - Không tìm thấy user cho email: {Email}", request.Email);
-                    return Unauthorized(new { message = "Email hoặc mật khẩu không đúng" });
+                    return this.UnauthorizedResult("Email hoặc mật khẩu không đúng");
                 }
 
                 // 2. Verify password bằng BCrypt
                 if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 {
                     _logger.LogWarning("Đăng nhập thất bại - Sai mật khẩu cho email: {Email}", request.Email);
-                    return Unauthorized(new { message = "Email hoặc mật khẩu không đúng" });
+                    return this.UnauthorizedResult("Email hoặc mật khẩu không đúng");
                 }
 
                 // 3. Kiểm tra account status
                 if (!user.IsActive)
                 {
                     _logger.LogWarning("Đăng nhập thất bại - Tài khoản bị vô hiệu hóa: {Email}", request.Email);
-                    return Unauthorized(new { message = "Tài khoản đã bị vô hiệu hóa" });
+                    return this.UnauthorizedResult("Tài khoản đã bị vô hiệu hóa");
                 }
 
                 // 4. Lấy danh sách roles của user từ navigation property
@@ -228,7 +229,7 @@ namespace Api.Controllers
                 _logger.LogInformation("Đăng nhập thành công - UserId: {UserId}, Email: {Email}", user.Id, user.Email);
 
                 // 7. Trả về response với token và thông tin user
-                return Ok(new LoginResponseDto
+                return this.OkResult(new LoginResponseDto
                 {
                     Token = token,
                     ExpiresAt = expiresAtLocal,
@@ -241,12 +242,12 @@ namespace Api.Controllers
             catch (UnauthorizedAccessException ex)
             {
                 _logger.LogWarning(ex, "Đăng nhập thất bại cho email: {Email}", request.Email);
-                return Unauthorized();
+                return this.UnauthorizedResult("Email hoặc mật khẩu không đúng");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi nghiêm trọng khi đăng nhập: {Email}", request.Email);
-                return StatusCode(500);
+                return this.ServerErrorResult("Có lỗi xảy ra. Vui lòng thử lại sau.");
             }
         }
 

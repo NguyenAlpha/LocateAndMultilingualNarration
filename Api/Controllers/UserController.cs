@@ -1,4 +1,5 @@
 using Shared.DTOs.Users;
+using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -44,14 +45,14 @@ namespace Api.Controllers
             if (!Guid.TryParse(currentUserIdValue, out var currentUserId))
             {
                 _logger.LogWarning("Không xác thực khi lấy chi tiết user - Id: {UserId}", id);
-                return Unauthorized(new { message = "Không xác thực" });
+                return this.UnauthorizedResult("Không xác thực");
             }
 
             var isAdmin = User.IsInRole("Admin") || User.IsInRole("ADMIN");
             if (!isAdmin && currentUserId != id)
             {
                 _logger.LogWarning("Không có quyền truy cập chi tiết user - Id: {UserId}", id);
-                return StatusCode(StatusCodes.Status403Forbidden, new { message = "Không có quyền truy cập" });
+                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             _logger.LogDebug("Truy vấn user và profile - Id: {UserId}", id);
@@ -66,7 +67,7 @@ namespace Api.Controllers
             if (user == null)
             {
                 _logger.LogWarning("Không tìm thấy user - Id: {UserId}", id);
-                return NotFound(new { message = "Không tìm thấy user" });
+                return this.NotFoundResult("Không tìm thấy user");
             }
 
             var roles = user.UserRoles
@@ -134,7 +135,7 @@ namespace Api.Controllers
             };
 
             _logger.LogInformation("Lấy chi tiết user thành công - Id: {UserId}", id);
-            return Ok(response);
+            return this.OkResult(response);
         }
 
         private static DateTime ConvertFromUtc(DateTime utcDateTime, TimeZoneInfo timeZone)
