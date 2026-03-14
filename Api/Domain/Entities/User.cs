@@ -29,6 +29,7 @@
         // Navigation
         public BusinessOwnerProfile? BusinessOwnerProfile { get; set; }
         public VisitorProfile? VisitorProfile { get; set; }
+        public EmployeeProfile? EmployeeProfile { get; set; }
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public ICollection<Business> Businesses { get; set; } = new List<Business>();
 

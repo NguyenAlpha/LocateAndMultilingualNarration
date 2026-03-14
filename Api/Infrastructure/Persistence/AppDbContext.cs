@@ -14,6 +14,7 @@ namespace Api.Infrastructure.Persistence
         public DbSet<VisitorProfile> VisitorProfiles => Set<VisitorProfile>();
         public DbSet<Language> Languages => Set<Language>();
         public DbSet<BusinessOwnerProfile> BusinessOwnerProfiles => Set<BusinessOwnerProfile>();
+        public DbSet<EmployeeProfile> EmployeeProfiles => Set<EmployeeProfile>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Stall> Stalls => Set<Stall>();
 
