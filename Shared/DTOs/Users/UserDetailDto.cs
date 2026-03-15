@@ -40,13 +40,6 @@ namespace Shared.DTOs.Users
         public DateTimeOffset CreatedAt { get; set; }
     }
 
-    public class VisitorProfileDto
-    {
-        public Guid Id { get; set; }
-        public Guid UserId { get; set; }
-        public Guid LanguageId { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
 
     public class EmployeeProfileDto
     {
