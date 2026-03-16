@@ -1,12 +1,14 @@
 ﻿using Shared.DTOs.Auth;
 using Api.Application.Services;
 using Api.Domain.Entities;
+using Api.Domain.Settings;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using BCrypt.Net;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Api.Controllers
 {
@@ -20,6 +22,8 @@ namespace Api.Controllers
         private readonly IJwtService _jwtService;
         private readonly AppDbContext _context;
         private readonly ILogger<AuthController> _logger;
+        private readonly JwtSettings _jwtSettings;
+        private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
 
         /// <summary>
         /// Khởi tạo AuthController với các dependencies cần thiết
@@ -27,11 +31,12 @@ namespace Api.Controllers
         /// <param name="jwtService">Service để tạo và xác thực JWT token</param>
         /// <param name="context">Database context để truy vấn dữ liệu</param>
         /// <param name="logger">Logger để ghi log</param>
-        public AuthController(IJwtService jwtService, AppDbContext context, ILogger<AuthController> logger)
+        public AuthController(IJwtService jwtService, AppDbContext context, ILogger<AuthController> logger, IOptions<JwtSettings> jwtSettings)
         {
             _jwtService = jwtService;
             _context = context;
             _logger = logger;
+            _jwtSettings = jwtSettings.Value;
         }
 
         /// <summary>
@@ -212,9 +217,23 @@ namespace Api.Controllers
 
                 // 5. Generate JWT token với thông tin user và roles
                 var token = _jwtService.GenerateToken(user, roles);
+                var (refreshToken, refreshTokenHash) = _jwtService.GenerateRefreshToken();
+                var refreshTokenExpiresAtUtc = DateTime.UtcNow.Add(RefreshTokenLifetime);
 
                 // 6. Cập nhật thời gian đăng nhập gần nhất
                 user.LastLoginAt = DateTime.UtcNow;
+
+                var refreshTokenEntity = new RefreshToken
+                {
+                    UserId = user.Id,
+                    TokenHash = refreshTokenHash,
+                    ExpiresAtUtc = refreshTokenExpiresAtUtc,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    DeviceId = HttpContext.Request.Headers["X-DeviceId"].ToString(),
+                    CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString()
+                };
+
+                _context.RefreshTokens.Add(refreshTokenEntity);
                 await _context.SaveChangesAsync();
 
                 var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
@@ -223,8 +242,9 @@ namespace Api.Controllers
                     : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
                 _logger.LogDebug("Múi giờ dùng để trả về login response - TimeZoneId: {TimeZoneId}", string.IsNullOrWhiteSpace(timeZoneId) ? "SE Asia Standard Time" : timeZoneId);
 
-                var expiresAtUtc = DateTime.UtcNow.AddMinutes(60);
+                var expiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes);
                 var expiresAtLocal = ConvertFromUtc(expiresAtUtc, timeZone);
+                var refreshTokenExpiresAtLocal = ConvertFromUtc(refreshTokenExpiresAtUtc, timeZone);
 
                 _logger.LogInformation("Đăng nhập thành công - UserId: {UserId}, Email: {Email}", user.Id, user.Email);
 
@@ -233,6 +253,8 @@ namespace Api.Controllers
                 {
                     Token = token,
                     ExpiresAt = expiresAtLocal,
+                    RefreshToken = refreshToken,
+                    RefreshTokenExpiresAt = refreshTokenExpiresAtLocal,
                     UserId = user.Id,
                     UserName = user.UserName,
                     Email = user.Email,
@@ -249,6 +271,120 @@ namespace Api.Controllers
                 _logger.LogError(ex, "Lỗi nghiêm trọng khi đăng nhập: {Email}", request.Email);
                 return this.ServerErrorResult("Có lỗi xảy ra. Vui lòng thử lại sau.");
             }
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request)
+        {
+            _logger.LogInformation("Bắt đầu refresh token");
+
+            var tokenHash = _jwtService.HashRefreshToken(request.RefreshToken);
+            var refreshToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
+
+            if (refreshToken == null)
+            {
+                _logger.LogWarning("Refresh token không hợp lệ");
+                return this.UnauthorizedResult("Refresh token không hợp lệ");
+            }
+
+            if (refreshToken.RevokedAtUtc != null || refreshToken.ExpiresAtUtc <= DateTime.UtcNow)
+            {
+                _logger.LogWarning("Refresh token đã hết hạn hoặc bị thu hồi - TokenId: {TokenId}", refreshToken.Id);
+                return this.UnauthorizedResult("Refresh token đã hết hạn hoặc bị thu hồi");
+            }
+
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == refreshToken.UserId);
+
+            if (user == null || !user.IsActive)
+            {
+                _logger.LogWarning("Refresh token thất bại - user không tồn tại hoặc bị vô hiệu hóa");
+                return this.UnauthorizedResult("Tài khoản đã bị vô hiệu hóa");
+            }
+
+            var roles = user.UserRoles.Select(ur => ur.Role.Name).ToList();
+            var token = _jwtService.GenerateToken(user, roles);
+            var (newRefreshToken, newRefreshTokenHash) = _jwtService.GenerateRefreshToken();
+            var refreshTokenExpiresAtUtc = DateTime.UtcNow.Add(RefreshTokenLifetime);
+
+            refreshToken.RevokedAtUtc = DateTime.UtcNow;
+
+            var newRefreshTokenEntity = new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = newRefreshTokenHash,
+                ExpiresAtUtc = refreshTokenExpiresAtUtc,
+                CreatedAtUtc = DateTime.UtcNow,
+                DeviceId = request.DeviceId,
+                CreatedByIp = string.IsNullOrWhiteSpace(request.ClientIp)
+                    ? HttpContext.Connection.RemoteIpAddress?.ToString()
+                    : request.ClientIp,
+                ReplacedByTokenId = refreshToken.Id
+            };
+
+            _context.RefreshTokens.Add(newRefreshTokenEntity);
+            await _context.SaveChangesAsync();
+
+            var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
+            var timeZone = string.IsNullOrWhiteSpace(timeZoneId)
+                ? TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+                : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+
+            var expiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryInMinutes);
+            var expiresAtLocal = ConvertFromUtc(expiresAtUtc, timeZone);
+            var refreshTokenExpiresAtLocal = ConvertFromUtc(refreshTokenExpiresAtUtc, timeZone);
+
+            _logger.LogInformation("Refresh token thành công - UserId: {UserId}", user.Id);
+
+            return this.OkResult(new RefreshResponseDto
+            {
+                Token = token,
+                ExpiresAt = expiresAtLocal,
+                RefreshToken = newRefreshToken,
+                RefreshTokenExpiresAt = refreshTokenExpiresAtLocal
+            });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutRequestDto request)
+        {
+            _logger.LogInformation("Bắt đầu logout");
+
+            var tokenHash = _jwtService.HashRefreshToken(request.RefreshToken);
+            var refreshToken = await _context.RefreshTokens
+                .FirstOrDefaultAsync(x => x.TokenHash == tokenHash);
+
+            if (refreshToken == null)
+            {
+                _logger.LogWarning("Logout thất bại - Refresh token không hợp lệ");
+                return this.UnauthorizedResult("Refresh token không hợp lệ");
+            }
+
+            if (refreshToken.RevokedAtUtc == null)
+            {
+                refreshToken.RevokedAtUtc = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+
+            var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
+            var timeZone = string.IsNullOrWhiteSpace(timeZoneId)
+                ? TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
+                : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+
+            var revokedAtLocal = refreshToken.RevokedAtUtc == null
+                ? (DateTime?)null
+                : ConvertFromUtc(refreshToken.RevokedAtUtc.Value, timeZone);
+
+            _logger.LogInformation("Logout thành công - TokenId: {TokenId}", refreshToken.Id);
+
+            return this.OkResult(new LogoutResponseDto
+            {
+                Success = true,
+                RevokedAt = revokedAtLocal
+            });
         }
 
         private static DateTime ConvertFromUtc(DateTime utcDateTime, TimeZoneInfo timeZone)
