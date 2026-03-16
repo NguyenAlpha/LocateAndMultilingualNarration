@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="Mobile.LanguagePage"
+    Title="Chọn ngôn ngữ"
+    BackgroundColor="#F6F6F6">
+
+    <VerticalStackLayout Padding="25" Spacing="20">
+
+        <!-- Title -->
+        <Label
+            Text="Chọn ngôn ngữ thuyết minh"
+            FontSize="24"
+            FontAttributes="Bold"
+            HorizontalOptions="Center"/>
+
+        <!-- Vietnamese -->
+        <Frame
+            BackgroundColor="#6A5AE0"
+            CornerRadius="15"
+            Padding="15">
+
+            <HorizontalStackLayout Spacing="15">
+
+                <Label
+                    Text="🇻🇳"
+                    FontSize="24"/>
+
+                <Label
+                    Text="Tiếng Việt"
+                    FontSize="18"
+                    TextColor="White"
+                    VerticalOptions="Center"/>
+
+            </HorizontalStackLayout>
+
+            <Frame.GestureRecognizers>
+                <TapGestureRecognizer Tapped="SelectVietnamese"/>
+            </Frame.GestureRecognizers>
+
+        </Frame>
+
+        <!-- English -->
+        <Frame
+            BackgroundColor="#6A5AE0"
+            CornerRadius="15"
+            Padding="15">
+
+            <HorizontalStackLayout Spacing="15">
+
+                <Label
+                    Text="🇺🇸"
+                    FontSize="24"/>
+
+                <Label
+                    Text="English"
+                    FontSize="18"
+                    TextColor="White"
+                    VerticalOptions="Center"/>
+
+            </HorizontalStackLayout>
+
+            <Frame.GestureRecognizers>
+                <TapGestureRecognizer Tapped="SelectEnglish"/>
+            </Frame.GestureRecognizers>
+
+        </Frame>
+
+        <!-- Japanese -->
+        <Frame
+            BackgroundColor="#6A5AE0"
+            CornerRadius="15"
+            Padding="15">
+
+            <HorizontalStackLayout Spacing="15">
+
+                <Label
+                    Text="🇯🇵"
+                    FontSize="24"/>
+
+                <Label
+                    Text="日本語"
+                    FontSize="18"
+                    TextColor="White"
+                    VerticalOptions="Center"/>
+
+            </HorizontalStackLayout>
+
+            <Frame.GestureRecognizers>
+                <TapGestureRecognizer Tapped="SelectJapanese"/>
+            </Frame.GestureRecognizers>
+
+        </Frame>
+
+        <!-- Korean -->
+        <Frame
+            BackgroundColor="#6A5AE0"
+            CornerRadius="15"
+            Padding="15">
+
+            <HorizontalStackLayout Spacing="15">
+
+                <Label
+                    Text="🇰🇷"
+                    FontSize="24"/>
+
+                <Label
+                    Text="한국어"
+                    FontSize="18"
+                    TextColor="White"
+                    VerticalOptions="Center"/>
+
+            </HorizontalStackLayout>
+
+            <Frame.GestureRecognizers>
+                <TapGestureRecognizer Tapped="SelectKorean"/>
+            </Frame.GestureRecognizers>
+
+        </Frame>
+
+    </VerticalStackLayout>
+
+</ContentPage>

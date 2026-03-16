@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="Mobile.MainPage"
+    Title="Trang chủ"
+    BackgroundColor="#F6F6F6">
+
+    <ScrollView>
+
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- HEADER -->
+            <Grid ColumnDefinitions="*,Auto">
+
+                <VerticalStackLayout>
+                    <Label
+                        Text="Xin chào 👋"
+                        FontSize="14"
+                        TextColor="Gray"/>
+
+                    <Label
+                        Text="Khám phá Phố Ẩm Thực"
+                        FontSize="22"
+                        FontAttributes="Bold"/>
+                </VerticalStackLayout>
+
+                <Frame
+                    HeightRequest="40"
+                    WidthRequest="40"
+                    CornerRadius="20"
+                    BackgroundColor="#E0E0E0"
+                    HorizontalOptions="End">
+
+                    <Label
+                        Text="👤"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center"/>
+                </Frame>
+
+            </Grid>
+
+            <!-- SEARCH -->
+            <Frame
+                CornerRadius="15"
+                Padding="10"
+                BackgroundColor="White">
+
+                <Entry
+                    Placeholder="Tìm gian hàng..."
+                    FontSize="14"/>
+            </Frame>
+
+            <!-- MAIN CARD -->
+            <Frame
+                CornerRadius="20"
+                Padding="20"
+                BackgroundColor="#6A5AE0">
+
+                <VerticalStackLayout Spacing="10">
+
+                    <Label
+                        Text="Khám phá gian hàng"
+                        FontSize="20"
+                        TextColor="White"
+                        FontAttributes="Bold"/>
+
+                    <Label
+                        Text="Tìm các gian hàng gần bạn và nghe thuyết minh tự động."
+                        TextColor="White"
+                        FontSize="13"/>
+
+                    <Button
+                        Text="Mở bản đồ"
+                        Clicked="OpenMapClicked"
+                        BackgroundColor="Black"
+                        TextColor="White"
+                        CornerRadius="10"
+                        HeightRequest="40"/>
+
+                </VerticalStackLayout>
+
+            </Frame>
+
+            <!-- QUICK ACTIONS -->
+            <Label
+                Text="Tính năng nhanh"
+                FontSize="18"
+                FontAttributes="Bold"/>
+
+            <Grid
+                ColumnDefinitions="*,*,*"
+                RowDefinitions="Auto,Auto"
+                ColumnSpacing="15"
+                RowSpacing="15">
+
+                <!-- Booth list -->
+                <Frame Grid.Row="0" Grid.Column="0"
+                       CornerRadius="15"
+                       BackgroundColor="White"
+                       Padding="15">
+
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="🍜" FontSize="28"/>
+                        <Label Text="Gian hàng" FontSize="12"/>
+                    </VerticalStackLayout>
+
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OpenBoothListClicked"/>
+                    </Frame.GestureRecognizers>
+
+                </Frame>
+
+                <!-- Map -->
+                <Frame Grid.Row="0" Grid.Column="1"
+                       CornerRadius="15"
+                       BackgroundColor="White"
+                       Padding="15">
+
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="🗺️" FontSize="28"/>
+                        <Label Text="Bản đồ" FontSize="12"/>
+                    </VerticalStackLayout>
+
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OpenMapClicked"/>
+                    </Frame.GestureRecognizers>
+
+                </Frame>
+
+                <!-- Language -->
+                <Frame Grid.Row="0" Grid.Column="2"
+                       CornerRadius="15"
+                       BackgroundColor="White"
+                       Padding="15">
+
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="🌐" FontSize="28"/>
+                        <Label Text="Ngôn ngữ" FontSize="12"/>
+                    </VerticalStackLayout>
+
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OpenLanguageClicked"/>
+                    </Frame.GestureRecognizers>
+
+                </Frame>
+
+                <!-- Login -->
+                <Frame Grid.Row="1" Grid.Column="0"
+                       CornerRadius="15"
+                       BackgroundColor="White"
+                       Padding="15">
+
+                    <VerticalStackLayout HorizontalOptions="Center">
+                        <Label Text="🔐" FontSize="28"/>
+                        <Label Text="Đăng nhập" FontSize="12"/>
+                    </VerticalStackLayout>
+
+                    <Frame.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OpenLoginClicked"/>
+                    </Frame.GestureRecognizers>
+
+                </Frame>
+
+            </Grid>
+
+        </VerticalStackLayout>
+
+    </ScrollView>
+
+</ContentPage>
