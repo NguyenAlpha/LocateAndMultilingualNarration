@@ -17,6 +17,7 @@ namespace Api.Infrastructure.Persistence
         public DbSet<EmployeeProfile> EmployeeProfiles => Set<EmployeeProfile>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Stall> Stalls => Set<Stall>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

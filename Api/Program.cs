@@ -58,8 +58,10 @@ builder.Services.AddOpenApi();
 //   từ cấu hình (ví dụ appsettings.json -> "ConnectionStrings": { "default": "..." }).
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    // Cấu hình provider là SQL Server và nạp connection string "default"
-    options.UseSqlServer(builder.Configuration.GetConnectionString("default"));
+    var cs = builder.Configuration.GetConnectionString("default");
+    // Chỉ cấu hình SQL Server nếu có connection string, để tránh lỗi khi chạy mà không có DB (như trong test)
+    if (!string.IsNullOrEmpty(cs))
+        options.UseSqlServer(cs);
 });
 
 // Build app (tạo ứng dụng từ các cấu hình trên)
@@ -84,13 +86,15 @@ app.Use(async (context, next) =>
     }
 });
 
+// Chỉ chạy migrate khi có connection string
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    if (!string.IsNullOrEmpty(builder.Configuration.GetConnectionString("default")))
+        db.Database.Migrate();
 }
 
-
+// Middleware chuyển hướng HTTP sang HTTPS để đảm bảo bảo mật
 app.UseHttpsRedirection();
 
 app.UseAuthentication();  // Phải đặt trước UseAuthorization
@@ -99,3 +103,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program{}

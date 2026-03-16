@@ -8,6 +8,11 @@ Microsoft.EntityFrameworkCore.Tools
 AutoMapper
 AutoMapper.Extensions.Microsoft.DependencyInjection
 
+chạy lệnh này:
+dotnet add package Microsoft.EntityFrameworkCore.InMemory
+
+
+
 ## Các lệnh thao tác với Migrations (Entity Framework Core)
 
 Lưu ý:

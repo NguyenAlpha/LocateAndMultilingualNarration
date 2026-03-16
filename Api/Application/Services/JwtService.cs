@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Api.Application.Services
@@ -11,6 +12,8 @@ namespace Api.Application.Services
     public interface IJwtService
     {
         string GenerateToken(User user, IEnumerable<string> roles);
+        (string Token, string TokenHash) GenerateRefreshToken();
+        string HashRefreshToken(string refreshToken);
     }
 
     public class JwtService : IJwtService
@@ -50,6 +53,22 @@ namespace Api.Application.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public (string Token, string TokenHash) GenerateRefreshToken()
+        {
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var token = Convert.ToBase64String(tokenBytes);
+            var tokenHash = HashRefreshToken(token);
+
+            return (token, tokenHash);
+        }
+
+        public string HashRefreshToken(string refreshToken)
+        {
+            var bytes = Encoding.UTF8.GetBytes(refreshToken);
+            var hashBytes = SHA256.HashData(bytes);
+            return Convert.ToHexString(hashBytes);
         }
     }
 }
