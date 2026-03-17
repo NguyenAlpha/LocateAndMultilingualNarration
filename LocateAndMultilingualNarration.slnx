@@ -2,5 +2,6 @@
   <Project Path="Api/Api.csproj" />
   <Project Path="Mobile/Mobile.csproj" Id="e7e40318-7a29-4295-99a7-71931d15d020" />
   <Project Path="Shared/Shared.csproj" Id="771aade2-b57d-4367-9196-9ab28d0b03da" />
+  <Project Path="TestAPI/TestAPI.csproj" Id="8ea84d37-fafc-4226-8a64-b0d2a4b0ae3a" />
   <Project Path="Web/Web.csproj" Id="fe771f99-0e1b-4272-9995-9558d7e75a42" />
 </Solution>
