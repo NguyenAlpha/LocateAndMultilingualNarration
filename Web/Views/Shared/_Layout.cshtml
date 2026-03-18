@@ -1,45 +1,110 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @* <title>Enterprise Management System</title> *@
     <title>@ViewData["Title"] - Web</title>
+
     <script type="importmap"></script>
+
+    <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    @* <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"> *@
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Web.styles.css" asp-append-version="true" />
+    @* <link href="/assets/css/site.css" rel="stylesheet"> *@
+    @RenderSection("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary" aria-label="Main navigation">
+        <div class="container">
+            <a class="navbar-brand" href="/Pages/Home/Index.html">
+                <i class="bi bi-building me-2"></i>EMS
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Pages/Home/Index.html">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-speedometer2 me-1"></i>Admin
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/Pages/Admin/Dashboard.html">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/Pages/Admin/UserRoleManagement.html">User/Role Management</a></li>
+                            <li><a class="dropdown-item" href="/Pages/Admin/Statistics.html">Statistics</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-gear me-1"></i>Management
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/Pages/Management/BusinessManagement.html">Business Management</a></li>
+                            <li><a class="dropdown-item" href="/Pages/Management/StallManagement.html">Stall Management</a></li>
+                            <li><a class="dropdown-item" href="/Pages/Management/LanguageManagement.html">Language Management</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/Pages/Management/EnterpriseStallRegistration.html">Enterprise Stall Registration</a></li>
+                            <li><a class="dropdown-item" href="/Pages/Management/StallLocationMap.html">Stall Location Map</a></li>
+                            <li><a class="dropdown-item" href="/Pages/Management/ContentAudioManagement.html">Content/Audio Management</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Pages/Home/Privacy.html">Privacy</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1"></i>Admin User
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#">Profile</a></li>
+                            <li><a class="dropdown-item" href="#">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="container mt-4" role="main">
+        <!-- Page content will be placed here -->
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <span class="text-muted">&copy; 2026 Enterprise Management System. All rights reserved.</span>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="/Pages/Home/Privacy.html" class="text-muted me-3">Privacy Policy</a>
+                    <a href="/Pages/Home/RazorBasics.html" class="text-muted">Documentation</a>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

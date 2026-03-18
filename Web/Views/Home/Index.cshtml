@@ -1,8 +1,243 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body py-5 text-center">
+                    <h1 class="display-4 fw-bold mb-3">Enterprise Management System</h1>
+                    <p class="lead mb-4">A comprehensive solution for managing your business operations, stalls, and resources efficiently.</p>
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                        <a href="/Pages/Admin/Dashboard.html" class="btn btn-light btn-lg">
+                            <i class="bi bi-speedometer2 me-2"></i>Go to Dashboard
+                        </a>
+                        <a href="/Pages/Home/RazorBasics.html" class="btn btn-outline-light btn-lg">
+                            <i class="bi bi-book me-2"></i>Documentation
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mb-5">
+        <div class="col-md-3 col-sm-6 mb-4">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Businesses</h6>
+                            <h2 class="stats-number mb-0">248</h2>
+                        </div>
+                        <i class="bi bi-building stats-icon text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-4">
+            <div class="card stats-card success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Active Stalls</h6>
+                            <h2 class="stats-number mb-0">1,452</h2>
+                        </div>
+                        <i class="bi bi-shop stats-icon text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-4">
+            <div class="card stats-card warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Registered Users</h6>
+                            <h2 class="stats-number mb-0">3,847</h2>
+                        </div>
+                        <i class="bi bi-people stats-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-4">
+            <div class="card stats-card info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Languages</h6>
+                            <h2 class="stats-number mb-0">12</h2>
+                        </div>
+                        <i class="bi bi-translate stats-icon text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="mb-4">Quick Access</h2>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 hover-shadow">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-building fs-1 text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Business Management</h5>
+                    <p class="card-text text-muted">Manage all business entities, their details, and associated stalls from a centralized location.</p>
+                    <a href="/Pages/Management/BusinessManagement.html" class="btn btn-outline-primary">Manage Businesses</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 hover-shadow">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-shop fs-1 text-success"></i>
+                    </div>
+                    <h5 class="card-title">Stall Management</h5>
+                    <p class="card-text text-muted">Configure and organize stalls, set locations, and manage inventory across all venues.</p>
+                    <a href="/Pages/Management/StallManagement.html" class="btn btn-outline-success">Manage Stalls</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 hover-shadow">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-people fs-1 text-info"></i>
+                    </div>
+                    <h5 class="card-title">User Management</h5>
+                    <p class="card-text text-muted">Control user access, assign roles, and manage permissions for system security.</p>
+                    <a href="/Pages/Admin/UserRoleManagement.html" class="btn btn-outline-info">Manage Users</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 hover-shadow">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-translate fs-1 text-warning"></i>
+                    </div>
+                    <h5 class="card-title">Language Settings</h5>
+                    <p class="card-text text-muted">Configure multi-language support and manage translations for global accessibility.</p>
+                    <a href="/Pages/Management/LanguageManagement.html" class="btn btn-outline-warning">Manage Languages</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 hover-shadow">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-map fs-1 text-danger"></i>
+                    </div>
+                    <h5 class="card-title">Location Mapping</h5>
+                    <p class="card-text text-muted">View and manage stall locations on interactive maps for better visualization.</p>
+                    <a href="/Pages/Management/StallLocationMap.html" class="btn btn-outline-danger">View Map</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 hover-shadow">
+                <div class="card-body text-center py-4">
+                    <div class="rounded-circle bg-secondary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-file-earmark-music fs-1 text-secondary"></i>
+                    </div>
+                    <h5 class="card-title">Content & Audio</h5>
+                    <p class="card-text text-muted">Manage multimedia content and audio files for enhanced user experience.</p>
+                    <a href="/Pages/Management/ContentAudioManagement.html" class="btn btn-outline-secondary">Manage Content</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Activity</h5>
+                    <a href="/Pages/Admin/Dashboard.html" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex align-items-center">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
+                                <i class="bi bi-plus-circle text-success"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <p class="mb-0">New business "Sunrise Enterprises" registered</p>
+                                <small class="text-muted">2 hours ago</small>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3">
+                                <i class="bi bi-pencil text-info"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <p class="mb-0">Stall #A-142 location updated</p>
+                                <small class="text-muted">5 hours ago</small>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
+                                <i class="bi bi-person-plus text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <p class="mb-0">New user "john.doe@example.com" added</p>
+                                <small class="text-muted">1 day ago</small>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                <i class="bi bi-upload text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <p class="mb-0">Audio content "Welcome Message" uploaded</p>
+                                <small class="text-muted">2 days ago</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">System Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Server Status</span>
+                        <span class="badge bg-success">Online</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Database</span>
+                        <span class="badge bg-success">Connected</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>API Services</span>
+                        <span class="badge bg-success">Running</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Last Backup</span>
+                        <span class="text-muted">Today, 03:00 AM</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>System Version</span>
+                        <span class="badge bg-secondary">v2.4.1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>

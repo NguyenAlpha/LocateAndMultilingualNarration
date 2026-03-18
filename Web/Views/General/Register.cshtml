@@ -1,0 +1,422 @@
+﻿
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Enterprise Management System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="/assets/css/site.css" rel="stylesheet">
+    <style>
+        .register-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem 1rem;
+        }
+        .register-card {
+            max-width: 480px;
+            width: 100%;
+        }
+        .register-card .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+        }
+        .register-card .card-header {
+            background-color: transparent;
+            border-bottom: none;
+            padding-top: 2rem;
+            text-align: center;
+        }
+        .register-card .card-body {
+            padding: 2rem;
+        }
+        .register-logo {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        .form-floating label {
+            color: #6c757d;
+        }
+        .btn-register {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+        .password-strength {
+            height: 4px;
+            margin-top: 0.5rem;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .password-strength.weak { background-color: #dc3545; width: 33%; }
+        .password-strength.medium { background-color: #ffc107; width: 66%; }
+        .password-strength.strong { background-color: #198754; width: 100%; }
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: block;
+        }
+        .requirement-list {
+            font-size: 0.8rem;
+            color: #6c757d;
+            padding-left: 1.25rem;
+            margin-top: 0.5rem;
+        }
+        .requirement-list li.met {
+            color: #198754;
+        }
+        .requirement-list li.met::marker {
+            content: '\2713 ';
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="card">
+                <div class="card-header">
+                    <div class="register-logo">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h4 class="mb-0">Create an Account</h4>
+                    <p class="text-muted mt-2 mb-0">Join the Enterprise Management System</p>
+                </div>
+                <div class="card-body">
+                    <form id="registerForm" novalidate>
+                        <!-- Full Name Field -->
+                        <div class="mb-3">
+                            <label for="fullName" class="form-label">
+                                Full Name <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text" aria-hidden="true">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="fullName" 
+                                    name="fullName"
+                                    placeholder="Enter your full name"
+                                    aria-label="Full Name"
+                                    aria-describedby="fullNameHelp"
+                                    data-val="true"
+                                    data-val-required="Full Name is required."
+                                    data-val-minlength="Full Name must be at least 2 characters."
+                                    data-val-minlength-min="2"
+                                    required
+                                >
+                            </div>
+                            <span class="error-message" data-valmsg-for="fullName" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <!-- Email Field -->
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                Email Address <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text" aria-hidden="true">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input 
+                                    type="email" 
+                                    class="form-control" 
+                                    id="email" 
+                                    name="email"
+                                    placeholder="Enter your email address"
+                                    aria-label="Email Address"
+                                    aria-describedby="emailHelp"
+                                    data-val="true"
+                                    data-val-required="Email address is required."
+                                    data-val-email="Please enter a valid email address."
+                                    required
+                                >
+                            </div>
+                            <span class="error-message" data-valmsg-for="email" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="mb-3">
+                            <label for="password" class="form-label">
+                                Password <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text" aria-hidden="true">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input 
+                                    type="password" 
+                                    class="form-control" 
+                                    id="password" 
+                                    name="password"
+                                    placeholder="Create a password"
+                                    aria-label="Password"
+                                    aria-describedby="passwordHelp"
+                                    data-val="true"
+                                    data-val-required="Password is required."
+                                    data-val-minlength="Password must be at least 8 characters."
+                                    data-val-minlength-min="8"
+                                    required
+                                >
+                                <button 
+                                    class="btn btn-outline-secondary" 
+                                    type="button" 
+                                    id="togglePassword"
+                                    aria-label="Toggle password visibility"
+                                >
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength" id="passwordStrength"></div>
+                            <span class="error-message" data-valmsg-for="password" data-valmsg-replace="true"></span>
+                            <ul class="requirement-list" id="passwordRequirements">
+                                <li id="req-length">At least 8 characters</li>
+                                <li id="req-uppercase">One uppercase letter</li>
+                                <li id="req-lowercase">One lowercase letter</li>
+                                <li id="req-number">One number</li>
+                            </ul>
+                        </div>
+
+                        <!-- Confirm Password Field -->
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">
+                                Confirm Password <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text" aria-hidden="true">
+                                    <i class="bi bi-lock-fill"></i>
+                                </span>
+                                <input 
+                                    type="password" 
+                                    class="form-control" 
+                                    id="confirmPassword" 
+                                    name="confirmPassword"
+                                    placeholder="Confirm your password"
+                                    aria-label="Confirm Password"
+                                    data-val="true"
+                                    data-val-required="Please confirm your password."
+                                    data-val-equalto="Passwords do not match."
+                                    data-val-equalto-other="password"
+                                    required
+                                >
+                                <button 
+                                    class="btn btn-outline-secondary" 
+                                    type="button" 
+                                    id="toggleConfirmPassword"
+                                    aria-label="Toggle confirm password visibility"
+                                >
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span class="error-message" data-valmsg-for="confirmPassword" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <!-- Terms and Conditions -->
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    id="agreeTerms" 
+                                    name="agreeTerms"
+                                    data-val="true"
+                                    data-val-required="You must agree to the terms and conditions."
+                                    required
+                                >
+                                <label class="form-check-label" for="agreeTerms">
+                                    I agree to the <a href="/Pages/Home/Privacy.html" class="text-decoration-none">Terms of Service</a> and <a href="/Pages/Home/Privacy.html" class="text-decoration-none">Privacy Policy</a>
+                                </label>
+                            </div>
+                            <span class="error-message" data-valmsg-for="agreeTerms" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-register">
+                                <i class="bi bi-person-plus me-2"></i>Create Account
+                            </button>
+                        </div>
+
+                        <!-- Login Link -->
+                        <div class="text-center mt-4">
+                            <span class="text-muted">Already have an account?</span>
+                            <a href="/Pages/General/Login.html" class="text-decoration-none ms-1">Sign in</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-transparent text-center py-3">
+                    <a href="/index.html" class="text-muted text-decoration-none small">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery Validate -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+    <!-- jQuery Validate Unobtrusive -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation-unobtrusive@4.0.0/dist/jquery.validate.unobtrusive.min.js"></script>
+    <!-- Custom JS -->
+    <script src="/assets/js/site.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Initialize jQuery Validation
+            $('#registerForm').validate({
+                rules: {
+                    fullName: {
+                        required: true,
+                        minlength: 2
+                    },
+                    email: {
+                        required: true,
+                        email: true
+                    },
+                    password: {
+                        required: true,
+                        minlength: 8
+                    },
+                    confirmPassword: {
+                        required: true,
+                        equalTo: '#password'
+                    },
+                    agreeTerms: {
+                        required: true
+                    }
+                },
+                messages: {
+                    fullName: {
+                        required: 'Please enter your full name.',
+                        minlength: 'Full name must be at least 2 characters.'
+                    },
+                    email: {
+                        required: 'Please enter your email address.',
+                        email: 'Please enter a valid email address.'
+                    },
+                    password: {
+                        required: 'Please create a password.',
+                        minlength: 'Password must be at least 8 characters.'
+                    },
+                    confirmPassword: {
+                        required: 'Please confirm your password.',
+                        equalTo: 'Passwords do not match.'
+                    },
+                    agreeTerms: {
+                        required: 'You must agree to the terms and conditions.'
+                    }
+                },
+                errorClass: 'error-message',
+                errorElement: 'span',
+                highlight: function(element) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function(element) {
+                    $(element).removeClass('is-invalid');
+                },
+                errorPlacement: function(error, element) {
+                    if (element.attr('type') === 'checkbox') {
+                        error.insertAfter(element.closest('.form-check'));
+                    } else if (element.closest('.input-group').length) {
+                        // Find the password strength bar or insert after input group
+                        const strengthBar = element.closest('.mb-3').find('.password-strength');
+                        if (strengthBar.length && element.attr('id') === 'password') {
+                            error.insertAfter(strengthBar);
+                        } else {
+                            error.insertAfter(element.closest('.input-group'));
+                        }
+                    } else {
+                        error.insertAfter(element);
+                    }
+                },
+                submitHandler: function(form) {
+                    // Mock form submission
+                    alert('Registration successful! (Mock - No backend)\n\nYou would now be redirected to the login page.');
+                    return false;
+                }
+            });
+
+            // Password strength indicator
+            $('#password').on('input', function() {
+                const password = $(this).val();
+                const strengthBar = $('#passwordStrength');
+                let strength = 0;
+
+                // Check password requirements
+                const hasLength = password.length >= 8;
+                const hasUppercase = /[A-Z]/.test(password);
+                const hasLowercase = /[a-z]/.test(password);
+                const hasNumber = /[0-9]/.test(password);
+
+                // Update requirement list
+                $('#req-length').toggleClass('met', hasLength);
+                $('#req-uppercase').toggleClass('met', hasUppercase);
+                $('#req-lowercase').toggleClass('met', hasLowercase);
+                $('#req-number').toggleClass('met', hasNumber);
+
+                // Calculate strength
+                if (hasLength) strength++;
+                if (hasUppercase) strength++;
+                if (hasLowercase) strength++;
+                if (hasNumber) strength++;
+
+                // Update strength bar
+                strengthBar.removeClass('weak medium strong');
+                if (password.length === 0) {
+                    strengthBar.css('width', '0');
+                } else if (strength <= 2) {
+                    strengthBar.addClass('weak');
+                } else if (strength === 3) {
+                    strengthBar.addClass('medium');
+                } else {
+                    strengthBar.addClass('strong');
+                }
+            });
+
+            // Toggle password visibility
+            $('#togglePassword').on('click', function() {
+                const passwordField = $('#password');
+                const icon = $(this).find('i');
+                
+                if (passwordField.attr('type') === 'password') {
+                    passwordField.attr('type', 'text');
+                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
+                } else {
+                    passwordField.attr('type', 'password');
+                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
+                }
+            });
+
+            $('#toggleConfirmPassword').on('click', function() {
+                const passwordField = $('#confirmPassword');
+                const icon = $(this).find('i');
+                
+                if (passwordField.attr('type') === 'password') {
+                    passwordField.attr('type', 'text');
+                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
+                } else {
+                    passwordField.attr('type', 'password');
+                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
