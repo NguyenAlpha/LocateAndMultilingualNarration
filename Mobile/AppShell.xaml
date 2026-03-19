@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Shell
     x:Class="Mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -7,8 +7,12 @@
     Title="Mobile">
 
     <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    Title="Start"
+    Route="StartPage"
+    ContentTemplate="{DataTemplate local:StartPage}" />
+    <ShellContent
+    Route="StartPage"
+    ContentTemplate="{DataTemplate local:StartPage}" />
+
 
 </Shell>
