@@ -1,181 +1,230 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="Mobile.MainPage"
-    Title="Trang chủ"
-    BackgroundColor="#F5F5F5">
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Mobile.MainPage"
+             BackgroundColor="#F4F6F9"
+             NavigationPage.HasNavigationBar="False">
 
-    <Grid RowDefinitions="220,*">
+    <Grid>
 
-        <!-- HEADER -->
-        <Grid Grid.Row="0">
-            <Grid.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#C94BFF" Offset="0"/>
-                    <GradientStop Color="#6A5CFF" Offset="1"/>
-                </LinearGradientBrush>
-            </Grid.Background>
+        <Grid RowDefinitions="Auto, *">
 
-            <VerticalStackLayout Padding="20" Spacing="12">
+            <Grid Grid.Row="0" Padding="20,40,20,30">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#6A11CB" Offset="0.0" />
+                        <GradientStop Color="#2575FC" Offset="1.0" />
+                    </LinearGradientBrush>
+                </Grid.Background>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                <!-- USER NAME -->
-                <Label
-        x:Name="lblUserName"
-        Text="Nguyễn Văn A"
-        FontSize="18"
-        FontAttributes="Bold"
-        TextColor="#F0F0F0" />
+                <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto, Auto" Margin="0,0,0,20">
+                    <ImageButton Grid.Column="0" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Clicked="OpenDrawer_Clicked">
+                        <ImageButton.Source>
+                            <FontImageSource FontFamily="OpenSansRegular" Glyph="☰" Color="White" Size="28"/>
+                        </ImageButton.Source>
+                    </ImageButton>
 
-                <!-- APP TITLE -->
-                <Label
-        Text="Hướng Dẫn Du Lịch"
-        FontSize="24"
-        FontAttributes="Bold"
-        TextColor="#FFFFFF" />
+                    <Label x:Name="lblLanguageDisplay" Grid.Column="2" Text="🇻🇳 VN" TextColor="White" VerticalOptions="Center" FontAttributes="Bold" Margin="0,0,10,0"/>
+                    <Picker x:Name="languagePicker" Grid.Column="3" Title="Ngôn ngữ" TextColor="White" TitleColor="White" BackgroundColor="Transparent" WidthRequest="80">
+                        <Picker.Items>
+                            <x:String>Tiếng Việt</x:String>
+                            <x:String>English</x:String>
+                        </Picker.Items>
+                    </Picker>
+                </Grid>
 
-                <!-- LANGUAGE DISPLAY -->
-                <Frame
-        BackgroundColor="#FFFFFF15"
-        CornerRadius="12"
-        Padding="10">
+                <VerticalStackLayout Grid.Row="1" Spacing="5" Margin="0,0,0,20">
+                    <Label Text="Xin chào, [User]" TextColor="#E0E0E0" FontSize="16" />
+                    <Label Text="Khám phá du lịch" TextColor="White" FontSize="26" FontAttributes="Bold" />
+                </VerticalStackLayout>
 
-                    <Label
-            x:Name="lblLanguageDisplay"
-            Text="Ngôn ngữ: Tiếng Việt"
-            TextColor="#EAEAEA"
-            FontSize="14"/>
-                </Frame>
+                <Button Grid.Row="2" Text="Bắt đầu khám phá" BackgroundColor="White" TextColor="#2575FC" 
+                        CornerRadius="24" FontAttributes="Bold" HeightRequest="48" />
+            </Grid>
 
-                <!-- DROPDOWN LANGUAGE -->
-                <Picker
-        x:Name="languagePicker"
-        Title="Chọn ngôn ngữ"
-        BackgroundColor="#FFFFFF"
-        TextColor="Black"
-        SelectedIndexChanged="OnLanguageChanged"/>
+            <ScrollView Grid.Row="1" Margin="0,-20,0,0">
+                <VerticalStackLayout Spacing="20" Padding="20,0,20,20">
 
-                <!-- BUTTON -->
-                <Button
-        Text="Bắt đầu khám phá"
-        Clicked="OnStartClicked"
-        BackgroundColor="#EDE9FF"
-        TextColor="#5A4FCF"
-        CornerRadius="20"
-        HeightRequest="45"
-        WidthRequest="180"/>
+                    <Label Text="Chức năng nhanh" FontSize="18" FontAttributes="Bold" TextColor="#333333" Margin="0,20,0,0"/>
+                    <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="15">
 
-            </VerticalStackLayout>
-        </Grid>
- 
-        <!-- CONTENT -->
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="20" Spacing="20">
-
-                <!-- CARD 1 -->
-                <Frame CornerRadius="20" HasShadow="True" Padding="0">
-                    <Grid ColumnDefinitions="80,*,Auto">
-
-                        <Image Source="dotnet_bot.png"
-                               HeightRequest="80"
-                               WidthRequest="80"
-                               Aspect="AspectFill"/>
-
-                        <VerticalStackLayout Grid.Column="1" Padding="10,5">
-                            <Label Text="Bánh mì Sài Gòn"
-                                   FontAttributes="Bold"
-                                   FontSize="16"/>
-
-                            <Label Text="Đặc sản Việt Nam"
-                                   FontSize="12"
-                                   TextColor="Gray"/>
-
-                            <Label Text="200m • ⭐ 4.8"
-                                   FontSize="11"
-                                   TextColor="#666"/>
+                        <VerticalStackLayout Grid.Column="0" Spacing="8" HorizontalOptions="Center">
+                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
+                                <Frame.Shadow>
+                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
+                                </Frame.Shadow>
+                                <ImageButton BackgroundColor="Transparent" Clicked="OnMapClicked">
+                                    <ImageButton.Source>
+                                        <FontImageSource Glyph="🗺" Color="#6A11CB" Size="24"/>
+                                    </ImageButton.Source>
+                                </ImageButton>
+                            </Frame>
+                            <Label Text="Bản đồ" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
                         </VerticalStackLayout>
 
-                        <Label Grid.Column="2"
-                               Text="1"
-                               FontSize="20"
-                               TextColor="#6A5CFF"
-                               VerticalOptions="Center"
-                               Margin="10"/>
-                    </Grid>
-                </Frame>
-
-                <!-- CARD 2 -->
-                <Frame CornerRadius="20" HasShadow="True" Padding="0">
-                    <Grid ColumnDefinitions="80,*,Auto">
-
-                        <Image Source="dotnet_bot.png"
-                               HeightRequest="80"
-                               WidthRequest="80"
-                               Aspect="AspectFill"/>
-
-                        <VerticalStackLayout Grid.Column="1" Padding="10,5">
-                            <Label Text="Phở Hà Nội"
-                                   FontAttributes="Bold"
-                                   FontSize="16"/>
-
-                            <Label Text="Phở bò truyền thống"
-                                   FontSize="12"
-                                   TextColor="Gray"/>
-
-                            <Label Text="350m • ⭐ 4.7"
-                                   FontSize="11"
-                                   TextColor="#666"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="Center">
+                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
+                                <Frame.Shadow>
+                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
+                                </Frame.Shadow>
+                                <ImageButton BackgroundColor="Transparent" Clicked="OnLanguageClicked">
+                                    <ImageButton.Source>
+                                        <FontImageSource Glyph="🌐" Color="#00B4DB" Size="24"/>
+                                    </ImageButton.Source>
+                                </ImageButton>
+                            </Frame>
+                            <Label Text="Ngôn ngữ" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
                         </VerticalStackLayout>
 
-                        <Label Grid.Column="2"
-                               Text="2"
-                               FontSize="20"
-                               TextColor="#6A5CFF"
-                               VerticalOptions="Center"
-                               Margin="10"/>
+                        <VerticalStackLayout Grid.Column="2" Spacing="8" HorizontalOptions="Center">
+                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
+                                <Frame.Shadow>
+                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
+                                </Frame.Shadow>
+                                <ImageButton x:Name="btnAudio" BackgroundColor="Transparent" Clicked="OnAudioClicked">
+                                    <ImageButton.Source>
+                                        <FontImageSource Glyph="🔊" Color="#00C9FF" Size="24"/>
+                                    </ImageButton.Source>
+                                </ImageButton>
+                            </Frame>
+                            <Label Text="Âm thanh" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Column="3" Spacing="8" HorizontalOptions="Center">
+                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
+                                <Frame.Shadow>
+                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
+                                </Frame.Shadow>
+                                <ImageButton BackgroundColor="Transparent" Clicked="OnProfileClicked">
+                                    <ImageButton.Source>
+                                        <FontImageSource Glyph="👤" Color="#2575FC" Size="24"/>
+                                    </ImageButton.Source>
+                                </ImageButton>
+                            </Frame>
+                            <Label Text="Hồ sơ" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
+                        </VerticalStackLayout>
                     </Grid>
-                </Frame>
 
-                <!-- QUICK ACTION -->
-                <Frame CornerRadius="20" BackgroundColor="White" HasShadow="True">
-                    <VerticalStackLayout Spacing="12">
+                    <Label Text="Gian hàng nổi bật" FontSize="18" FontAttributes="Bold" TextColor="#333333" Margin="0,10,0,0"/>
 
-                        <Label Text="Chức năng nhanh"
-               FontAttributes="Bold"
-               FontSize="16"/>
+                    <Frame CornerRadius="20" Padding="12" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
+                        <Frame.Shadow>
+                            <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.08"/>
+                        </Frame.Shadow>
+                        <Grid ColumnDefinitions="100, *">
+                            <Frame Grid.Column="0" CornerRadius="16" Padding="0" IsClippedToBounds="True" HasShadow="False">
+                                <Image Source="https://images.unsplash.com/photo-1555939594-58d7cb561ad1" Aspect="AspectFill" HeightRequest="100"/>
+                            </Frame>
+                            <Frame Grid.Column="0" HorizontalOptions="Start" VerticalOptions="Start" BackgroundColor="#E53935" 
+                                   CornerRadius="8" Padding="6,2" Margin="5" HasShadow="False">
+                                <Label Text="#1" TextColor="White" FontSize="10" FontAttributes="Bold"/>
+                            </Frame>
 
-                        <Grid ColumnDefinitions="*,*,*">
-
-                            <!-- MAP -->
-                            <Button Text="🗺 Bản đồ"
-                    Clicked="OnMapClicked"
-                    BackgroundColor="#6A5CFF"
-                    TextColor="White"
-                    CornerRadius="12"/>
-
-                            <!-- LANGUAGE -->
-                            <Button Text="🌐 Ngôn ngữ"
-                    Clicked="OnLanguageClicked"
-                    BackgroundColor="#C94BFF"
-                    TextColor="White"
-                    CornerRadius="12"/>
-
-                            <!-- AUDIO -->
-                            <Button x:Name="btnAudio"
-                    Text="🔊 Audio"
-                    Clicked="OnAudioClicked"
-                    BackgroundColor="#FF7A7A"
-                    TextColor="White"
-                    CornerRadius="12"/>
-
+                            <VerticalStackLayout Grid.Column="1" Padding="12,0,0,0" Spacing="4">
+                                <Label Text="Nhà hàng Biển Xanh" FontSize="16" FontAttributes="Bold" TextColor="#222222" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                <Label Text="Hải sản tươi sống, không gian view biển cực đẹp." FontSize="12" TextColor="#777777" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                <Grid ColumnDefinitions="*, Auto" Margin="0,5,0,0">
+                                    <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                                        <Label Text="📍" FontSize="12"/>
+                                        <Label Text="1.2 km" FontSize="12" TextColor="#6A11CB" FontAttributes="Bold"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="⭐" FontSize="12" TextColor="#FF5722"/>
+                                        <Label Text="4.8" FontSize="12" TextColor="#333333" FontAttributes="Bold"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </VerticalStackLayout>
                         </Grid>
+                    </Frame>
 
+                    <Frame CornerRadius="20" Padding="12" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
+                        <Frame.Shadow>
+                            <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.08"/>
+                        </Frame.Shadow>
+                        <Grid ColumnDefinitions="100, *">
+                            <Frame Grid.Column="0" CornerRadius="16" Padding="0" IsClippedToBounds="True" HasShadow="False">
+                                <Image Source="https://images.unsplash.com/photo-1514933651103-005eec06c04b" Aspect="AspectFill" HeightRequest="100"/>
+                            </Frame>
+                            <Frame Grid.Column="0" HorizontalOptions="Start" VerticalOptions="Start" BackgroundColor="#2575FC" 
+                                   CornerRadius="8" Padding="6,2" Margin="5" HasShadow="False">
+                                <Label Text="#2" TextColor="White" FontSize="10" FontAttributes="Bold"/>
+                            </Frame>
+
+                            <VerticalStackLayout Grid.Column="1" Padding="12,0,0,0" Spacing="4">
+                                <Label Text="Cà phê Thung Lũng" FontSize="16" FontAttributes="Bold" TextColor="#222222" MaxLines="1" LineBreakMode="TailTruncation"/>
+                                <Label Text="Trải nghiệm cà phê nguyên chất giữa núi rừng." FontSize="12" TextColor="#777777" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                <Grid ColumnDefinitions="*, Auto" Margin="0,5,0,0">
+                                    <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                                        <Label Text="📍" FontSize="12"/>
+                                        <Label Text="3.5 km" FontSize="12" TextColor="#6A11CB" FontAttributes="Bold"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="⭐" FontSize="12" TextColor="#FF5722"/>
+                                        <Label Text="4.6" FontSize="12" TextColor="#333333" FontAttributes="Bold"/>
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Frame>
+
+                    <BoxView HeightRequest="40" Color="Transparent"/>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+
+        <Grid x:Name="DrawerOverlay" BackgroundColor="#80000000" IsVisible="False" InputTransparent="False">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="CloseDrawer_Tapped"/>
+            </Grid.GestureRecognizers>
+
+            <Frame x:Name="DrawerView" WidthRequest="280" HorizontalOptions="Start" VerticalOptions="FillAndExpand" 
+                   BackgroundColor="White" CornerRadius="0" Padding="0" TranslationX="-280" HasShadow="True">
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer />
+                </Frame.GestureRecognizers>
+
+                <VerticalStackLayout>
+                    <Grid Padding="20,40,20,20">
+                        <Grid.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#6A11CB" Offset="0.0" />
+                                <GradientStop Color="#2575FC" Offset="1.0" />
+                            </LinearGradientBrush>
+                        </Grid.Background>
+                        <VerticalStackLayout Spacing="10">
+                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="30" HorizontalOptions="Start" Padding="0" IsClippedToBounds="True">
+                                <Image Source="profile_icon.png" Aspect="AspectFill" BackgroundColor="#E0E0E0"/>
+                            </Frame>
+                            <Label Text="[User Name]" TextColor="White" FontAttributes="Bold" FontSize="18"/>
+                            <Label Text="Traveler Account" TextColor="#E0E0E0" FontSize="12"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <VerticalStackLayout Spacing="5" Padding="15">
+                        <Button Text="🏠 Trang chủ" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
+                        <Button Text="🗺 Bản đồ" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
+                        <Button Text="🏪 Gian hàng" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
+                        <Button Text="🌐 Chọn ngôn ngữ" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
+                        <Button Text="👤 Hồ sơ cá nhân" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
+
+                        <BoxView HeightRequest="1" Color="#E0E0E0" Margin="0,10"/>
+
+                        <Button Text="🚪 Đăng xuất"
+        Clicked="OnLogoutClicked"
+        BackgroundColor="Transparent"
+        TextColor="#E53935"
+        HorizontalOptions="Start"
+        FontSize="16"
+        FontAttributes="Bold"/>
                     </VerticalStackLayout>
-                </Frame>
-
-            </VerticalStackLayout>
-        </ScrollView>
+                </VerticalStackLayout>
+            </Frame>
+        </Grid>
 
     </Grid>
-
 </ContentPage>
