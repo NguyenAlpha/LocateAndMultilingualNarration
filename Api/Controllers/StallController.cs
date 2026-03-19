@@ -243,42 +243,50 @@ namespace Api.Controllers
         {
             _logger.LogInformation("Bắt đầu lấy danh sách stall - Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
+            // Lấy userId từ claim, nếu không có -> trả về 401
             if (!TryGetUserId(out var userId))
             {
                 _logger.LogWarning("Không xác thực khi lấy danh sách stall");
                 return this.UnauthorizedResult("Không xác thực");
             }
 
+            // Kiểm tra quyền: chỉ Admin hoặc BusinessOwner mới được truy cập
             if (!IsAdmin() && !IsBusinessOwner())
             {
                 _logger.LogWarning("Không có quyền truy cập danh sách stall - UserId: {UserId}", userId);
                 return this.ForbiddenResult("Không có quyền truy cập");
             }
 
+            // Chuẩn hóa tham số phân trang
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
 
+            // Xây dựng truy vấn cơ bản (join Business để kiểm tra owner khi cần)
             var query = _context.Stalls
                 .Include(s => s.Business)
                 .AsNoTracking()
                 .AsQueryable();
 
+            // Nếu không phải Admin thì chỉ lấy các stall thuộc business của user
             if (!IsAdmin())
             {
                 query = query.Where(s => s.Business.OwnerUserId == userId);
             }
 
+            // Lọc theo businessId nếu có
             if (businessId.HasValue)
             {
                 query = query.Where(s => s.BusinessId == businessId.Value);
             }
 
+            // Tìm kiếm theo tên hoặc slug nếu có từ khóa
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim();
                 query = query.Where(s => s.Name.Contains(keyword) || s.Slug.Contains(keyword));
             }
 
+            // Đếm tổng số và lấy trang dữ liệu
             _logger.LogDebug("Truy vấn danh sách stall - UserId: {UserId}", userId);
             var totalCount = await query.CountAsync();
             var stalls = await query
@@ -287,9 +295,11 @@ namespace Api.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
+            // Chuyển thời gian từ UTC sang timezone của client và map sang DTO
             var timeZone = GetTimeZone();
             var items = stalls.Select(s => MapStallDetail(s, timeZone)).ToList();
 
+            // Gói kết quả theo mô hình phân trang và trả về
             var result = new PagedResult<StallDetailDto>
             {
                 Items = items,
