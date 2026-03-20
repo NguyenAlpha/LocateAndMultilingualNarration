@@ -1,12 +1,15 @@
-﻿
+@model Web.Models.BusinessManagementViewModel
 @{
-    ViewData["Title"] = "BusinessManagement";
+    ViewData["Title"] = "Business Management";
+    var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
 }
+
 <!-- Page Header -->
 <div class="page-header">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/Pages/Home/Index.html">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
             <li class="breadcrumb-item"><a href="#">Management</a></li>
             <li class="breadcrumb-item active" aria-current="page">Business Management</li>
         </ol>
@@ -19,46 +22,42 @@
     </div>
 </div>
 
+@if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+{
+    <div class="alert alert-success" role="alert">
+        @Model.SuccessMessage
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+
 <!-- Search/Filter -->
 <div class="search-filter-bar">
-    <div class="row g-3">
+    <form method="get" asp-action="Index" class="row g-3">
         <div class="col-md-4">
             <label for="businessSearch" class="form-label visually-hidden">Search businesses</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control table-search" id="businessSearch" placeholder="Search businesses...">
+                <input type="text" class="form-control table-search" id="businessSearch" name="search"
+                       value="@Model.Search" placeholder="Search businesses...">
             </div>
         </div>
         <div class="col-md-2">
-            <label for="categoryFilter" class="form-label visually-hidden">Filter by category</label>
-            <select class="form-select" id="categoryFilter" aria-label="Filter by category">
-                <option value="">All Categories</option>
-                <option value="food">Food & Beverage</option>
-                <option value="retail">Retail</option>
-                <option value="services">Services</option>
-                <option value="entertainment">Entertainment</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <label for="statusFilter" class="form-label visually-hidden">Filter by status</label>
-            <select class="form-select status-filter" id="statusFilter" aria-label="Filter by status">
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="suspended">Suspended</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-outline-secondary w-100" type="button" onclick="exportTableToCSV('businessTable', 'businesses.csv')">
-                <i class="bi bi-download me-1"></i>Export
+            <button class="btn btn-outline-secondary w-100" type="submit">
+                <i class="bi bi-search me-1"></i>Search
             </button>
         </div>
         <div class="col-md-2">
-            <button class="btn btn-outline-secondary w-100" type="button">
-                <i class="bi bi-funnel me-1"></i>More Filters
-            </button>
+            <a class="btn btn-outline-secondary w-100" asp-action="Index">
+                <i class="bi bi-x-circle me-1"></i>Reset
+            </a>
         </div>
-    </div>
+    </form>
 </div>
 
 <!-- Business Table -->
@@ -67,199 +66,104 @@
         <table class="table table-hover" id="businessTable" aria-label="Business list">
             <thead>
                 <tr>
-                    <th scope="col" class="no-export" style="width: 40px;">
-                        <input type="checkbox" class="form-check-input select-all" aria-label="Select all businesses">
-                    </th>
                     <th scope="col" class="sortable">Business Name</th>
-                    <th scope="col" class="sortable">Category</th>
-                    <th scope="col" class="sortable">Owner</th>
-                    <th scope="col" class="sortable">Stalls</th>
+                    <th scope="col" class="sortable">Tax Code</th>
+                    <th scope="col" class="sortable">Contact Email</th>
+                    <th scope="col" class="sortable">Contact Phone</th>
                     <th scope="col" class="sortable">Status</th>
-                    <th scope="col" class="sortable">Registration Date</th>
+                    <th scope="col" class="sortable">Created At</th>
                     <th scope="col" class="no-export">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select business"></td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="rounded bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                <i class="bi bi-shop"></i>
-                            </div>
-                            <div>
-                                <strong>Golden Spoon Restaurant</strong>
-                                <small class="d-block text-muted">ID: BUS-001</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-warning text-dark">Food & Beverage</span></td>
-                    <td>John Smith</td>
-                    <td>5</td>
-                    <td><span class="badge bg-success">Active</span></td>
-                    <td>Jan 15, 2025</td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View Details">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Golden Spoon Restaurant" data-bs-toggle="tooltip" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select business"></td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="rounded bg-success text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                <i class="bi bi-laptop"></i>
-                            </div>
-                            <div>
-                                <strong>TechZone Electronics</strong>
-                                <small class="d-block text-muted">ID: BUS-002</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-info">Retail</span></td>
-                    <td>Sarah Johnson</td>
-                    <td>3</td>
-                    <td><span class="badge bg-success">Active</span></td>
-                    <td>Feb 22, 2025</td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View Details">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="TechZone Electronics" data-bs-toggle="tooltip" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select business"></td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="rounded bg-warning text-dark d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                <i class="bi bi-bag"></i>
-                            </div>
-                            <div>
-                                <strong>Fashion Hub</strong>
-                                <small class="d-block text-muted">ID: BUS-003</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-info">Retail</span></td>
-                    <td>Emily Davis</td>
-                    <td>2</td>
-                    <td><span class="badge bg-warning text-dark">Pending</span></td>
-                    <td>Mar 10, 2026</td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View Details">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Fashion Hub" data-bs-toggle="tooltip" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select business"></td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="rounded bg-info text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                <i class="bi bi-heart-pulse"></i>
-                            </div>
-                            <div>
-                                <strong>Wellness Spa & Beauty</strong>
-                                <small class="d-block text-muted">ID: BUS-004</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-secondary">Services</span></td>
-                    <td>Michael Brown</td>
-                    <td>1</td>
-                    <td><span class="badge bg-success">Active</span></td>
-                    <td>Nov 05, 2024</td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View Details">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Wellness Spa & Beauty" data-bs-toggle="tooltip" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
-                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select business"></td>
-                    <td>
-                        <div class="d-flex align-items-center">
-                            <div class="rounded bg-danger text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
-                                <i class="bi bi-cart3"></i>
-                            </div>
-                            <div>
-                                <strong>Fresh Mart Groceries</strong>
-                                <small class="d-block text-muted">ID: BUS-005</small>
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-info">Retail</span></td>
-                    <td>Lisa Wilson</td>
-                    <td>4</td>
-                    <td><span class="badge bg-danger">Suspended</span></td>
-                    <td>Aug 18, 2024</td>
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View Details">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Fresh Mart Groceries" data-bs-toggle="tooltip" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">Chưa có business nào.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var business in Model.Items)
+                    {
+                        var statusClass = business.IsActive ? "success" : "secondary";
+                        var statusText = business.IsActive ? "Active" : "Inactive";
+                        <tr>
+                            <td>
+                                <strong>@business.Name</strong>
+                                <small class="d-block text-muted">ID: @business.Id</small>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(business.TaxCode) ? "-" : business.TaxCode)</td>
+                            <td>@(string.IsNullOrWhiteSpace(business.ContactEmail) ? "-" : business.ContactEmail)</td>
+                            <td>@(string.IsNullOrWhiteSpace(business.ContactPhone) ? "-" : business.ContactPhone)</td>
+                            <td><span class="badge bg-@statusClass">@statusText</span></td>
+                            <td>@business.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary btn-action"
+                                            data-bs-toggle="tooltip" title="Edit"
+                                            data-id="@business.Id"
+                                            data-name="@business.Name"
+                                            data-taxcode="@business.TaxCode"
+                                            data-email="@business.ContactEmail"
+                                            data-phone="@business.ContactPhone"
+                                            data-active="@business.IsActive"
+                                            onclick="openEditModal(this)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-info btn-action"
+                                            data-bs-toggle="tooltip" title="View Details"
+                                            data-id="@business.Id"
+                                            data-name="@business.Name"
+                                            data-taxcode="@business.TaxCode"
+                                            data-email="@business.ContactEmail"
+                                            data-phone="@business.ContactPhone"
+                                            data-active="@business.IsActive"
+                                            data-created="@business.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                            onclick="openShowModal(this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <form asp-action="Deactivate" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@business.Id" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                        <input type="hidden" name="search" value="@Model.Search" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-action"
+                                                data-bs-toggle="tooltip" title="Deactivate"
+                                                onclick="return confirm('Bạn chắc chắn muốn vô hiệu hóa business này?');">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
             </tbody>
         </table>
     </div>
-    <!-- Pagination -->
     <div class="d-flex justify-content-between align-items-center mt-3">
         <div class="text-muted">
-            Showing 1-5 of 248 businesses
+            Showing @startIndex-@endIndex of @Model.TotalCount businesses
         </div>
         <nav aria-label="Business list pagination">
             <ul class="pagination mb-0">
-                <li class="page-item disabled">
-                    <a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>
+                <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
                 </li>
-                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                <li class="page-item"><a class="page-link" href="#">...</a></li>
-                <li class="page-item"><a class="page-link" href="#">50</a></li>
-                <li class="page-item">
-                    <a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
                 </li>
             </ul>
         </nav>
@@ -274,103 +178,40 @@
                 <h5 class="modal-title" id="addBusinessModalLabel"><i class="bi bi-building-add me-2"></i>Add New Business</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addBusinessForm">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="search" value="@Model.Search" />
                 <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="businessName" class="form-label">Business Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="businessName" name="BusinessName"
-                                   data-val="true"
-                                   data-val-required="Business name is required"
-                                   data-val-length="Business name must be between 2 and 100 characters"
-                                   data-val-length-min="2"
-                                   data-val-length-max="100"
-                                   placeholder="Enter business name">
-                            <span class="field-validation-valid" data-valmsg-for="BusinessName" data-valmsg-replace="true"></span>
+                            <label asp-for="Create.Name" class="form-label">Business Name <span class="text-danger">*</span></label>
+                            <input asp-for="Create.Name" class="form-control" placeholder="Enter business name">
+                            <span asp-validation-for="Create.Name" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="businessCategory" class="form-label">Category <span class="text-danger">*</span></label>
-                            <select class="form-select" id="businessCategory" name="Category"
-                                    data-val="true"
-                                    data-val-required="Please select a category">
-                                <option value="">Select category</option>
-                                <option value="food">Food & Beverage</option>
-                                <option value="retail">Retail</option>
-                                <option value="services">Services</option>
-                                <option value="entertainment">Entertainment</option>
-                                <option value="other">Other</option>
-                            </select>
-                            <span class="field-validation-valid" data-valmsg-for="Category" data-valmsg-replace="true"></span>
+                            <label asp-for="Create.TaxCode" class="form-label">Tax Code</label>
+                            <input asp-for="Create.TaxCode" class="form-control" placeholder="Enter tax code">
+                            <span asp-validation-for="Create.TaxCode" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="ownerName" class="form-label">Owner Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="ownerName" name="OwnerName"
-                                   data-val="true"
-                                   data-val-required="Owner name is required"
-                                   placeholder="Enter owner name">
-                            <span class="field-validation-valid" data-valmsg-for="OwnerName" data-valmsg-replace="true"></span>
+                            <label asp-for="Create.ContactEmail" class="form-label">Contact Email</label>
+                            <input asp-for="Create.ContactEmail" class="form-control" placeholder="Enter contact email">
+                            <span asp-validation-for="Create.ContactEmail" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="ownerEmail" class="form-label">Owner Email <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control" id="ownerEmail" name="OwnerEmail"
-                                   data-val="true"
-                                   data-val-required="Email is required"
-                                   data-val-email="Please enter a valid email address"
-                                   placeholder="Enter owner email">
-                            <span class="field-validation-valid" data-valmsg-for="OwnerEmail" data-valmsg-replace="true"></span>
+                            <label asp-for="Create.ContactPhone" class="form-label">Contact Phone</label>
+                            <input asp-for="Create.ContactPhone" class="form-control" placeholder="Enter contact phone">
+                            <span asp-validation-for="Create.ContactPhone" class="text-danger"></span>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" name="Phone"
-                                   data-val="true"
-                                   data-val-regex="Please enter a valid phone number"
-                                   data-val-regex-pattern="^[\d\s\-\+\(\)]+$"
-                                   placeholder="Enter phone number">
-                            <span class="field-validation-valid" data-valmsg-for="Phone" data-valmsg-replace="true"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="registrationNumber" class="form-label">Registration Number</label>
-                            <input type="text" class="form-control" id="registrationNumber" name="RegistrationNumber"
-                                   placeholder="Enter registration number">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Business Address <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="address" name="Address" rows="2"
-                                  data-val="true"
-                                  data-val-required="Address is required"
-                                  placeholder="Enter business address"></textarea>
-                        <span class="field-validation-valid" data-valmsg-for="Address" data-valmsg-replace="true"></span>
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="Description" rows="3"
-                                  data-val="true"
-                                  data-val-length="Description must be less than 500 characters"
-                                  data-val-length-max="500"
-                                  placeholder="Brief description of the business"></textarea>
-                        <span class="field-validation-valid" data-valmsg-for="Description" data-valmsg-replace="true"></span>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="businessStatus" class="form-label">Status</label>
-                            <select class="form-select" id="businessStatus" name="Status">
-                                <option value="pending">Pending Approval</option>
-                                <option value="active">Active</option>
-                                <option value="suspended">Suspended</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label d-block">Options</label>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" id="featured" name="Featured">
-                                <label class="form-check-label" for="featured">Featured Business</label>
-                            </div>
-                        </div>
+                    <div class="form-check">
+                        <input asp-for="Create.IsActive" class="form-check-input" />
+                        <label asp-for="Create.IsActive" class="form-check-label">Active</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -383,3 +224,173 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Business Modal -->
+<div class="modal fade" id="editBusinessModal" tabindex="-1" aria-labelledby="editBusinessModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editBusinessModalLabel"><i class="bi bi-pencil-square me-2"></i>Edit Business</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Update" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="search" value="@Model.Search" />
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <input asp-for="Edit.Id" type="hidden" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.Name" class="form-label">Business Name <span class="text-danger">*</span></label>
+                            <input asp-for="Edit.Name" id="editBusinessName" class="form-control" placeholder="Enter business name">
+                            <span asp-validation-for="Edit.Name" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.TaxCode" class="form-label">Tax Code</label>
+                            <input asp-for="Edit.TaxCode" id="editTaxCode" class="form-control" placeholder="Enter tax code">
+                            <span asp-validation-for="Edit.TaxCode" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.ContactEmail" class="form-label">Contact Email</label>
+                            <input asp-for="Edit.ContactEmail" id="editContactEmail" class="form-control" placeholder="Enter contact email">
+                            <span asp-validation-for="Edit.ContactEmail" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.ContactPhone" class="form-label">Contact Phone</label>
+                            <input asp-for="Edit.ContactPhone" id="editContactPhone" class="form-control" placeholder="Enter contact phone">
+                            <span asp-validation-for="Edit.ContactPhone" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.IsActive" class="form-label">Status</label>
+                            <select asp-for="Edit.IsActive" class="form-select" id="editBusinessStatus">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Show Business Details Modal -->
+<div class="modal fade" id="showBusinessModal" tabindex="-1" aria-labelledby="showBusinessModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="showBusinessModalLabel"><i class="bi bi-eye me-2"></i>Business Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Business Name:</strong></p>
+                        <p id="showBusinessName" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Business ID:</strong></p>
+                        <p id="showBusinessId" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Tax Code:</strong></p>
+                        <p id="showTaxCode" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong></p>
+                        <p id="showBusinessStatus" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Contact Email:</strong></p>
+                        <p id="showContactEmail" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Contact Phone:</strong></p>
+                        <p id="showContactPhone" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Created At:</strong></p>
+                        <p id="showCreatedAt" class="text-muted">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function openEditModal(button) {
+            const $button = $(button);
+            $('#editBusinessName').val($button.data('name'));
+            $('#editTaxCode').val($button.data('taxcode'));
+            $('#editContactEmail').val($button.data('email'));
+            $('#editContactPhone').val($button.data('phone'));
+            $('#editBusinessStatus').val(String($button.data('active')).toLowerCase());
+            $('input[name="Edit.Id"]').val($button.data('id'));
+
+            const editModal = new bootstrap.Modal(document.getElementById('editBusinessModal'));
+            editModal.show();
+        }
+
+        function openShowModal(button) {
+            const $button = $(button);
+            const isActive = String($button.data('active')).toLowerCase() === 'true';
+            $('#showBusinessName').text($button.data('name'));
+            $('#showBusinessId').text($button.data('id'));
+            $('#showTaxCode').text($button.data('taxcode') || '-');
+            $('#showContactEmail').text($button.data('email') || '-');
+            $('#showContactPhone').text($button.data('phone') || '-');
+            $('#showCreatedAt').text($button.data('created') || '-');
+            $('#showBusinessStatus').html(`<span class="badge bg-${isActive ? 'success' : 'secondary'}">${isActive ? 'Active' : 'Inactive'}</span>`);
+
+            const showModal = new bootstrap.Modal(document.getElementById('showBusinessModal'));
+            showModal.show();
+        }
+
+        $(document).ready(function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+
+            @if (Model.ShowCreateModal)
+            {
+                <text>
+                new bootstrap.Modal(document.getElementById('addBusinessModal')).show();
+                </text>
+            }
+
+            @if (Model.ShowEditModal)
+            {
+                <text>
+                new bootstrap.Modal(document.getElementById('editBusinessModal')).show();
+                </text>
+            }
+        });
+    </script>
+}
