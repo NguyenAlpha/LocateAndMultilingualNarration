@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
+    // controller mẫu không liên quan đến database, authentication, authorization
+    // không cần tạo test cho controller này, chỉ để demo cách viết controller đơn giản
     [ApiController]
     [Route("[controller]")]
     public class WeatherForecastController : ControllerBase
