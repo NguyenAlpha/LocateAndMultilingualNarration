@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Frame xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       x:Class="Mobile.Components.StallCard"
+       CornerRadius="12"
+       Padding="10"
+       Margin="0,8"
+       BackgroundColor="White"
+       HasShadow="True">
+
+    <Grid ColumnDefinitions="80,*,Auto">
+
+        <Image Source="{Binding ImageUrl}" HeightRequest="60" WidthRequest="60" Aspect="AspectFill" />
+
+        <VerticalStackLayout Grid.Column="1" Padding="8,0">
+            <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="16" TextColor="#222" />
+            <Label Text="{Binding Description}" FontSize="12" TextColor="#666" LineBreakMode="TailTruncation" />
+        </VerticalStackLayout>
+
+        <Label Grid.Column="2" Text="▶" VerticalOptions="Center" HorizontalOptions="Center" TextColor="#999" />
+
+    </Grid>
+
+</Frame>

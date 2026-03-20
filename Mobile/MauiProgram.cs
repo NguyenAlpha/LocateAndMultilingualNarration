@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-//using Microsoft.Maui.Controls.Maps;
-
+using ZXing.Net.Maui;
 namespace Mobile;
 
 public static class MauiProgram
@@ -11,7 +10,7 @@ public static class MauiProgram
 
         builder
             .UseMauiApp<App>()
-            //.UseMauiMaps() // 👈 QUAN TRỌNG
+            //.UseBarcodeReader() // 👈 QUAN TRỌNG
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

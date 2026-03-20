@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="Mobile.StartPage"
+    BackgroundColor="#F5F5F5"
+    NavigationPage.HasNavigationBar="False">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- HEADER -->
+        <Grid>
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#6A5CFF" Offset="0"/>
+                    <GradientStop Color="#8F7CFF" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+
+            <VerticalStackLayout VerticalOptions="Center" Spacing="10">
+                <Label Text="Chào mừng 👋"
+                       FontSize="26"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalTextAlignment="Center"/>
+
+                <Label Text="Ứng dụng hướng dẫn du lịch"
+                       FontSize="14"
+                       TextColor="#EAEAFF"
+                       HorizontalTextAlignment="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- OPTIONS -->
+        <VerticalStackLayout Grid.Row="1" Padding="20" Spacing="15">
+
+            <!-- QR -->
+            <Frame CornerRadius="20" BackgroundColor="White" HasShadow="True">
+                <VerticalStackLayout Padding="20" Spacing="10">
+                    <Label Text="📷 Quét QR"
+                           FontSize="18"
+                           FontAttributes="Bold"/>
+
+                    <Label Text="Truy cập nhanh với tư cách khách"
+                           FontSize="13"
+                           TextColor="Gray"/>
+
+                    <Button Text="Quét QR để vào"
+                            Clicked="OnScanQRClicked"
+                            BackgroundColor="#6A5CFF"
+                            TextColor="White"
+                            CornerRadius="15"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- LOGIN -->
+            <Frame CornerRadius="20" BackgroundColor="White" HasShadow="True">
+                <VerticalStackLayout Padding="20" Spacing="10">
+                    <Label Text="🔐 Đăng nhập"
+                           FontSize="18"
+                           FontAttributes="Bold"/>
+
+                    <Label Text="Sử dụng tài khoản cá nhân"
+                           FontSize="13"
+                           TextColor="Gray"/>
+
+                    <Button Text="Đăng nhập"
+                            Clicked="OnLoginClicked"
+                            BackgroundColor="#4CAF50"
+                            TextColor="White"
+                            CornerRadius="15"/>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+
+    </Grid>
+</ContentPage>

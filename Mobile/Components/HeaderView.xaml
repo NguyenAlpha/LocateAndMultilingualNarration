@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Grid
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="Mobile.Components.HeaderView"
+    HeightRequest="120"
+    Padding="20">
+
+    <!-- GRADIENT BACKGROUND -->
+    <Grid.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#C94BFF" Offset="0"/>
+            <GradientStop Color="#6A5CFF" Offset="1"/>
+        </LinearGradientBrush>
+    </Grid.Background>
+
+    <Grid ColumnDefinitions="Auto,*,Auto">
+
+        <!-- MENU ICON -->
+        <Label
+            Text="☰"
+            FontSize="24"
+            TextColor="White"
+            VerticalOptions="Center"/>
+
+        <!-- TITLE -->
+        <Label
+            Grid.Column="1"
+            Text="{Binding Title}"
+            FontSize="20"
+            FontAttributes="Bold"
+            TextColor="White"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"/>
+
+        <!-- PROFILE ICON -->
+        <Frame
+            Grid.Column="2"
+            BackgroundColor="White"
+            CornerRadius="20"
+            HeightRequest="40"
+            WidthRequest="40"
+            Padding="0">
+
+            <Image Source="dotnet_bot.png"/>
+        </Frame>
+
+    </Grid>
+
+</Grid>

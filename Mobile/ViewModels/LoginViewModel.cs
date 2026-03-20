@@ -27,8 +27,9 @@ namespace Mobile.ViewModels
         async Task LoginAsync()
         {
             // Mock login - always success
-            Microsoft.Maui.Storage.Preferences.Set("jwt_token", "mock-token");
-            App.Current.MainPage = new AppShell();
+            Preferences.Set("jwt_token", "mock-token");
+            //App.Current.MainPage = new AppShell();
+            await Shell.Current.GoToAsync("//MainPage");
         }
 
         async Task GoToRegisterAsync()
@@ -37,5 +38,11 @@ namespace Mobile.ViewModels
         }
 
         void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        public Command LoginCommand => new Command(async () =>
+        {
+            // check login here
+
+            await Shell.Current.GoToAsync("//MainPage");
+        });
     }
 }

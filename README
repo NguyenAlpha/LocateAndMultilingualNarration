@@ -1,0 +1,92 @@
+NuGet:
+Microsoft.AspNetCore.Authentication.JwtBearer
+System.IdentityModel.Tokens.Jwt
+Microsoft.EntityFrameworkCore
+Microsoft.EntityFrameworkCore.SqlServer
+Microsoft.EntityFrameworkCore.Design
+Microsoft.EntityFrameworkCore.Tools
+AutoMapper
+AutoMapper.Extensions.Microsoft.DependencyInjection
+
+chạy lệnh này:
+dotnet add package Microsoft.EntityFrameworkCore.InMemory
+
+
+
+## Các lệnh thao tác với Migrations (Entity Framework Core)
+
+Lưu ý:
+- Cài công cụ CLI nếu chưa có: `dotnet tool install --global dotnet-ef`.
+- Đảm bảo package `Microsoft.EntityFrameworkCore.Design` đã được thêm vào project chứa `DbContext`.
+
+1) Tạo migration mới
+
+```
+dotnet ef migrations add <TênMigration>
+```
+- Mô tả: Sinh file migration chứa các thay đổi schema so với migration trước. Nếu dự án đơn giản có thể bỏ `--project`/`--startup-project`.
+
+2) Áp dụng migration lên cơ sở dữ liệu
+
+```
+dotnet ef database update [<Migration>] --project <ProjectPath> --startup-project <StartupProject> --context <DbContext>
+```
+- Mô tả: Áp dụng tất cả migration chưa được áp dụng (hoặc tới migration cụ thể nếu truyền tên). Ghi chú: bỏ tên để cập nhật tới migration mới nhất.
+
+3) Hoàn tác (gỡ) migration cuối cùng
+
+```
+dotnet ef migrations remove --project <ProjectPath> --startup-project <StartupProject> --context <DbContext>
+```
+- Mô tả: Xóa migration được tạo gần nhất (không nên dùng nếu migration đã được áp dụng lên DB trừ khi rollback DB trước).
+
+4) Liệt kê migration
+
+```
+dotnet ef migrations list --project <ProjectPath> --startup-project <StartupProject>
+```
+- Mô tả: Hiển thị danh sách migration hiện có trong project.
+
+5) Sinh script SQL từ migration
+
+```
+dotnet ef migrations script [<FromMigration>] [<ToMigration>] -o <file.sql> --project <ProjectPath> --startup-project <StartupProject>
+```
+- Mô tả: Tạo script SQL để áp dụng các thay đổi giữa hai migration (hoặc từ đầu đến migration đích).
+
+6) Reverse engineering (scaffold) từ database
+
+```
+dotnet ef dbcontext scaffold "<ConnectionString>" Microsoft.EntityFrameworkCore.SqlServer --output-dir <ThưMụcModels> --context <DbContext> --project <ProjectPath> --startup-project <StartupProject>
+```
+- Mô tả: Sinh mã `DbContext` và entity classes từ một database có sẵn.
+
+7) Các lệnh tương đương trong Package Manager Console (Visual Studio)
+
+```
+# Thêm migration
+Add-Migration <TênMigration> -Project <ProjectName> -StartupProject <StartupProject>
+# Áp dụng migration
+Update-Database -Project <ProjectName> -StartupProject <StartupProject> -Migration <TênMigration>  # bỏ -Migration để cập nhật tới mới nhất
+# Xóa migration
+Remove-Migration -Project <ProjectName>
+# Tạo script
+Script-Migration -From <FromMigration> -To <ToMigration> -Output <file.sql>
+# Scaffold từ DB
+Scaffold-DbContext "<ConnectionString>" Microsoft.EntityFrameworkCore.SqlServer -OutputDir <ThưMụcModels> -Context <DbContext>
+```
+
+8) Một số tùy chọn hữu ích
+- `--output-dir <Đường_dẫn>`: Thư mục lưu các file migration.
+- `--context <DbContext>`: Chỉ định DbContext khi project có nhiều context.
+- `--project` và `--startup-project`: Dùng khi repository chứa nhiều project (ví dụ API và project chứa DbContext khác nhau).
+- `--verbose`: Hiển thị thông tin chi tiết khi chạy lệnh.
+
+Ví dụ nhanh:
+
+```
+dotnet ef migrations add InitialCreate --project Api --startup-project Api
+dotnet ef database update --project Api --startup-project Api
+```
+
+Thực hiện các lệnh trên từ terminal (PowerShell) trong thư mục solution hoặc cung cấp rõ `--project`/`--startup-project` khi cần.

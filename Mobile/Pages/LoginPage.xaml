@@ -1,7 +1,7 @@
 <ContentPage 
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Mobile.LoginPage"
+             x:Class="Mobile.Pages.LoginPage"
              Title="Đăng nhập">
 
     <VerticalStackLayout Padding="30" Spacing="15" VerticalOptions="Center">
@@ -20,6 +20,7 @@
                IsPassword="True" />
 
         <Button Text="Đăng nhập"
+                Clicked="OnLoginSuccess"
                 Command="{Binding LoginCommand}"
                 BackgroundColor="#6366f1" />
 

@@ -1,13 +1,34 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
-             x:Class="Mobile.MapPage"
-             Title="Map">
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+    x:Class="Mobile.Pages.MapPage"
+    Title="Bản đồ">
 
-    <Grid>
-        <maps:Map x:Name="map" />
-        <Button Text="Refresh" VerticalOptions="End" HorizontalOptions="Center" Clicked="OnRefreshClicked" />
-    </Grid>
+	<Grid RowDefinitions="Auto,*">
+
+		<!-- HEADER -->
+		<Label Text="🗺 Bản đồ xung quanh bạn"
+               FontSize="18"
+               Padding="10"
+               Grid.Row="0" />
+
+        <!-- MAP -->
+        <!--
+<maps:Map x:Name="map"
+          Grid.Row="1"
+          IsShowingUser="True" />
+-->
+
+        <!-- BUTTON -->
+		<Button Text="📍 Lấy vị trí"
+                Grid.Row="1"
+                VerticalOptions="End"
+                HorizontalOptions="Center"
+                Margin="0,0,0,20"
+                Clicked="OnRefreshClicked" />
+
+	</Grid>
 
 </ContentPage>
