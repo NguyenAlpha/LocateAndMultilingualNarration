@@ -1,0 +1,169 @@
+@model Web.Models.LoginViewModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Enterprise Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/assets/css/site.css" rel="stylesheet">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem 1rem;
+        }
+        .login-card {
+            max-width: 420px;
+            width: 100%;
+        }
+        .login-card .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+        }
+        .login-card .card-header {
+            background-color: transparent;
+            border-bottom: none;
+            padding-top: 2rem;
+            text-align: center;
+        }
+        .login-card .card-body {
+            padding: 2rem;
+        }
+        .login-logo {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        .btn-login {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+        }
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .divider span {
+            padding: 0 1rem;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="card">
+                <div class="card-header">
+                    <div class="login-logo">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h4 class="mb-0">Enterprise Management System</h4>
+                    <p class="text-muted mt-2 mb-0">Sign in to your account</p>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Login" asp-controller="Auth" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">
+                                Email or Username <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text" aria-hidden="true">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input asp-for="Email"
+                                       class="form-control"
+                                       placeholder="Enter your email or username"
+                                       aria-describedby="emailHelp"
+                                       required>
+                            </div>
+                            <span asp-validation-for="Email" class="error-message"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label">
+                                Password <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text" aria-hidden="true">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input asp-for="Password"
+                                       class="form-control"
+                                       placeholder="Enter your password"
+                                       required>
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Password" class="error-message"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="form-check">
+                                <input asp-for="RememberMe" class="form-check-input">
+                                <label asp-for="RememberMe" class="form-check-label">Remember me</label>
+                            </div>
+                            <a href="#" class="text-decoration-none small">Forgot password?</a>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-login">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                            </button>
+                        </div>
+
+                        <div class="divider">
+                            <span>or</span>
+                        </div>
+
+                        <div class="text-center">
+                            <span class="text-muted">Don't have an account?</span>
+                            <a asp-controller="Auth" asp-action="Register" class="text-decoration-none ms-1">Create one</a>
+                        </div>
+                    </form>
+
+                    <div class="alert alert-info mt-4 mb-0" role="alert">
+                        <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Demo Credentials</h6>
+                        <small>
+                            <strong>Email:</strong> admin@example.com<br>
+                            <strong>Password:</strong> Admin@123
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent text-center py-3">
+                    <a href="/" class="text-muted text-decoration-none small">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ValidationScriptsPartial" />
+</body>
+</html>
