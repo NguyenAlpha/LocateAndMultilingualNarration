@@ -1,0 +1,300 @@
+﻿
+@{
+    ViewData["Title"] = "EnterpriseStallRegistration";
+}
+
+@section Styles {
+    <style>
+        .image-preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        .image-preview-wrapper {
+            position: relative;
+        }
+        .image-preview-wrapper .remove-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #dc3545;
+            color: white;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/Pages/Home/Index.html">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">Business</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Enterprise Stall Registration</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="bi bi-shop-window me-2"></i>Enterprise Stall Registration</h1>
+    </div>
+</div>
+
+<!-- Registration Form -->
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Register New Stall</h5>
+            </div>
+            <div class="card-body">
+                <form id="stallRegistrationForm" novalidate>
+                    <!-- Stall Name -->
+                    <div class="mb-3">
+                        <label for="stallName" class="form-label">Stall Name <span class="text-danger">*</span></label>
+                        <input type="text" 
+                                class="form-control" 
+                                id="stallName" 
+                                name="stallName" 
+                                placeholder="Enter stall name"
+                                data-val="true" 
+                                data-val-required="Stall name is required"
+                                data-val-minlength="Stall name must be at least 3 characters"
+                                data-val-minlength-min="3"
+                                required>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="stallName" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <!-- Food Category -->
+                    <div class="mb-3">
+                        <label for="foodCategory" class="form-label">Food Category <span class="text-danger">*</span></label>
+                        <select class="form-select" 
+                                id="foodCategory" 
+                                name="foodCategory"
+                                data-val="true" 
+                                data-val-required="Please select a food category"
+                                required>
+                            <option value="">-- Select Category --</option>
+                            <option value="asian">Asian Cuisine</option>
+                            <option value="western">Western Cuisine</option>
+                            <option value="indian">Indian Cuisine</option>
+                            <option value="italian">Italian Cuisine</option>
+                            <option value="mexican">Mexican Cuisine</option>
+                            <option value="seafood">Seafood</option>
+                            <option value="vegetarian">Vegetarian/Vegan</option>
+                            <option value="desserts">Desserts & Bakery</option>
+                            <option value="beverages">Beverages</option>
+                            <option value="fastfood">Fast Food</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="foodCategory" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" 
+                                    id="description" 
+                                    name="description" 
+                                    rows="4" 
+                                    placeholder="Describe your stall, menu items, specialties, etc."
+                                    data-val="true" 
+                                    data-val-required="Description is required"
+                                    data-val-minlength="Description must be at least 20 characters"
+                                    data-val-minlength-min="20"
+                                    required></textarea>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="description" data-valmsg-replace="true"></span>
+                        <small class="text-muted">Minimum 20 characters. Include details about your offerings.</small>
+                    </div>
+
+                    <!-- Images Upload -->
+                    <div class="mb-3">
+                        <label for="stallImages" class="form-label">Stall Images</label>
+                        <input type="file" 
+                                class="form-control" 
+                                id="stallImages" 
+                                name="stallImages" 
+                                multiple 
+                                accept="image/*">
+                        <small class="text-muted">Upload multiple images (JPG, PNG, GIF). Max 5MB each.</small>
+                        <div id="imagePreviewContainer" class="image-preview-container"></div>
+                    </div>
+
+                    <!-- Video URL -->
+                    <div class="mb-3">
+                        <label for="videoUrl" class="form-label">Video URL (Optional)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-play-circle"></i></span>
+                            <input type="url" 
+                                    class="form-control" 
+                                    id="videoUrl" 
+                                    name="videoUrl" 
+                                    placeholder="https://www.youtube.com/watch?v=..."
+                                    data-val="true"
+                                    data-val-url="Please enter a valid URL">
+                        </div>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="videoUrl" data-valmsg-replace="true"></span>
+                        <small class="text-muted">YouTube or Vimeo link for promotional video</small>
+                    </div>
+
+                    <!-- Operating Hours -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="openTime" class="form-label">Opening Time</label>
+                            <input type="time" class="form-control" id="openTime" name="openTime" value="09:00">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="closeTime" class="form-label">Closing Time</label>
+                            <input type="time" class="form-control" id="closeTime" name="closeTime" value="21:00">
+                        </div>
+                    </div>
+
+                    <!-- Terms Agreement -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input type="checkbox" 
+                                    class="form-check-input" 
+                                    id="agreeTerms" 
+                                    name="agreeTerms"
+                                    data-val="true"
+                                    data-val-required="You must agree to the terms and conditions"
+                                    required>
+                            <label class="form-check-label" for="agreeTerms">
+                                I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> <span class="text-danger">*</span>
+                            </label>
+                        </div>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="agreeTerms" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <!-- Form Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>Submit Registration
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card mt-4 border-info">
+            <div class="card-body">
+                <h6 class="card-title text-info"><i class="bi bi-info-circle me-2"></i>Registration Tips</h6>
+                <ul class="mb-0 small">
+                    <li>Upload high-quality images that showcase your stall and food items</li>
+                    <li>Write a detailed description to attract more customers</li>
+                    <li>Include your signature dishes and specialties</li>
+                    <li>A promotional video can increase visibility by up to 40%</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Registration Agreement</h6>
+                <p>By registering a stall, you agree to comply with all enterprise policies and regulations...</p>
+                <h6>2. Operating Standards</h6>
+                <p>All stalls must maintain hygiene standards and quality of service as per guidelines...</p>
+                <h6>3. Content Policy</h6>
+                <p>All uploaded images and descriptions must be accurate and appropriate...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Registration Submitted!</h4>
+                <p class="text-muted">Your stall registration has been submitted successfully. We will review and get back to you within 2-3 business days.</p>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Image preview functionality
+            $('#stallImages').on('change', function(e) {
+                var container = $('#imagePreviewContainer');
+                container.empty();
+                
+                var files = e.target.files;
+                for (var i = 0; i < files.length; i++) {
+                    var file = files[i];
+                    if (file.type.startsWith('image/')) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            var wrapper = $('<div class="image-preview-wrapper"></div>');
+                            var img = $('<img class="image-preview">').attr('src', e.target.result);
+                            var removeBtn = $('<button type="button" class="remove-btn"><i class="bi bi-x"></i></button>');
+                            removeBtn.on('click', function() {
+                                wrapper.remove();
+                            });
+                            wrapper.append(img, removeBtn);
+                            container.append(wrapper);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                }
+            });
+
+            // Form validation and submission
+            $('#stallRegistrationForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                if ($(this).valid()) {
+                    // Simulate form submission
+                    var successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
+                    
+                    // Reset form after success
+                    $(this)[0].reset();
+                    $('#imagePreviewContainer').empty();
+                }
+            });
+
+            // Reset form handler
+            $('#stallRegistrationForm').on('reset', function() {
+                $('#imagePreviewContainer').empty();
+                $('.field-validation-valid, .field-validation-error').text('');
+            });
+
+            // Parse unobtrusive validation
+            $.validator.unobtrusive.parse('#stallRegistrationForm');
+        });
+    </script> 
+}

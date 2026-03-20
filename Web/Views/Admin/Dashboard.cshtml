@@ -1,0 +1,362 @@
+﻿
+@{
+    ViewData["Title"] = "Dashboard";
+}
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/Pages/Home/Index.html">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">Admin</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Print
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="exportTableToCSV('activityTable', 'dashboard-activity.csv')">
+                <i class="bi bi-download me-1"></i>Export
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">Total Revenue</h6>
+                        <h2 class="stats-number mb-0">$142,580</h2>
+                        <small class="text-success"><i class="bi bi-arrow-up"></i> 12.5% from last month</small>
+                    </div>
+                    <i class="bi bi-currency-dollar stats-icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">Active Businesses</h6>
+                        <h2 class="stats-number mb-0">248</h2>
+                        <small class="text-success"><i class="bi bi-arrow-up"></i> 8 new this week</small>
+                    </div>
+                    <i class="bi bi-building stats-icon text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">Total Stalls</h6>
+                        <h2 class="stats-number mb-0">1,452</h2>
+                        <small class="text-warning"><i class="bi bi-dash"></i> 23 pending approval</small>
+                    </div>
+                    <i class="bi bi-shop stats-icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">Registered Users</h6>
+                        <h2 class="stats-number mb-0">3,847</h2>
+                        <small class="text-success"><i class="bi bi-arrow-up"></i> 156 this month</small>
+                    </div>
+                    <i class="bi bi-people stats-icon text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Activity -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Last 7 Days
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">Today</a></li>
+                        <li><a class="dropdown-item active" href="#">Last 7 Days</a></li>
+                        <li><a class="dropdown-item" href="#">Last 30 Days</a></li>
+                        <li><a class="dropdown-item" href="#">This Year</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="activityTable" aria-label="Recent Activity">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="sortable">Date/Time</th>
+                                <th scope="col" class="sortable">User</th>
+                                <th scope="col">Action</th>
+                                <th scope="col" class="sortable">Module</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Mar 16, 2026 14:32</td>
+                                <td>john.doe@example.com</td>
+                                <td>Created new business "Sunrise Enterprises"</td>
+                                <td>Business</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mar 16, 2026 13:45</td>
+                                <td>admin@ems-system.com</td>
+                                <td>Updated user permissions for Marketing team</td>
+                                <td>Users</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mar 16, 2026 11:20</td>
+                                <td>jane.smith@example.com</td>
+                                <td>Registered stall #A-142 at Zone B</td>
+                                <td>Stalls</td>
+                                <td><span class="badge bg-warning text-dark">Pending</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mar 16, 2026 10:15</td>
+                                <td>system</td>
+                                <td>Automated backup completed</td>
+                                <td>System</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mar 15, 2026 16:45</td>
+                                <td>mike.wilson@example.com</td>
+                                <td>Uploaded audio content "Welcome Message"</td>
+                                <td>Content</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mar 15, 2026 14:30</td>
+                                <td>admin@ems-system.com</td>
+                                <td>Added new language "French"</td>
+                                <td>Languages</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mar 15, 2026 11:00</td>
+                                <td>sarah.jones@example.com</td>
+                                <td>Attempted login from new device</td>
+                                <td>Security</td>
+                                <td><span class="badge bg-info">Verified</span></td>
+                            </tr>
+                            <tr>
+                                <td>Mar 14, 2026 09:20</td>
+                                <td>system</td>
+                                <td>Monthly report generated</td>
+                                <td>Reports</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                <a href="#" class="text-decoration-none">View All Activity <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & System Info -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/Pages/Management/BusinessManagement.html" class="btn btn-outline-primary text-start">
+                        <i class="bi bi-plus-circle me-2"></i>Add New Business
+                    </a>
+                    <a href="/Pages/Management/StallManagement.html" class="btn btn-outline-success text-start">
+                        <i class="bi bi-shop me-2"></i>Register Stall
+                    </a>
+                    <a href="/Pages/Admin/UserRoleManagement.html" class="btn btn-outline-info text-start">
+                        <i class="bi bi-person-plus me-2"></i>Create User Account
+                    </a>
+                    <a href="/Pages/Management/ContentAudioManagement.html" class="btn btn-outline-warning text-start">
+                        <i class="bi bi-upload me-2"></i>Upload Content
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-hdd-stack me-2"></i>System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>CPU Usage</span>
+                        <span>45%</span>
+                    </div>
+                    <div class="progress" role="progressbar" aria-label="CPU Usage" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar bg-success" style="width: 45%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Memory Usage</span>
+                        <span>62%</span>
+                    </div>
+                    <div class="progress" role="progressbar" aria-label="Memory Usage" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar bg-warning" style="width: 62%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Storage</span>
+                        <span>78%</span>
+                    </div>
+                    <div class="progress" role="progressbar" aria-label="Storage" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar bg-danger" style="width: 78%"></div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Uptime</small>
+                        <strong>99.9%</strong>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Response</small>
+                        <strong>42ms</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Approvals -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Pending Approvals</h5>
+                <span class="badge bg-danger">5</span>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Stall #A-142</strong>
+                        <small class="d-block text-muted">Registration pending</small>
+                    </div>
+                    <span class="badge bg-warning text-dark">Review</span>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>New Business Request</strong>
+                        <small class="d-block text-muted">Metro Foods Inc.</small>
+                    </div>
+                    <span class="badge bg-warning text-dark">Review</span>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>User Access Request</strong>
+                        <small class="d-block text-muted">sarah.jones@example.com</small>
+                    </div>
+                    <span class="badge bg-warning text-dark">Review</span>
+                </a>
+            </div>
+            <div class="card-footer text-center">
+                <a href="#" class="text-decoration-none">View All Pending <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Business Registrations</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-bar-chart-fill" style="font-size: 4rem; opacity: 0.3;"></i>
+                    <p class="mt-3">Chart visualization would be rendered here using Chart.js or similar library</p>
+                    <div class="d-flex justify-content-around mt-4">
+                        <div>
+                            <small class="text-muted">Jan</small>
+                            <div class="bg-primary" style="height: 60px; width: 30px; margin: 0 auto;"></div>
+                        </div>
+                        <div>
+                            <small class="text-muted">Feb</small>
+                            <div class="bg-primary" style="height: 80px; width: 30px; margin: 0 auto;"></div>
+                        </div>
+                        <div>
+                            <small class="text-muted">Mar</small>
+                            <div class="bg-primary" style="height: 120px; width: 30px; margin: 0 auto;"></div>
+                        </div>
+                        <div>
+                            <small class="text-muted">Apr</small>
+                            <div class="bg-primary bg-opacity-50" style="height: 100px; width: 30px; margin: 0 auto;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Stall Distribution by Zone</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary rounded me-2" style="width: 16px; height: 16px;"></div>
+                                <span>Zone A - 35%</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-success rounded me-2" style="width: 16px; height: 16px;"></div>
+                                <span>Zone B - 28%</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-warning rounded me-2" style="width: 16px; height: 16px;"></div>
+                                <span>Zone C - 22%</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-info rounded me-2" style="width: 16px; height: 16px;"></div>
+                                <span>Zone D - 15%</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="position-relative" style="width: 150px; height: 150px; margin: 0 auto;">
+                                <div class="rounded-circle bg-primary" style="width: 150px; height: 150px; clip-path: polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 50%);"></div>
+                                <div class="position-absolute rounded-circle bg-success" style="width: 150px; height: 150px; top: 0; left: 0; clip-path: polygon(50% 50%, 100% 0, 50% 0);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

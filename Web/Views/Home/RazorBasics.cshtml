@@ -1,0 +1,23 @@
+@model IEnumerable<string>
+
+@{
+    ViewData["Title"] = "Razor Basics";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (Model != null && Model.Any())
+{
+    <ul>
+    @foreach (var item in Model)
+    {
+        <li>@item</li>
+    }
+    </ul>
+}
+else
+{
+    <p>No items available.</p>
+}
+
+<p>Ví dụ hiển thị ký tự &#64;example</p>

@@ -1,0 +1,456 @@
+﻿
+@{
+    ViewData["Title"] = "Statistics";
+}
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/Pages/Home/Index.html">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">Admin</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Statistics</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="bi bi-graph-up me-2"></i>Statistics & Reports</h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-primary">
+                <i class="bi bi-calendar3 me-1"></i>Date Range
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Print
+            </button>
+            <button type="button" class="btn btn-primary">
+                <i class="bi bi-download me-1"></i>Export Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Date Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="startDate" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="startDate" value="2026-01-01">
+            </div>
+            <div class="col-md-3">
+                <label for="endDate" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="endDate" value="2026-03-16">
+            </div>
+            <div class="col-md-3">
+                <label for="reportType" class="form-label">Report Type</label>
+                <select class="form-select" id="reportType">
+                    <option value="all">All Data</option>
+                    <option value="business">Business Statistics</option>
+                    <option value="stall">Stall Statistics</option>
+                    <option value="user">User Statistics</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i>Apply Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">Total Revenue</h6>
+                        <h2 class="stats-number mb-0">$1.2M</h2>
+                        <small class="text-success"><i class="bi bi-arrow-up"></i> +15.3% YTD</small>
+                    </div>
+                    <i class="bi bi-currency-dollar stats-icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">New Businesses</h6>
+                        <h2 class="stats-number mb-0">68</h2>
+                        <small class="text-success"><i class="bi bi-arrow-up"></i> +23% vs last quarter</small>
+                    </div>
+                    <i class="bi bi-building stats-icon text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card warning h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">Stall Occupancy</h6>
+                        <h2 class="stats-number mb-0">87%</h2>
+                        <small class="text-warning"><i class="bi bi-dash"></i> Stable</small>
+                    </div>
+                    <i class="bi bi-shop stats-icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase mb-2">Active Users</h6>
+                        <h2 class="stats-number mb-0">2,847</h2>
+                        <small class="text-success"><i class="bi bi-arrow-up"></i> +312 this month</small>
+                    </div>
+                    <i class="bi bi-people stats-icon text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Revenue Trend</h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-secondary active">Monthly</button>
+                    <button type="button" class="btn btn-outline-secondary">Quarterly</button>
+                    <button type="button" class="btn btn-outline-secondary">Yearly</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Chart Placeholder -->
+                <div class="d-flex align-items-end justify-content-between" style="height: 250px;">
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-primary bg-opacity-75" style="height: 120px; width: 80%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Jan</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-primary bg-opacity-75" style="height: 150px; width: 80%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Feb</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-primary" style="height: 200px; width: 80%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Mar</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-primary bg-opacity-25" style="height: 180px; width: 80%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Apr*</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-primary bg-opacity-25" style="height: 190px; width: 80%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">May*</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-primary bg-opacity-25" style="height: 210px; width: 80%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Jun*</small>
+                    </div>
+                </div>
+                <p class="text-muted small mt-3 mb-0">* Projected values based on current trends</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Business Categories</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Food & Beverage</span>
+                        <span>35%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-primary" style="width: 35%"></div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Retail</span>
+                        <span>28%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-success" style="width: 28%"></div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Services</span>
+                        <span>22%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-warning" style="width: 22%"></div>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Entertainment</span>
+                        <span>10%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-info" style="width: 10%"></div>
+                    </div>
+                </div>
+                <div class="mb-0">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Other</span>
+                        <span>5%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-secondary" style="width: 5%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Stalls by Zone</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm" aria-label="Stalls by zone">
+                        <thead>
+                            <tr>
+                                <th>Zone</th>
+                                <th>Total Stalls</th>
+                                <th>Occupied</th>
+                                <th>Available</th>
+                                <th>Occupancy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Zone A - Main Hall</td>
+                                <td>450</td>
+                                <td>423</td>
+                                <td>27</td>
+                                <td>
+                                    <div class="progress" style="height: 6px; width: 100px;">
+                                        <div class="progress-bar bg-success" style="width: 94%"></div>
+                                    </div>
+                                    <small>94%</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Zone B - East Wing</td>
+                                <td>380</td>
+                                <td>342</td>
+                                <td>38</td>
+                                <td>
+                                    <div class="progress" style="height: 6px; width: 100px;">
+                                        <div class="progress-bar bg-success" style="width: 90%"></div>
+                                    </div>
+                                    <small>90%</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Zone C - West Wing</td>
+                                <td>320</td>
+                                <td>262</td>
+                                <td>58</td>
+                                <td>
+                                    <div class="progress" style="height: 6px; width: 100px;">
+                                        <div class="progress-bar bg-warning" style="width: 82%"></div>
+                                    </div>
+                                    <small>82%</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Zone D - Outdoor</td>
+                                <td>302</td>
+                                <td>230</td>
+                                <td>72</td>
+                                <td>
+                                    <div class="progress" style="height: 6px; width: 100px;">
+                                        <div class="progress-bar bg-warning" style="width: 76%"></div>
+                                    </div>
+                                    <small>76%</small>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th>Total</th>
+                                <th>1,452</th>
+                                <th>1,257</th>
+                                <th>195</th>
+                                <th><strong>87%</strong></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>User Registration Trend</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-end justify-content-between" style="height: 200px;">
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-info bg-opacity-75" style="height: 80px; width: 70%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Week 1</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-info bg-opacity-75" style="height: 95px; width: 70%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Week 2</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-info bg-opacity-75" style="height: 110px; width: 70%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Week 3</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-info" style="height: 140px; width: 70%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Week 4</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-info" style="height: 160px; width: 70%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Week 5</small>
+                    </div>
+                    <div class="text-center" style="flex: 1;">
+                        <div class="bg-info" style="height: 185px; width: 70%; margin: 0 auto;"></div>
+                        <small class="text-muted mt-2 d-block">Week 6</small>
+                    </div>
+                </div>
+                <div class="row text-center mt-4">
+                    <div class="col-4">
+                        <h4 class="mb-0">456</h4>
+                        <small class="text-muted">New Users</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0">89%</h4>
+                        <small class="text-muted">Retention Rate</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0">4.2min</h4>
+                        <small class="text-muted">Avg. Session</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Performers Table -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-trophy me-2"></i>Top Performing Businesses</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" aria-label="Top performing businesses">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Business Name</th>
+                                <th>Revenue</th>
+                                <th>Growth</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">1</span></td>
+                                <td>Golden Spoon Restaurant</td>
+                                <td>$125,400</td>
+                                <td><span class="text-success"><i class="bi bi-arrow-up"></i> 24%</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">2</span></td>
+                                <td>TechZone Electronics</td>
+                                <td>$98,750</td>
+                                <td><span class="text-success"><i class="bi bi-arrow-up"></i> 18%</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">3</span></td>
+                                <td>Fashion Hub</td>
+                                <td>$87,200</td>
+                                <td><span class="text-success"><i class="bi bi-arrow-up"></i> 15%</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">4</span></td>
+                                <td>Fresh Mart Groceries</td>
+                                <td>$76,800</td>
+                                <td><span class="text-success"><i class="bi bi-arrow-up"></i> 12%</span></td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">5</span></td>
+                                <td>Wellness Spa & Beauty</td>
+                                <td>$65,300</td>
+                                <td><span class="text-danger"><i class="bi bi-arrow-down"></i> 3%</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent System Activity</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>Database Backup</strong>
+                                <p class="mb-0 text-muted small">Automated daily backup completed successfully</p>
+                            </div>
+                            <small class="text-muted">2 hrs ago</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>System Update</strong>
+                                <p class="mb-0 text-muted small">Security patches applied - v2.4.1</p>
+                            </div>
+                            <small class="text-muted">5 hrs ago</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>Report Generated</strong>
+                                <p class="mb-0 text-muted small">Monthly analytics report created</p>
+                            </div>
+                            <small class="text-muted">1 day ago</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>Cache Cleared</strong>
+                                <p class="mb-0 text-muted small">System cache cleared for optimization</p>
+                            </div>
+                            <small class="text-muted">2 days ago</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

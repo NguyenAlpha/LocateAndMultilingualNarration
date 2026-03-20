@@ -1,0 +1,342 @@
+﻿
+@{
+    ViewData["Title"] = "StallManagement";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/Pages/Home/Index.html">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Stall Management</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="bi bi-shop me-2"></i>Stall Management</h1>
+        <div class="btn-group">
+            <a href="/Pages/Management/StallLocationMap.html" class="btn btn-outline-primary">
+                <i class="bi bi-map me-1"></i>View Map
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStallModal">
+                <i class="bi bi-plus-lg me-1"></i>Add Stall
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stats-card h-100">
+            <div class="card-body text-center">
+                <h3 class="stats-number text-primary">1,452</h3>
+                <small class="text-muted">Total Stalls</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stats-card success h-100">
+            <div class="card-body text-center">
+                <h3 class="stats-number text-success">1,257</h3>
+                <small class="text-muted">Occupied</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stats-card warning h-100">
+            <div class="card-body text-center">
+                <h3 class="stats-number text-warning">172</h3>
+                <small class="text-muted">Available</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stats-card danger h-100">
+            <div class="card-body text-center">
+                <h3 class="stats-number text-danger">23</h3>
+                <small class="text-muted">Under Maintenance</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search/Filter -->
+<div class="search-filter-bar">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label for="stallSearch" class="form-label visually-hidden">Search stalls</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control table-search" id="stallSearch" placeholder="Search stalls...">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label for="zoneFilter" class="form-label visually-hidden">Filter by zone</label>
+            <select class="form-select" id="zoneFilter" aria-label="Filter by zone">
+                <option value="">All Zones</option>
+                <option value="A">Zone A - Main Hall</option>
+                <option value="B">Zone B - East Wing</option>
+                <option value="C">Zone C - West Wing</option>
+                <option value="D">Zone D - Outdoor</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="stallStatusFilter" class="form-label visually-hidden">Filter by status</label>
+            <select class="form-select status-filter" id="stallStatusFilter" aria-label="Filter by status">
+                <option value="">All Status</option>
+                <option value="occupied">Occupied</option>
+                <option value="available">Available</option>
+                <option value="reserved">Reserved</option>
+                <option value="maintenance">Maintenance</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="sizeFilter" class="form-label visually-hidden">Filter by size</label>
+            <select class="form-select" id="sizeFilter" aria-label="Filter by size">
+                <option value="">All Sizes</option>
+                <option value="small">Small (1-10 sqm)</option>
+                <option value="medium">Medium (11-25 sqm)</option>
+                <option value="large">Large (26+ sqm)</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <div class="btn-group w-100">
+                <button class="btn btn-outline-secondary" type="button" onclick="exportTableToCSV('stallTable', 'stalls.csv')">
+                    <i class="bi bi-download me-1"></i>Export
+                </button>
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="bi bi-funnel me-1"></i>Filters
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stalls Table -->
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-hover" id="stallTable" aria-label="Stall list">
+            <thead>
+                <tr>
+                    <th scope="col" class="no-export" style="width: 40px;">
+                        <input type="checkbox" class="form-check-input select-all" aria-label="Select all stalls">
+                    </th>
+                    <th scope="col" class="sortable">Stall ID</th>
+                    <th scope="col" class="sortable">Zone</th>
+                    <th scope="col" class="sortable">Size (sqm)</th>
+                    <th scope="col" class="sortable">Business</th>
+                    <th scope="col" class="sortable">Monthly Rent</th>
+                    <th scope="col" class="sortable">Status</th>
+                    <th scope="col" class="no-export">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select stall"></td>
+                    <td><strong>A-001</strong></td>
+                    <td><span class="badge bg-primary">Zone A</span></td>
+                    <td>15</td>
+                    <td>Golden Spoon Restaurant</td>
+                    <td>$1,200</td>
+                    <td><span class="badge bg-success">Occupied</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-info btn-action" title="View"><i class="bi bi-eye"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="A-001" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select stall"></td>
+                    <td><strong>A-002</strong></td>
+                    <td><span class="badge bg-primary">Zone A</span></td>
+                    <td>12</td>
+                    <td>TechZone Electronics</td>
+                    <td>$1,000</td>
+                    <td><span class="badge bg-success">Occupied</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-info btn-action" title="View"><i class="bi bi-eye"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="A-002" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select stall"></td>
+                    <td><strong>A-003</strong></td>
+                    <td><span class="badge bg-primary">Zone A</span></td>
+                    <td>20</td>
+                    <td>-</td>
+                    <td>$1,500</td>
+                    <td><span class="badge bg-warning text-dark">Available</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-success btn-action" title="Assign Business"><i class="bi bi-link"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="A-003" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select stall"></td>
+                    <td><strong>B-015</strong></td>
+                    <td><span class="badge bg-success">Zone B</span></td>
+                    <td>8</td>
+                    <td>Fashion Hub</td>
+                    <td>$800</td>
+                    <td><span class="badge bg-success">Occupied</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-info btn-action" title="View"><i class="bi bi-eye"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="B-015" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select stall"></td>
+                    <td><strong>B-016</strong></td>
+                    <td><span class="badge bg-success">Zone B</span></td>
+                    <td>10</td>
+                    <td>-</td>
+                    <td>$950</td>
+                    <td><span class="badge bg-info">Reserved</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-info btn-action" title="View"><i class="bi bi-eye"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="B-016" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select stall"></td>
+                    <td><strong>C-042</strong></td>
+                    <td><span class="badge bg-warning text-dark">Zone C</span></td>
+                    <td>18</td>
+                    <td>-</td>
+                    <td>$1,300</td>
+                    <td><span class="badge bg-danger">Maintenance</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-info btn-action" title="View"><i class="bi bi-eye"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="C-042" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="checkbox" class="form-check-input row-select" aria-label="Select stall"></td>
+                    <td><strong>D-101</strong></td>
+                    <td><span class="badge bg-info">Zone D</span></td>
+                    <td>25</td>
+                    <td>Fresh Mart Groceries</td>
+                    <td>$1,800</td>
+                    <td><span class="badge bg-success">Occupied</span></td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-action" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-info btn-action" title="View"><i class="bi bi-eye"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="D-101" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="text-muted">Showing 1-7 of 1,452 stalls</div>
+        <nav aria-label="Stall pagination">
+            <ul class="pagination mb-0">
+                <li class="page-item disabled"><a class="page-link" href="#">&laquo;</a></li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                <li class="page-item"><a class="page-link" href="#">...</a></li>
+                <li class="page-item"><a class="page-link" href="#">208</a></li>
+                <li class="page-item"><a class="page-link" href="#">&raquo;</a></li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Add Stall Modal -->
+<div class="modal fade" id="addStallModal" tabindex="-1" aria-labelledby="addStallModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addStallModalLabel"><i class="bi bi-shop me-2"></i>Add New Stall</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addStallForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="stallId" class="form-label">Stall ID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="stallId" name="StallId"
+                               data-val="true"
+                               data-val-required="Stall ID is required"
+                               placeholder="e.g., A-001">
+                        <span class="field-validation-valid" data-valmsg-for="StallId" data-valmsg-replace="true"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="stallZone" class="form-label">Zone <span class="text-danger">*</span></label>
+                            <select class="form-select" id="stallZone" name="Zone"
+                                    data-val="true"
+                                    data-val-required="Please select a zone">
+                                <option value="">Select zone</option>
+                                <option value="A">Zone A - Main Hall</option>
+                                <option value="B">Zone B - East Wing</option>
+                                <option value="C">Zone C - West Wing</option>
+                                <option value="D">Zone D - Outdoor</option>
+                            </select>
+                            <span class="field-validation-valid" data-valmsg-for="Zone" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="stallSize" class="form-label">Size (sqm) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="stallSize" name="Size"
+                                   data-val="true"
+                                   data-val-required="Size is required"
+                                   data-val-range="Size must be between 1 and 500"
+                                   data-val-range-min="1"
+                                   data-val-range-max="500"
+                                   placeholder="Enter size">
+                            <span class="field-validation-valid" data-valmsg-for="Size" data-valmsg-replace="true"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="monthlyRent" class="form-label">Monthly Rent ($) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="monthlyRent" name="MonthlyRent"
+                               data-val="true"
+                               data-val-required="Monthly rent is required"
+                               data-val-range="Rent must be between 100 and 50000"
+                               data-val-range-min="100"
+                               data-val-range-max="50000"
+                               placeholder="Enter monthly rent">
+                        <span class="field-validation-valid" data-valmsg-for="MonthlyRent" data-valmsg-replace="true"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="stallStatus" class="form-label">Status</label>
+                        <select class="form-select" id="stallStatus" name="Status">
+                            <option value="available">Available</option>
+                            <option value="reserved">Reserved</option>
+                            <option value="maintenance">Under Maintenance</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="stallDescription" class="form-label">Notes</label>
+                        <textarea class="form-control" id="stallDescription" name="Notes" rows="2" placeholder="Additional notes"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Stall</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

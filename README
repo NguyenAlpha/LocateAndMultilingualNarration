@@ -1,3 +1,7 @@
+docker compose: docker-compose up -d
+
+dotnet watch
+
 NuGet:
 Microsoft.AspNetCore.Authentication.JwtBearer
 System.IdentityModel.Tokens.Jwt
