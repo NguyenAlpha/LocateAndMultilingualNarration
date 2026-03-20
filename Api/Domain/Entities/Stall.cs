@@ -19,6 +19,10 @@ namespace Api.Domain.Entities
 
         // Navigation
         public Business Business { get; set; } = null!;
+        public ICollection<StallGeoFence> StallGeoFences { get; set; } = new List<StallGeoFence>();
+        public ICollection<StallLocation> StallLocations { get; set; } = new List<StallLocation>();
+        public ICollection<StallMedia> StallMedia { get; set; } = new List<StallMedia>();
+        public ICollection<StallNarrationContent> StallNarrationContents { get; set; } = new List<StallNarrationContent>();
 
     }
 }
