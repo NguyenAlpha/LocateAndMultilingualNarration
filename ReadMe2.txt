@@ -1,0 +1,1 @@
+dotnet add package ZXing.Net.MAUI
