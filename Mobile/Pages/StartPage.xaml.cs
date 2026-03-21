@@ -1,4 +1,5 @@
-﻿namespace Mobile;
+﻿using Mobile.Pages;
+namespace Mobile;
 
 public partial class StartPage : ContentPage
 {
@@ -15,7 +16,7 @@ public partial class StartPage : ContentPage
 
     private async void OnLoginClicked(object sender, EventArgs e)
     {
-        //await Shell.Current.GoToAsync(nameof(LoginPage));
+        await Shell.Current.GoToAsync(nameof(LoginPage));
     }
 
 }

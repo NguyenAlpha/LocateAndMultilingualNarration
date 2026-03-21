@@ -16,6 +16,7 @@ namespace Mobile.ViewModels
         public string? Password { get => _password; set { _password = value; OnPropertyChanged(); } }
 
         public ICommand LoginCommand { get; }
+
         public ICommand GoToRegisterCommand { get; }
 
         public LoginViewModel()
@@ -38,11 +39,11 @@ namespace Mobile.ViewModels
         }
 
         void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        public Command LoginCommand => new Command(async () =>
-        {
-            // check login here
+        //public Command LoginCommand => new Command(async () =>
+        //{
+        //    // check login here
 
-            await Shell.Current.GoToAsync("//MainPage");
-        });
+        //    await Shell.Current.GoToAsync("//MainPage");
+        //});
     }
 }
