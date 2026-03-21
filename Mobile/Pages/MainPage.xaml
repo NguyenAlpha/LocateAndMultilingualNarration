@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:Mobile.Components"
              x:Class="Mobile.MainPage"
              BackgroundColor="#F4F6F9"
              NavigationPage.HasNavigationBar="False">
@@ -22,21 +23,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" ColumnDefinitions="Auto, *, Auto, Auto" Margin="0,0,0,20">
-                    <ImageButton Grid.Column="0" WidthRequest="28" HeightRequest="28" BackgroundColor="Transparent" Clicked="OpenDrawer_Clicked">
-                        <ImageButton.Source>
-                            <FontImageSource FontFamily="OpenSansRegular" Glyph="☰" Color="White" Size="28"/>
-                        </ImageButton.Source>
-                    </ImageButton>
-
-                    <Label x:Name="lblLanguageDisplay" Grid.Column="2" Text="🇻🇳 VN" TextColor="White" VerticalOptions="Center" FontAttributes="Bold" Margin="0,0,10,0"/>
-                    <Picker x:Name="languagePicker" Grid.Column="3" Title="Ngôn ngữ" TextColor="White" TitleColor="White" BackgroundColor="Transparent" WidthRequest="80">
-                        <Picker.Items>
-                            <x:String>Tiếng Việt</x:String>
-                            <x:String>English</x:String>
-                        </Picker.Items>
-                    </Picker>
-                </Grid>
+                <components:HeaderView Grid.Row="0" Title="Locate" LogoutCommand="{Binding LogoutCommand}" Margin="0,0,0,20" />
 
                 <VerticalStackLayout Grid.Row="1" Spacing="5" Margin="0,0,0,20">
                     <Label Text="Xin chào, [User]" TextColor="#E0E0E0" FontSize="16" />
@@ -44,7 +31,7 @@
                 </VerticalStackLayout>
 
                 <Button Grid.Row="2" Text="Bắt đầu khám phá" BackgroundColor="White" TextColor="#2575FC" 
-                        CornerRadius="24" FontAttributes="Bold" HeightRequest="48" />
+                        CornerRadius="24" FontAttributes="Bold" HeightRequest="48" Command="{Binding StartCommand}" />
             </Grid>
 
             <ScrollView Grid.Row="1" Margin="0,-20,0,0">
@@ -58,7 +45,7 @@
                                 <Frame.Shadow>
                                     <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
                                 </Frame.Shadow>
-                                <ImageButton BackgroundColor="Transparent" Clicked="OnMapClicked">
+                                <ImageButton BackgroundColor="Transparent" Command="{Binding MapCommand}">
                                     <ImageButton.Source>
                                         <FontImageSource Glyph="🗺" Color="#6A11CB" Size="24"/>
                                     </ImageButton.Source>
@@ -72,7 +59,7 @@
                                 <Frame.Shadow>
                                     <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
                                 </Frame.Shadow>
-                                <ImageButton BackgroundColor="Transparent" Clicked="OnLanguageClicked">
+                                <ImageButton BackgroundColor="Transparent" Command="{Binding LanguageCommand}">
                                     <ImageButton.Source>
                                         <FontImageSource Glyph="🌐" Color="#00B4DB" Size="24"/>
                                     </ImageButton.Source>
@@ -86,9 +73,9 @@
                                 <Frame.Shadow>
                                     <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
                                 </Frame.Shadow>
-                                <ImageButton x:Name="btnAudio" BackgroundColor="Transparent" Clicked="OnAudioClicked">
+                                <ImageButton BackgroundColor="Transparent" Command="{Binding AudioCommand}">
                                     <ImageButton.Source>
-                                        <FontImageSource Glyph="🔊" Color="#00C9FF" Size="24"/>
+                                        <FontImageSource Glyph="{Binding AudioGlyph}" Color="#00C9FF" Size="24"/>
                                     </ImageButton.Source>
                                 </ImageButton>
                             </Frame>
@@ -100,7 +87,7 @@
                                 <Frame.Shadow>
                                     <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
                                 </Frame.Shadow>
-                                <ImageButton BackgroundColor="Transparent" Clicked="OnProfileClicked">
+                                <ImageButton BackgroundColor="Transparent" Command="{Binding ProfileCommand}">
                                     <ImageButton.Source>
                                         <FontImageSource Glyph="👤" Color="#2575FC" Size="24"/>
                                     </ImageButton.Source>
@@ -175,55 +162,6 @@
                     <BoxView HeightRequest="40" Color="Transparent"/>
                 </VerticalStackLayout>
             </ScrollView>
-        </Grid>
-
-        <Grid x:Name="DrawerOverlay" BackgroundColor="#80000000" IsVisible="False" InputTransparent="False">
-            <Grid.GestureRecognizers>
-                <TapGestureRecognizer Tapped="CloseDrawer_Tapped"/>
-            </Grid.GestureRecognizers>
-
-            <Frame x:Name="DrawerView" WidthRequest="280" HorizontalOptions="Start" VerticalOptions="FillAndExpand" 
-                   BackgroundColor="White" CornerRadius="0" Padding="0" TranslationX="-280" HasShadow="True">
-                <Frame.GestureRecognizers>
-                    <TapGestureRecognizer />
-                </Frame.GestureRecognizers>
-
-                <VerticalStackLayout>
-                    <Grid Padding="20,40,20,20">
-                        <Grid.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#6A11CB" Offset="0.0" />
-                                <GradientStop Color="#2575FC" Offset="1.0" />
-                            </LinearGradientBrush>
-                        </Grid.Background>
-                        <VerticalStackLayout Spacing="10">
-                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="30" HorizontalOptions="Start" Padding="0" IsClippedToBounds="True">
-                                <Image Source="profile_icon.png" Aspect="AspectFill" BackgroundColor="#E0E0E0"/>
-                            </Frame>
-                            <Label Text="[User Name]" TextColor="White" FontAttributes="Bold" FontSize="18"/>
-                            <Label Text="Traveler Account" TextColor="#E0E0E0" FontSize="12"/>
-                        </VerticalStackLayout>
-                    </Grid>
-
-                    <VerticalStackLayout Spacing="5" Padding="15">
-                        <Button Text="🏠 Trang chủ" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
-                        <Button Text="🗺 Bản đồ" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
-                        <Button Text="🏪 Gian hàng" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
-                        <Button Text="🌐 Chọn ngôn ngữ" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
-                        <Button Text="👤 Hồ sơ cá nhân" BackgroundColor="Transparent" TextColor="#333" HorizontalOptions="Start" FontSize="16" FontAttributes="Bold"/>
-
-                        <BoxView HeightRequest="1" Color="#E0E0E0" Margin="0,10"/>
-
-                        <Button Text="🚪 Đăng xuất"
-        Clicked="OnLogoutClicked"
-        BackgroundColor="Transparent"
-        TextColor="#E53935"
-        HorizontalOptions="Start"
-        FontSize="16"
-        FontAttributes="Bold"/>
-                    </VerticalStackLayout>
-                </VerticalStackLayout>
-            </Frame>
         </Grid>
 
     </Grid>

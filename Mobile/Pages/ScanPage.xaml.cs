@@ -1,46 +1,67 @@
-﻿using ZXing.Net.Maui;
-using Mobile.ViewModels;
-using Microsoft.Maui.ApplicationModel;
+﻿using Microsoft.Maui.ApplicationModel;
+using Mobile.Services;
+using ZXing.Net.Maui;
+
 namespace Mobile.Pages;
 
 public partial class ScanPage : ContentPage
 {
-    bool isScanning = true;
+    readonly SessionService sessionService = new();
+    bool isScanning;
 
     public ScanPage()
     {
         InitializeComponent();
-        RequestCamera();
     }
-    async void RequestCamera()
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await EnsureCameraPermissionAsync();
+    }
+
+    async Task EnsureCameraPermissionAsync()
     {
         var status = await Permissions.RequestAsync<Permissions.Camera>();
 
         if (status != PermissionStatus.Granted)
         {
-            await DisplayAlert("Error", "Camera permission denied", "OK");
+            await DisplayAlert("Lỗi", "Bạn cần cấp quyền camera để quét QR.", "OK");
+            return;
         }
-    }
-    private void OnBarcodesDetected(object sender, BarcodeDetectionEventArgs e)
-    {
-        if (!isScanning) return;
 
-        isScanning = false;
+        isScanning = true;
+        cameraView.Options = new BarcodeReaderOptions
+        {
+            Formats = BarcodeFormats.TwoDimensional,
+            AutoRotate = true,
+            Multiple = false
+        };
+        cameraView.IsDetecting = true;
+    }
+
+    void OnBarcodesDetected(object sender, BarcodeDetectionEventArgs e)
+    {
+        if (!isScanning)
+        {
+            return;
+        }
 
         var result = e.Results.FirstOrDefault()?.Value;
 
-        if (result != null)
+        if (string.IsNullOrWhiteSpace(result))
         {
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                // 👉 Lưu guest login
-                Preferences.Set("guest_mode", true);
-
-                await DisplayAlert("QR", $"Scanned: {result}", "OK");
-
-                // 👉 Chuyển sang MainPage
-                await Shell.Current.GoToAsync("//MainPage");
-            });
+            return;
         }
+
+        isScanning = false;
+        cameraView.IsDetecting = false;
+
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            sessionService.SetGuestMode(true);
+            await DisplayAlert("QR", $"Scanned: {result}", "OK");
+            await Shell.Current.GoToAsync("//MainPage");
+        });
     }
 }

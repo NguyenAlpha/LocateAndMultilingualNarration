@@ -1,11 +1,21 @@
 ﻿<ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI"
-    x:Class="Mobile.Pages.ScanPage">
+    xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+    x:Class="Mobile.Pages.ScanPage"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="Black">
 
-    <zxing:CameraBarcodeReaderView
-        x:Name="cameraView"
-        BarcodesDetected="OnBarcodesDetected" />
+    <Grid>
+        <zxing:CameraBarcodeReaderView
+            x:Name="cameraView"
+            BarcodesDetected="OnBarcodesDetected" />
+
+        <Grid VerticalOptions="End" Padding="20">
+            <Frame BackgroundColor="#80000000" CornerRadius="16" Padding="12" HasShadow="False">
+                <Label Text="Đưa mã QR vào khung để quét" TextColor="White" HorizontalTextAlignment="Center" />
+            </Frame>
+        </Grid>
+    </Grid>
 
 </ContentPage>

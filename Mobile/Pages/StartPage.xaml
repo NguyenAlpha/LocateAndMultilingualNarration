@@ -46,7 +46,7 @@
                            TextColor="Gray"/>
 
                     <Button Text="Quét QR để vào"
-                            Clicked="OnScanQRClicked"
+                            Command="{Binding ScanCommand}"
                             BackgroundColor="#6A5CFF"
                             TextColor="White"
                             CornerRadius="15"/>
@@ -65,7 +65,7 @@
                            TextColor="Gray"/>
 
                     <Button Text="Đăng nhập"
-                            Clicked="OnLoginClicked"
+                            Command="{Binding LoginCommand}"
                             BackgroundColor="#4CAF50"
                             TextColor="White"
                             CornerRadius="15"/>
