@@ -71,6 +71,16 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    app.UseSwaggerUI(options =>
+    {
+        // Trỏ Swagger UI tới tài liệu OpenAPI đã map ở trên
+        options.SwaggerEndpoint("/openapi/v1.json", "v1");
+        // Tùy chọn UI thêm:
+        options.EnablePersistAuthorization();
+        options.DisplayRequestDuration();
+    });
+
 }
 
 // Middleware để log các request trả về 401 Unauthorized

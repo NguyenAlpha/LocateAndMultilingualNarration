@@ -1,5 +1,4 @@
-﻿
-@{
+﻿@{
     Layout = null;
 }
 
@@ -28,7 +27,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary" aria-label="Main navigation">
         <div class="container">
-            <a class="navbar-brand" href="/Pages/Home/Index.html">
+            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
                 <i class="bi bi-building me-2"></i>EMS
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -38,7 +37,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/Pages/Home/Index.html">
+                        <a class="nav-link" asp-controller="Home" asp-action="Index">
                             <i class="bi bi-house-door me-1"></i>Home
                         </a>
                     </li>
@@ -57,8 +56,8 @@
                             <i class="bi bi-gear me-1"></i>Management
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/Pages/Management/BusinessManagement.html">Business Management</a></li>
-                            <li><a class="dropdown-item" href="/Pages/Management/StallManagement.html">Stall Management</a></li>
+                            <li><a class="dropdown-item" asp-controller="Business" asp-action="Index">Business Management</a></li>
+                            <li><a class="dropdown-item" asp-controller="Stall" asp-action="Index">Stall Management</a></li>
                             <li><a class="dropdown-item" href="/Pages/Management/LanguageManagement.html">Language Management</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/Pages/Management/EnterpriseStallRegistration.html">Enterprise Stall Registration</a></li>
@@ -71,17 +70,41 @@
                     </li>
                 </ul>
                 <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle me-1"></i>Admin User
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#">Profile</a></li>
-                            <li><a class="dropdown-item" href="#">Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#">Logout</a></li>
-                        </ul>
-                    </li>
+                    @{
+                        var token = Context.Session.GetString("AuthToken");
+                    }
+                    @if (string.IsNullOrWhiteSpace(token))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Auth" asp-action="Login">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Auth" asp-action="Register">
+                                <i class="bi bi-person-plus me-1"></i>Register
+                            </a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i>User
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#">Profile</a></li>
+                                <li><a class="dropdown-item" href="#">Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-controller="Auth" asp-action="Logout" method="post" class="px-3">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-link dropdown-item p-0">Logout</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    }
                 </ul>
             </div>
         </div>

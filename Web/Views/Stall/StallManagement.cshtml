@@ -1,0 +1,506 @@
+@model Web.Models.StallManagementViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Stall Management";
+    var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
+    var businessLookup = Model.Businesses.ToDictionary(b => b.Id, b => b.Name);
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Stall Management</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="bi bi-shop me-2"></i>Stall Management</h1>
+        <div class="btn-group">
+            <a asp-controller="Business" asp-action="Index" class="btn btn-outline-primary">
+                <i class="bi bi-building me-1"></i>Businesses
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStallModal">
+                <i class="bi bi-plus-lg me-1"></i>Add Stall
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+{
+    <div class="alert alert-success" role="alert">
+        @Model.SuccessMessage
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+
+<!-- Search/Filter -->
+<div class="search-filter-bar">
+    <form method="get" asp-action="Index" class="row g-3">
+        <div class="col-md-4">
+            <label for="stallSearch" class="form-label visually-hidden">Search stalls</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control table-search" id="stallSearch" name="search"
+                       value="@Model.Search" placeholder="Search stalls...">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label for="businessFilter" class="form-label visually-hidden">Filter by business</label>
+            <select class="form-select" id="businessFilter" name="businessId" aria-label="Filter by business">
+                <option value="">All Businesses</option>
+                @foreach (var business in Model.Businesses)
+                {
+                    <option value="@business.Id" selected="@(Model.BusinessId == business.Id)">@business.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" type="submit">
+                <i class="bi bi-search me-1"></i>Search
+            </button>
+        </div>
+        <div class="col-md-2">
+            <a class="btn btn-outline-secondary w-100" asp-action="Index">
+                <i class="bi bi-x-circle me-1"></i>Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Stalls Table -->
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-hover" id="stallTable" aria-label="Stall list">
+            <thead>
+                <tr>
+                    <th scope="col" class="sortable">Stall Name</th>
+                    <th scope="col" class="sortable">Slug</th>
+                    <th scope="col" class="sortable">Business</th>
+                    <th scope="col" class="sortable">Status</th>
+                    <th scope="col" class="sortable">Created At</th>
+                    <th scope="col" class="sortable">Updated At</th>
+                    <th scope="col" class="no-export">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">Chưa có stall nào.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var stall in Model.Items)
+                    {
+                        var statusClass = stall.IsActive ? "success" : "secondary";
+                        var statusText = stall.IsActive ? "Active" : "Inactive";
+                        var businessName = businessLookup.TryGetValue(stall.BusinessId, out var name) ? name : stall.BusinessId.ToString();
+                        <tr>
+                            <td>
+                                <strong>@stall.Name</strong>
+                                <small class="d-block text-muted">ID: @stall.Id</small>
+                            </td>
+                            <td>@stall.Slug</td>
+                            <td>@businessName</td>
+                            <td><span class="badge bg-@statusClass">@statusText</span></td>
+                            <td>@stall.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@(stall.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary btn-action"
+                                            data-bs-toggle="tooltip" title="Edit"
+                                            data-id="@stall.Id"
+                                            data-businessid="@stall.BusinessId"
+                                            data-name="@stall.Name"
+                                            data-slug="@stall.Slug"
+                                            data-description="@stall.Description"
+                                            data-email="@stall.ContactEmail"
+                                            data-phone="@stall.ContactPhone"
+                                            data-active="@stall.IsActive"
+                                            onclick="openEditModal(this)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-info btn-action"
+                                            data-bs-toggle="tooltip" title="View Details"
+                                            data-id="@stall.Id"
+                                            data-businessid="@stall.BusinessId"
+                                            data-name="@stall.Name"
+                                            data-slug="@stall.Slug"
+                                            data-description="@stall.Description"
+                                            data-email="@stall.ContactEmail"
+                                            data-phone="@stall.ContactPhone"
+                                            data-active="@stall.IsActive"
+                                            data-created="@stall.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                            data-updated="@(stall.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
+                                            onclick="openShowModal(this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <form asp-action="Deactivate" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@stall.Id" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                        <input type="hidden" name="search" value="@Model.Search" />
+                                        <input type="hidden" name="businessId" value="@Model.BusinessId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-action"
+                                                data-bs-toggle="tooltip" title="Deactivate"
+                                                onclick="return confirm('Bạn chắc chắn muốn vô hiệu hóa stall này?');">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="text-muted">
+            Showing @startIndex-@endIndex of @Model.TotalCount stalls
+        </div>
+        <nav aria-label="Stall list pagination">
+            <ul class="pagination mb-0">
+                <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-businessId="@Model.BusinessId" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-businessId="@Model.BusinessId">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-businessId="@Model.BusinessId" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Add Stall Modal -->
+<div class="modal fade" id="addStallModal" tabindex="-1" aria-labelledby="addStallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addStallModalLabel"><i class="bi bi-shop-window me-2"></i>Add Stall</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="businessId" value="@Model.BusinessId" />
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.BusinessId" class="form-label">Business <span class="text-danger">*</span></label>
+                            <select asp-for="Create.BusinessId" class="form-select" id="createBusinessId">
+                                <option value="">Select business</option>
+                                @foreach (var business in Model.Businesses)
+                                {
+                                    <option value="@business.Id">@business.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Create.BusinessId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.Name" class="form-label">Stall Name <span class="text-danger">*</span></label>
+                            <input asp-for="Create.Name" class="form-control" id="createStallName" placeholder="Enter stall name">
+                            <span asp-validation-for="Create.Name" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.Slug" class="form-label">Slug <span class="text-danger">*</span></label>
+                            <input asp-for="Create.Slug" class="form-control" id="createStallSlug" placeholder="stall-slug">
+                            <span asp-validation-for="Create.Slug" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.ContactEmail" class="form-label">Contact Email</label>
+                            <input asp-for="Create.ContactEmail" class="form-control" placeholder="Enter contact email">
+                            <span asp-validation-for="Create.ContactEmail" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.ContactPhone" class="form-label">Contact Phone</label>
+                            <input asp-for="Create.ContactPhone" class="form-control" placeholder="Enter contact phone">
+                            <span asp-validation-for="Create.ContactPhone" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.IsActive" class="form-label">Status</label>
+                            <select asp-for="Create.IsActive" class="form-select">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Create.Description" class="form-label">Description</label>
+                        <textarea asp-for="Create.Description" class="form-control" rows="3" placeholder="Description"></textarea>
+                        <span asp-validation-for="Create.Description" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Create Stall
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Stall Modal -->
+<div class="modal fade" id="editStallModal" tabindex="-1" aria-labelledby="editStallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editStallModalLabel"><i class="bi bi-pencil-square me-2"></i>Edit Stall</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="Update" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="businessId" value="@Model.BusinessId" />
+                <div class="modal-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <input asp-for="Edit.Id" type="hidden" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.BusinessId" class="form-label">Business <span class="text-danger">*</span></label>
+                            <select asp-for="Edit.BusinessId" class="form-select" id="editBusinessId">
+                                <option value="">Select business</option>
+                                @foreach (var business in Model.Businesses)
+                                {
+                                    <option value="@business.Id">@business.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Edit.BusinessId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.Name" class="form-label">Stall Name <span class="text-danger">*</span></label>
+                            <input asp-for="Edit.Name" class="form-control" id="editStallName" placeholder="Enter stall name">
+                            <span asp-validation-for="Edit.Name" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.Slug" class="form-label">Slug <span class="text-danger">*</span></label>
+                            <input asp-for="Edit.Slug" class="form-control" id="editStallSlug" placeholder="stall-slug">
+                            <span asp-validation-for="Edit.Slug" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.ContactEmail" class="form-label">Contact Email</label>
+                            <input asp-for="Edit.ContactEmail" class="form-control" id="editContactEmail" placeholder="Enter contact email">
+                            <span asp-validation-for="Edit.ContactEmail" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.ContactPhone" class="form-label">Contact Phone</label>
+                            <input asp-for="Edit.ContactPhone" class="form-control" id="editContactPhone" placeholder="Enter contact phone">
+                            <span asp-validation-for="Edit.ContactPhone" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Edit.IsActive" class="form-label">Status</label>
+                            <select asp-for="Edit.IsActive" class="form-select" id="editStallStatus">
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Edit.Description" class="form-label">Description</label>
+                        <textarea asp-for="Edit.Description" class="form-control" id="editDescription" rows="3" placeholder="Description"></textarea>
+                        <span asp-validation-for="Edit.Description" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Show Stall Modal -->
+<div class="modal fade" id="showStallModal" tabindex="-1" aria-labelledby="showStallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="showStallModalLabel"><i class="bi bi-eye me-2"></i>Stall Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Stall Name:</strong></p>
+                        <p id="showStallName" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Stall ID:</strong></p>
+                        <p id="showStallId" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Business:</strong></p>
+                        <p id="showBusiness" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong></p>
+                        <p id="showStatus" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Slug:</strong></p>
+                        <p id="showSlug" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Contact Email:</strong></p>
+                        <p id="showContactEmail" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Contact Phone:</strong></p>
+                        <p id="showContactPhone" class="text-muted">-</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Created At:</strong></p>
+                        <p id="showCreatedAt" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Updated At:</strong></p>
+                        <p id="showUpdatedAt" class="text-muted">-</p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <p><strong>Description:</strong></p>
+                    <p id="showDescription" class="text-muted">-</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const slugify = (text) => {
+            if (!text) return '';
+            return text
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '');
+        };
+
+        const bindSlug = (nameSelector, slugSelector) => {
+            $(nameSelector).on('input', function () {
+                const slug = slugify($(this).val());
+                if (!$(slugSelector).data('manual')) {
+                    $(slugSelector).val(slug);
+                }
+            });
+
+            $(slugSelector).on('input', function () {
+                $(this).data('manual', true);
+            });
+        };
+
+        function openEditModal(button) {
+            const $button = $(button);
+            $('#editBusinessId').val($button.data('businessid'));
+            $('#editStallName').val($button.data('name'));
+            $('#editStallSlug').val($button.data('slug')).data('manual', true);
+            $('#editContactEmail').val($button.data('email'));
+            $('#editContactPhone').val($button.data('phone'));
+            $('#editStallStatus').val(String($button.data('active')).toLowerCase());
+            $('#editDescription').val($button.data('description'));
+            $('input[name="Edit.Id"]').val($button.data('id'));
+
+            const editModal = new bootstrap.Modal(document.getElementById('editStallModal'));
+            editModal.show();
+        }
+
+        function openShowModal(button) {
+            const $button = $(button);
+            const isActive = String($button.data('active')).toLowerCase() === 'true';
+            const businessId = $button.data('businessid');
+            const businessName = $('#businessFilter option[value="' + businessId + '"]').text() || businessId;
+
+            $('#showStallName').text($button.data('name'));
+            $('#showStallId').text($button.data('id'));
+            $('#showBusiness').text(businessName);
+            $('#showStatus').html(`<span class="badge bg-${isActive ? 'success' : 'secondary'}">${isActive ? 'Active' : 'Inactive'}</span>`);
+            $('#showSlug').text($button.data('slug'));
+            $('#showContactEmail').text($button.data('email') || '-');
+            $('#showContactPhone').text($button.data('phone') || '-');
+            $('#showCreatedAt').text($button.data('created') || '-');
+            $('#showUpdatedAt').text($button.data('updated') || '-');
+            $('#showDescription').text($button.data('description') || '-');
+
+            const showModal = new bootstrap.Modal(document.getElementById('showStallModal'));
+            showModal.show();
+        }
+
+        $(document).ready(function () {
+            bindSlug('#createStallName', '#createStallSlug');
+            bindSlug('#editStallName', '#editStallSlug');
+
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            @if (Model.ShowCreateModal)
+            {
+                <text>
+                new bootstrap.Modal(document.getElementById('addStallModal')).show();
+                </text>
+            }
+
+            @if (Model.ShowEditModal)
+            {
+                <text>
+                new bootstrap.Modal(document.getElementById('editStallModal')).show();
+                </text>
+            }
+        });
+    </script>
+}

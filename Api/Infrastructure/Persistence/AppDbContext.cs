@@ -17,6 +17,13 @@ namespace Api.Infrastructure.Persistence
         public DbSet<EmployeeProfile> EmployeeProfiles => Set<EmployeeProfile>();
         public DbSet<Business> Businesses => Set<Business>();
         public DbSet<Stall> Stalls => Set<Stall>();
+        public DbSet<StallGeoFence> StallGeoFences => Set<StallGeoFence>();
+        public DbSet<StallLocation> StallLocations => Set<StallLocation>();
+        public DbSet<VisitorPreference> VisitorPreferences => Set<VisitorPreference>();
+        public DbSet<StallMedia> StallMedia => Set<StallMedia>();
+        public DbSet<StallNarrationContent> StallNarrationContents => Set<StallNarrationContent>();
+        public DbSet<NarrationAudio> NarrationAudios => Set<NarrationAudio>();
+        public DbSet<VisitorLocationLog> VisitorLocationLogs => Set<VisitorLocationLog>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -4,7 +4,7 @@
     xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI"
     x:Class="Mobile.Pages.ScanPage">
 
-	<zxing:CameraBarcodeReaderView
+    <zxing:CameraBarcodeReaderView
         x:Name="cameraView"
         BarcodesDetected="OnBarcodesDetected" />
 
