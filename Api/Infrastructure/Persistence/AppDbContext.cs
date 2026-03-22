@@ -23,6 +23,7 @@ namespace Api.Infrastructure.Persistence
         public DbSet<StallMedia> StallMedia => Set<StallMedia>();
         public DbSet<StallNarrationContent> StallNarrationContents => Set<StallNarrationContent>();
         public DbSet<NarrationAudio> NarrationAudios => Set<NarrationAudio>();
+        public DbSet<TtsVoiceProfile> TtsVoiceProfiles => Set<TtsVoiceProfile>();
         public DbSet<VisitorLocationLog> VisitorLocationLogs => Set<VisitorLocationLog>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 

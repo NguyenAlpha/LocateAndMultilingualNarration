@@ -35,6 +35,9 @@ namespace Api.Infrastructure.Persistence.Configurations
              .WithMany(nc => nc.NarrationAudios)
              .HasForeignKey(x => x.NarrationContentId)
              .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasIndex(x => new { x.NarrationContentId, x.TtsVoiceProfileId })
+             .IsUnique();
         }
     }
 }

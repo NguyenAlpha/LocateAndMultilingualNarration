@@ -11,6 +11,7 @@
         public ICollection<VisitorProfile> VisitorProfiles { get; set; } = new List<VisitorProfile>();
         public ICollection<VisitorPreference> VisitorPreferences { get; set; } = new List<VisitorPreference>();
         public ICollection<StallNarrationContent> StallNarrationContents { get; set; } = new List<StallNarrationContent>();
+        public ICollection<TtsVoiceProfile> TtsVoiceProfiles { get; set; } = new List<TtsVoiceProfile>();
 
     }
 }

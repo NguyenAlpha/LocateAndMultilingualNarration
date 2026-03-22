@@ -4,6 +4,7 @@ namespace Api.Domain.Entities
     {
         public Guid Id { get; set; }                         // DEFAULT NEWSEQUENTIALID()
         public Guid NarrationContentId { get; set; }         // FK -> StallNarrationContents(Id)
+        public Guid? TtsVoiceProfileId { get; set; }         // FK -> TtsVoiceProfiles(Id)
         public string? AudioUrl { get; set; }                // nvarchar(512)
         public string? BlobId { get; set; }                  // nvarchar(128)
         public string? Voice { get; set; }                   // nvarchar(64)
@@ -14,6 +15,7 @@ namespace Api.Domain.Entities
 
         // Navigation
         public StallNarrationContent NarrationContent { get; set; } = null!;
+        public TtsVoiceProfile? TtsVoiceProfile { get; set; }
 
     }
 }
