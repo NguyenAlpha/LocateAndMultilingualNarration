@@ -11,16 +11,25 @@ using System.Text;
 Console.OutputEncoding = Encoding.UTF8;
 Console.InputEncoding = Encoding.UTF8;
 
+// Khởi tạo builder để cấu hình toàn bộ ứng dụng
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Bind JWT Settings
+// Đọc cấu hình JWT từ appsettings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
 
-// 2. Register JWT Service
-builder.Services.AddScoped<IJwtService, JwtService>();
+// Đọc cấu hình Azure Speech và Blob Storage cho TTS
+builder.Services.Configure<AzureSpeechSettings>(builder.Configuration.GetSection("AzureSpeech"));
+builder.Services.Configure<BlobStorageSettings>(builder.Configuration.GetSection("BlobStorage"));
+builder.Services.Configure<AzureTranslationSettings>(builder.Configuration.GetSection("AzureTranslation"));
 
-// 3. Configure Authentication
+// Đăng ký các service nghiệp vụ vào DI container
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IGeoService, GeoService>();
+builder.Services.AddScoped<INarrationAudioService, NarrationAudioService>();
+builder.Services.AddHttpClient<ITranslationService, AzureTranslationService>();
+
+// Cấu hình xác thực JWT cho toàn bộ API
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -28,6 +37,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    // Kiểm tra issuer, audience, thời hạn token và chữ ký
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -41,33 +51,29 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// 4. Configure Authorization
+// Bật authorization policy
 builder.Services.AddAuthorization();
 
-// Add services to the container.
+// Đăng ký controller API
 builder.Services.AddControllers();
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// Bật OpenAPI/Swagger
 builder.Services.AddOpenApi();
 
-// Thiết lập kết nối database cho ứng dụng:
-// Đăng ký AppDbContext vào DI container của ASP.NET Core.
-// - AddDbContext<T>: cho phép bạn inject AppDbContext vào controller/service thông qua constructor.
-// - options.UseSqlServer(...): chỉ định EF Core sử dụng SQL Server làm provider.
-// - builder.Configuration.GetConnectionString("default"): lấy chuỗi kết nối có tên "default"
-//   từ cấu hình (ví dụ appsettings.json -> "ConnectionStrings": { "default": "..." }).
+// Đăng ký DbContext để inject vào controller/service
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var cs = builder.Configuration.GetConnectionString("default");
-    // Chỉ cấu hình SQL Server nếu có connection string, để tránh lỗi khi chạy mà không có DB (như trong test)
+
+    // Chỉ dùng SQL Server khi có connection string
     if (!string.IsNullOrEmpty(cs))
         options.UseSqlServer(cs);
 });
 
-// Build app (tạo ứng dụng từ các cấu hình trên)
+// Build ứng dụng sau khi đã cấu hình xong
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Khi ở Development thì bật OpenAPI và Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -83,7 +89,7 @@ if (app.Environment.IsDevelopment())
 
 }
 
-// Middleware để log các request trả về 401 Unauthorized
+// Middleware log các request bị 401 để dễ debug auth
 app.Use(async (context, next) =>
 {
     await next();
@@ -96,7 +102,7 @@ app.Use(async (context, next) =>
     }
 });
 
-// Chỉ chạy migrate khi có connection string
+// Chạy migration tự động nếu có connection string
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -104,14 +110,18 @@ using (var scope = app.Services.CreateScope())
         db.Database.Migrate();
 }
 
-// Middleware chuyển hướng HTTP sang HTTPS để đảm bảo bảo mật
+// Chuyển HTTP sang HTTPS
 app.UseHttpsRedirection();
 
-app.UseAuthentication();  // Phải đặt trước UseAuthorization
+// Authentication phải chạy trước Authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
+// Map toàn bộ controller routes
 app.MapControllers();
 
+// Chạy ứng dụng
 app.Run();
 
-public partial class Program{}
+// Cho phép test integration sử dụng Program class này
+public partial class Program {}
