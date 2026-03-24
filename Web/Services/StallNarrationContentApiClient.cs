@@ -44,5 +44,11 @@ namespace Web.Services
         {
             return await _httpClient.GetFromJsonAsync<ApiResult<StallNarrationContentWithAudiosDto>>($"api/stall-narration-content/{id}", cancellationToken);
         }
+
+        public async Task<ApiResult<StallNarrationContentDetailDto>?> UpdateContentAsync(Guid id, StallNarrationContentUpdateDto request, CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/stall-narration-content/{id}", request, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<ApiResult<StallNarrationContentDetailDto>>(cancellationToken: cancellationToken);
+        }
     }
 }

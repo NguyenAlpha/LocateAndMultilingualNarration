@@ -72,13 +72,50 @@ namespace Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Show(Guid id, CancellationToken cancellationToken = default)
         {
+            var viewModel = await BuildShowViewModel(id, null, cancellationToken);
+            return View("show", viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Update(Guid id, StallNarrationContentUpdateDto request, CancellationToken cancellationToken = default)
+        {
+            if (!ModelState.IsValid)
+            {
+                var invalidViewModel = await BuildShowViewModel(id, "Dữ liệu cập nhật không hợp lệ.", cancellationToken);
+                invalidViewModel.Content = invalidViewModel.Content ?? new StallNarrationContentDetailDto();
+                invalidViewModel.Content.Title = request.Title;
+                invalidViewModel.Content.Description = request.Description;
+                invalidViewModel.Content.ScriptText = request.ScriptText;
+                invalidViewModel.Content.IsActive = request.IsActive;
+                return View("show", invalidViewModel);
+            }
+
+            var updateResult = await _stallNarrationContentApiClient.UpdateContentAsync(id, request, cancellationToken);
+            if (updateResult?.Success != true)
+            {
+                var errorViewModel = await BuildShowViewModel(id, updateResult?.Error?.Message ?? "Không cập nhật được narration content.", cancellationToken);
+                errorViewModel.Content = errorViewModel.Content ?? new StallNarrationContentDetailDto();
+                errorViewModel.Content.Title = request.Title;
+                errorViewModel.Content.Description = request.Description;
+                errorViewModel.Content.ScriptText = request.ScriptText;
+                errorViewModel.Content.IsActive = request.IsActive;
+                return View("show", errorViewModel);
+            }
+
+            TempData["SuccessMessage"] = "Cập nhật narration content thành công.";
+            return RedirectToAction(nameof(Show), new { id });
+        }
+
+        private async Task<StallNarrationContentShowViewModel> BuildShowViewModel(Guid id, string? errorMessage, CancellationToken cancellationToken)
+        {
             var detailResult = await _stallNarrationContentApiClient.GetContentAsync(id, cancellationToken);
             if (detailResult?.Success != true || detailResult.Data == null)
             {
-                return View("show", new StallNarrationContentShowViewModel
+                return new StallNarrationContentShowViewModel
                 {
-                    ErrorMessage = detailResult?.Error?.Message ?? "Không lấy được nội dung narration."
-                });
+                    ErrorMessage = errorMessage ?? detailResult?.Error?.Message ?? "Không lấy được nội dung narration."
+                };
             }
 
             var detail = detailResult.Data;
@@ -94,16 +131,14 @@ namespace Web.Controllers
                 ? languageResult.Data.FirstOrDefault(l => l.Id == content.LanguageId)?.Name
                 : null;
 
-            var audios = detail.Audios;
-
-            return View("show", new StallNarrationContentShowViewModel
+            return new StallNarrationContentShowViewModel
             {
                 Content = content,
-                Audios = audios,
+                Audios = detail.Audios,
                 StallName = stallName,
                 LanguageName = languageName ?? content.LanguageId.ToString(),
-                ErrorMessage = null
-            });
+                ErrorMessage = errorMessage
+            };
         }
     }
 }
