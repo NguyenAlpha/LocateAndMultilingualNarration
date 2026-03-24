@@ -181,6 +181,7 @@ namespace Api.Controllers
                 .Include(a => a.NarrationContent)
                 .ThenInclude(n => n.Stall)
                 .ThenInclude(s => s.Business)
+                .Include(a => a.TtsVoiceProfile)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.Id == id);
 
@@ -234,6 +235,7 @@ namespace Api.Controllers
                 .Include(a => a.NarrationContent)
                 .ThenInclude(n => n.Stall)
                 .ThenInclude(s => s.Business)
+                .Include(a => a.TtsVoiceProfile)
                 .AsNoTracking()
                 .AsQueryable();
 
@@ -285,6 +287,7 @@ namespace Api.Controllers
                 Id = audio.Id,
                 NarrationContentId = audio.NarrationContentId,
                 TtsVoiceProfileId = audio.TtsVoiceProfileId,
+                TtsVoiceProfileDescription = audio.TtsVoiceProfile?.Description,
                 AudioUrl = audio.AudioUrl,
                 BlobId = audio.BlobId,
                 Voice = audio.Voice,

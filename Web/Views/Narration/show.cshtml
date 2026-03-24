@@ -240,7 +240,7 @@
                 <thead>
                     <tr>
                         <th>Voice</th>
-                        <th>Provider</th>
+                        <th>TtsVoiceProfile</th>
                         <th>Duration (s)</th>
                         <th>Is TTS</th>
                         <th>Updated</th>
@@ -260,7 +260,7 @@
                         {
                             <tr>
                                 <td>@(audio.Voice ?? "-")</td>
-                                <td>@(audio.Provider ?? "-")</td>
+                                <td>@(audio.TtsVoiceProfileDescription ?? "-")</td>
                                 <td>@(audio.DurationSeconds?.ToString() ?? "-")</td>
                                 <td>@(audio.IsTts ? "Yes" : "No")</td>
                                 <td>@(audio.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>

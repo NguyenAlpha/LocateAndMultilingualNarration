@@ -40,9 +40,9 @@ namespace Web.Services
             return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<StallNarrationContentDetailDto>>>(url, cancellationToken);
         }
 
-        public async Task<ApiResult<StallNarrationContentDetailDto>?> GetContentAsync(Guid id, CancellationToken cancellationToken = default)
+        public async Task<ApiResult<StallNarrationContentWithAudiosDto>?> GetContentAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            return await _httpClient.GetFromJsonAsync<ApiResult<StallNarrationContentDetailDto>>($"api/stall-narration-content/{id}", cancellationToken);
+            return await _httpClient.GetFromJsonAsync<ApiResult<StallNarrationContentWithAudiosDto>>($"api/stall-narration-content/{id}", cancellationToken);
         }
     }
 }

@@ -12,14 +12,12 @@ namespace Web.Controllers
         private readonly StallNarrationContentApiClient _stallNarrationContentApiClient;
         private readonly StallApiClient _stallApiClient;
         private readonly LanguageApiClient _languageApiClient;
-        private readonly NarrationAudioApiClient _narrationAudioApiClient;
 
-        public NarrationController(StallNarrationContentApiClient stallNarrationContentApiClient, StallApiClient stallApiClient, LanguageApiClient languageApiClient, NarrationAudioApiClient narrationAudioApiClient)
+        public NarrationController(StallNarrationContentApiClient stallNarrationContentApiClient, StallApiClient stallApiClient, LanguageApiClient languageApiClient)
         {
             _stallNarrationContentApiClient = stallNarrationContentApiClient;
             _stallApiClient = stallApiClient;
             _languageApiClient = languageApiClient;
-            _narrationAudioApiClient = narrationAudioApiClient;
         }
 
         [HttpGet]
@@ -74,17 +72,17 @@ namespace Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Show(Guid id, CancellationToken cancellationToken = default)
         {
-            var contentResult = await _stallNarrationContentApiClient.GetContentAsync(id, cancellationToken);
-            if (contentResult?.Success != true || contentResult.Data == null)
+            var detailResult = await _stallNarrationContentApiClient.GetContentAsync(id, cancellationToken);
+            if (detailResult?.Success != true || detailResult.Data == null)
             {
                 return View("show", new StallNarrationContentShowViewModel
                 {
-                    ErrorMessage = contentResult?.Error?.Message ?? "Không lấy được nội dung narration."
+                    ErrorMessage = detailResult?.Error?.Message ?? "Không lấy được nội dung narration."
                 });
             }
 
-            var content = contentResult.Data;
-            var audioResult = await _narrationAudioApiClient.GetAudiosAsync(1, 200, content.Id, null, cancellationToken);
+            var detail = detailResult.Data;
+            var content = detail.Content;
             var stallResult = await _stallApiClient.GetStallAsync(content.StallId, cancellationToken);
             var languageResult = await _languageApiClient.GetActiveLanguagesAsync(cancellationToken);
 
@@ -96,9 +94,7 @@ namespace Web.Controllers
                 ? languageResult.Data.FirstOrDefault(l => l.Id == content.LanguageId)?.Name
                 : null;
 
-            var audios = audioResult?.Success == true && audioResult.Data != null
-                ? audioResult.Data.Items
-                : Array.Empty<NarrationAudioDetailDto>();
+            var audios = detail.Audios;
 
             return View("show", new StallNarrationContentShowViewModel
             {
@@ -106,7 +102,7 @@ namespace Web.Controllers
                 Audios = audios,
                 StallName = stallName,
                 LanguageName = languageName ?? content.LanguageId.ToString(),
-                ErrorMessage = audioResult?.Success == true ? null : audioResult?.Error?.Message
+                ErrorMessage = null
             });
         }
     }
