@@ -1,0 +1,445 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Vị trí Stall - Bản đồ";
+    var mode = ViewBag.Mode ?? "view"; // create, edit, view
+    var stallId = ViewBag.StallId as Guid?;
+    var locationId = ViewBag.LocationId as Guid?;
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "https://localhost:7188/";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        #map {
+            height: 500px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .location-card {
+            border-left: 4px solid #0d6efd;
+        }
+        .coordinate-display {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .leaflet-container {
+            border-radius: 8px;
+        }
+        .form-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+    </style>
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="StallLocation" asp-action="Index">Quản lý Vị trí</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@(mode == "create" ? "Thêm mới" : (mode == "edit" ? "Chỉnh sửa" : "Xem"))</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="bi bi-geo-alt me-2"></i>@(mode == "create" ? "Thêm mới Vị trí Stall" : (mode == "edit" ? "Chỉnh sửa Vị trí Stall" : "Xem Vị trí Stall"))</h1>
+    </div>
+</div>
+
+<!-- Alert Messages -->
+@if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@ViewBag.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>@ViewBag.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Map and Form Layout -->
+<div class="row">
+    <!-- Map Section -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-map me-2"></i>Bản đồ Vị trí (OpenStreetMap)</h5>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="useCurrentLocationBtn">
+                    <i class="bi bi-crosshair me-1"></i>Vị trí hiện tại
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div id="map"></div>
+            </div>
+            <div class="card-footer bg-light">
+                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Nhấp vào bản đồ để chọn vị trí hoặc kéo marker để điều chỉnh</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Form Section -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm location-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-pin-map me-2"></i>Chi tiết Vị trí</h5>
+            </div>
+            <div class="card-body">
+                <form id="locationForm" novalidate>
+
+                    @if (mode == "edit" && locationId.HasValue)
+                    {
+                        <input type="hidden" name="id" value="@locationId.Value" />
+                    }
+
+                    <!-- Stall Selection -->
+                    <div class="form-section">
+                        <label for="stallSelect" class="form-label fw-bold">Chọn Stall <span class="text-danger">*</span></label>
+                        <select class="form-select @(mode != "view" ? "" : "disabled")" id="stallSelect" name="stallId" required @(mode == "view" ? "disabled" : "")>
+                            <option value="">-- Chọn stall --</option>
+                            @foreach (var s in ViewBag.Stalls as IEnumerable<Shared.DTOs.Stalls.StallDetailDto> ?? Array.Empty<Shared.DTOs.Stalls.StallDetailDto>())
+                            {
+                                <option value="@s.Id" selected="@(stallId == s.Id)">@s.Name</option>
+                            }
+                        </select>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="stallId" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <!-- Coordinates Display -->
+                    <div class="form-section">
+                        <label class="form-label fw-bold">Tọa độ</label>
+                        <div class="coordinate-display mb-2" id="coordinateDisplay">
+                            <i class="bi bi-crosshair me-2"></i>Nhấp vào bản đồ để chọn vị trí
+                        </div>
+                    </div>
+
+                    <!-- Latitude -->
+                    <div class="mb-3">
+                        <label for="latitude" class="form-label">Latitude <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-compass"></i></span>
+                            <input type="number" 
+                                    step="0.000001"
+                                    min="-90"
+                                    max="90"
+                                    class="form-control" 
+                                    id="latitude" 
+                                    name="latitude" 
+                                    placeholder="0.000000"
+                                    value="@(ViewBag.Latitude?.ToString("F6") ?? "")"
+                                    @(mode == "view" ? "readonly" : "")
+                                    required>
+                        </div>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="latitude" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <!-- Longitude -->
+                    <div class="mb-3">
+                        <label for="longitude" class="form-label">Longitude <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-compass"></i></span>
+                            <input type="number" 
+                                    step="0.000001"
+                                    min="-180"
+                                    max="180"
+                                    class="form-control" 
+                                    id="longitude" 
+                                    name="longitude" 
+                                    placeholder="0.000000"
+                                    value="@(ViewBag.Longitude?.ToString("F6") ?? "")"
+                                    @(mode == "view" ? "readonly" : "")
+                                    required>
+                        </div>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="longitude" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <!-- Radius -->
+                    <div class="mb-3">
+                        <label for="radiusMeters" class="form-label">Bán kính dịch vụ (mét) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-circle"></i></span>
+                            <input type="number" 
+                                    class="form-control" 
+                                    id="radiusMeters" 
+                                    name="radiusMeters" 
+                                    placeholder="100"
+                                    min="10"
+                                    max="5000"
+                                    value="@(ViewBag.RadiusMeters?.ToString() ?? "8")"
+                                    @(mode == "view" ? "readonly" : "")
+                                    required>
+                            <span class="input-group-text">m</span>
+                        </div>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="radiusMeters" data-valmsg-replace="true"></span>
+                        <small class="text-muted d-block mt-1">Từ 10 - 5000 mét</small>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Địa chỉ</label>
+                        <textarea class="form-control" id="address" name="address" rows="2" placeholder="Nhập địa chỉ" @(mode == "view" ? "readonly" : "")>@(ViewBag.Address ?? "")</textarea>
+                        <span class="text-danger field-validation-valid" data-valmsg-for="address" data-valmsg-replace="true"></span>
+                    </div>
+
+                    <!-- IsActive -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isActive" name="isActive" value="true" checked="@((ViewBag.IsActive ?? true))" @(mode == "view" ? "disabled" : "") />
+                            <label class="form-check-label" for="isActive">
+                                Kích hoạt
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    @if (mode != "view")
+                    {
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>@(mode == "create" ? "Tạo mới" : "Cập nhật")
+                            </button>
+                            <a href="@Url.Action("Index", "StallLocation")" class="btn btn-secondary">
+                                <i class="bi bi-x-lg me-1"></i>Hủy bỏ
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-grid">
+                            <a href="@Url.Action("Index", "StallLocation")" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Quay lại
+                            </a>
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        // Initialize Leaflet map
+        var map = L.map('map').setView([10.777451, 106.711203], 19); // Singapore center
+        var marker = null;
+        var circle = null;
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Map click handler
+        map.on('click', function(e) {
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Update location on map and form
+        function updateLocation(lat, lng) {
+            console.log('Latitude:', lat, 'Longitude:', lng); // Kiểm tra giá trị gốc
+            $('#latitude').val(lat.toFixed(6));
+            $('#longitude').val(lng.toFixed(6));
+            $('#coordinateDisplay').html('<i class="bi bi-geo-alt-fill text-danger me-2"></i>Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6));
+
+            // Remove old marker and circle
+            if (marker) map.removeLayer(marker);
+            if (circle) map.removeLayer(circle);
+
+            // Add new marker
+            marker = L.marker([lat, lng], {
+                draggable: true,
+                title: 'Kéo để điều chỉnh vị trí'
+            }).addTo(map);
+
+            // Add radius circle
+            var radius = parseFloat($('#radiusMeters').val()) || 8;
+            circle = L.circle([lat, lng], {
+                color: '#0d6efd',
+                fillColor: '#0d6efd',
+                fillOpacity: 0.2,
+                radius: radius,
+                weight: 2
+            }).addTo(map);
+
+            // Handle marker drag
+            marker.on('dragend', function() {
+                var pos = marker.getLatLng();
+                updateLocation(pos.lat, pos.lng);
+            });
+
+            // Center map on marker
+            map.setView([lat, lng], map.getZoom());
+
+            // Show toast
+            showToast('Vị trí được chọn thành công!', 'success');
+        }
+
+        // Update radius circle when radius changes
+        $('#radiusMeters').on('change input', function() {
+            if (marker) {
+                var radius = parseFloat($(this).val()) || 8;
+                if (circle) map.removeLayer(circle);
+                var pos = marker.getLatLng();
+                circle = L.circle([pos.lat, pos.lng], {
+                    color: '#0d6efd',
+                    fillColor: '#0d6efd',
+                    fillOpacity: 0.2,
+                    radius: radius,
+                    weight: 2
+                }).addTo(map);
+            }
+        });
+
+        // Use current location
+        $('#useCurrentLocationBtn').on('click', function() {
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Đang lấy vị trí...');
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    updateLocation(lat, lng);
+                    btn.prop('disabled', false).html('<i class="bi bi-crosshair me-1"></i>Vị trí hiện tại');
+                }, function(error) {
+                    showToast('Không thể lấy vị trí hiện tại: ' + error.message, 'warning');
+                    btn.prop('disabled', false).html('<i class="bi bi-crosshair me-1"></i>Vị trí hiện tại');
+                });
+            } else {
+                showToast('Trình duyệt của bạn không hỗ trợ Geolocation', 'warning');
+                btn.prop('disabled', false).html('<i class="bi bi-crosshair me-1"></i>Vị trí hiện tại');
+            }
+        });
+
+        // Form submission with JSON to API
+        $('#locationForm').on('submit', function(e) {
+            e.preventDefault();
+
+            var lat = $('#latitude').val();
+            var lng = $('#longitude').val();
+            var stallId = $('#stallSelect').val();
+
+            if (!lat || !lng) {
+                showToast('Vui lòng chọn vị trí trên bản đồ!', 'warning');
+                return false;
+            }
+
+            if (!stallId) {
+                showToast('Vui lòng chọn một stall!', 'warning');
+                return false;
+            }
+
+            // Build JSON data
+            var data = {
+                stallId: stallId,
+                latitude: parseFloat(lat),
+                longitude: parseFloat(lng),
+                radiusMeters: parseInt($('#radiusMeters').val()) || 8,
+                address: $('#address').val() || '',
+                isActive: $('#isActive').is(':checked')
+            };
+
+            // Get JWT token from localStorage (saved during login)
+            var jwtToken = localStorage.getItem('jwtToken');
+            if (!jwtToken) {
+                showToast('Vui lòng đăng nhập lại!', 'warning');
+                return false;
+            }
+
+            // Show loading state
+            var submitBtn = $('#locationForm').find('button[type="submit"]');
+            var originalBtnHtml = submitBtn.html();
+            submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Đang xử lý...');
+
+            // Determine API endpoint and method
+            var isEditMode = '@mode' === 'edit';
+            var locationId = '@locationId';
+            var apiBaseUrl = '@Html.Raw(apiBaseUrl)'.replace(/\/$/, ''); // Remove trailing slash
+            var apiUrl = isEditMode ? apiBaseUrl + '/api/stall-location/' + locationId : apiBaseUrl + '/api/stall-location';
+            var httpMethod = isEditMode ? 'PUT' : 'POST';
+
+            console.log('API URL:', apiUrl);
+            console.log('HTTP Method:', httpMethod);
+
+            // Send JSON request to API with JWT token
+            fetch(apiUrl, {
+                method: httpMethod,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + jwtToken
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(data)
+            })
+            .then(function(response) {
+                console.log('Response Status:', response.status);
+
+                if (!response.ok) {
+                    return response.text().then(function(text) {
+                        console.error('Response Text:', text);
+                        try {
+                            var error = JSON.parse(text);
+                            throw new Error(error.message || 'Lỗi từ server: ' + response.status);
+                        } catch(e) {
+                            throw new Error('Lỗi ' + response.status + ': ' + response.statusText);
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(function(result) {
+                console.log('Success Result:', result);
+                showToast('Lưu dữ liệu thành công!', 'success');
+                setTimeout(function() {
+                    window.location.href = '@Url.Action("Index", "StallLocation")';
+                }, 1500);
+            })
+            .catch(function(error) {
+                submitBtn.prop('disabled', false).html(originalBtnHtml);
+                console.error('Fetch Error:', error);
+                var errorMessage = error.message || 'Có lỗi xảy ra khi lưu dữ liệu!';
+                showToast(errorMessage, 'warning');
+            });
+        });
+
+        // Parse unobtrusive validation
+        $.validator.unobtrusive.parse('#locationForm');
+
+        // Toast notification
+        function showToast(message, type) {
+            type = type || 'info';
+            var bgClass = type === 'success' ? 'bg-success' : (type === 'warning' ? 'bg-warning text-dark' : 'bg-info');
+
+            var toast = $('<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">' +
+                '<div class="toast show ' + bgClass + ' text-white" role="alert">' +
+                '<div class="toast-body d-flex align-items-center">' +
+                '<i class="bi bi-check-circle me-2"></i>' + message +
+                '</div></div></div>');
+
+            $('body').append(toast);
+            setTimeout(function() {
+                toast.fadeOut(300, function() { $(this).remove(); });
+            }, 3000);
+        }
+
+        // Load existing location if in edit mode
+        $(document).ready(function() {
+            var lat = $('#latitude').val();
+            var lng = $('#longitude').val();
+            if (lat && lng) {
+                updateLocation(parseFloat(lat), parseFloat(lng));
+            }
+        });
+    </script>
+}

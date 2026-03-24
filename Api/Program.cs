@@ -54,6 +54,24 @@ builder.Services.AddAuthentication(options =>
 // Bật authorization policy
 builder.Services.AddAuthorization();
 
+// Cấu hình CORS để cho phép Web project gọi API
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowWeb", policy =>
+    {
+        policy
+            .WithOrigins(
+                "https://localhost:7298",    // Web HTTPS
+                "http://localhost:5209",     // Web HTTP
+                "https://localhost:7188",    // API HTTPS (self)
+                "http://localhost:5299"      // API HTTP (self)
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 // Đăng ký controller API
 builder.Services.AddControllers();
 
@@ -112,6 +130,9 @@ using (var scope = app.Services.CreateScope())
 
 // Chuyển HTTP sang HTTPS
 app.UseHttpsRedirection();
+
+// Bật CORS middleware (phải chạy trước Authentication)
+app.UseCors("AllowWeb");
 
 // Authentication phải chạy trước Authorization
 app.UseAuthentication();

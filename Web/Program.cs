@@ -40,6 +40,17 @@ builder.Services.AddHttpClient<NarrationAudioApiClient>(client =>
     client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 }).AddHttpMessageHandler<AuthTokenHandler>();
 
+// StallLocation and StallGeoFence clients
+builder.Services.AddHttpClient<StallLocationApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
+//builder.Services.AddHttpClient<StallGeoFenceApiClient>(client =>
+//{
+//    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+//}).AddHttpMessageHandler<AuthTokenHandler>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
