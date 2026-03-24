@@ -46,9 +46,9 @@
                             <i class="bi bi-speedometer2 me-1"></i>Admin
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="/Pages/Admin/Dashboard.html">Dashboard</a></li>
-                            <li><a class="dropdown-item" href="/Pages/Admin/UserRoleManagement.html">User/Role Management</a></li>
-                            <li><a class="dropdown-item" href="/Pages/Admin/Statistics.html">Statistics</a></li>
+                            <li><a class="dropdown-item" href="#">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="#">User/Role Management</a></li>
+                            <li><a class="dropdown-item" href="#">Statistics</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
@@ -58,15 +58,15 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" asp-controller="Business" asp-action="Index">Business Management</a></li>
                             <li><a class="dropdown-item" asp-controller="Stall" asp-action="Index">Stall Management</a></li>
-                            <li><a class="dropdown-item" href="/Pages/Management/LanguageManagement.html">Language Management</a></li>
+                            <li><a class="dropdown-item" href="#">Language Management</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/Pages/Management/EnterpriseStallRegistration.html">Enterprise Stall Registration</a></li>
-                            <li><a class="dropdown-item" href="/Pages/Management/StallLocationMap.html">Stall Location Map</a></li>
-                            <li><a class="dropdown-item" href="/Pages/Management/ContentAudioManagement.html">Content/Audio Management</a></li>
+                            <li><a class="dropdown-item" href="#">Enterprise Stall Registration</a></li>
+                            <li><a class="dropdown-item" href="#">Stall Location Map</a></li>
+                            <li><a class="dropdown-item" asp-controller="Narration" asp-action="StallNarrationContents">Stall Narration Contents Management</a></li>
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/Pages/Home/Privacy.html">Privacy</a>
+                        <a class="nav-link" asp-controller="Home" asp-action="Privacy">Privacy</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
@@ -124,8 +124,8 @@
                     <span class="text-muted">&copy; 2026 Enterprise Management System. All rights reserved.</span>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <a href="/Pages/Home/Privacy.html" class="text-muted me-3">Privacy Policy</a>
-                    <a href="/Pages/Home/RazorBasics.html" class="text-muted">Documentation</a>
+                    <a asp-controller="Home" asp-action="Privacy" class="text-muted me-3">Privacy Policy</a>
+                    <a asp-controller="Home" asp-action="index" class="text-muted">Documentation</a>
                 </div>
             </div>
         </div>
