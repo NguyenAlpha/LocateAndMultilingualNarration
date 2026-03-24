@@ -253,6 +253,7 @@ namespace Api.Controllers
             var timeZone = GetTimeZone();
             var audios = await _context.NarrationAudios
                 .Include(a => a.TtsVoiceProfile)
+                .ThenInclude(p => p.Language)
                 .AsNoTracking()
                 .Where(a => a.NarrationContentId == content.Id)
                 .OrderByDescending(a => a.UpdatedAt)

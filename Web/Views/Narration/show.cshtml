@@ -234,12 +234,17 @@
 <!-- Narration Audio Table -->
 <div class="card mb-5">
     <div class="card-body">
-        <h5 class="mb-3">Danh sách narration audio</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">Danh sách narration audio</h5>
+            <button type="button" class="btn btn-outline-secondary" id="toggleAllAudioGroups">
+                <i class="bi bi-chevron-down me-1"></i>Mở rộng tất cả
+            </button>
+        </div>
         <div class="table-responsive">
-            <table class="table table-hover" aria-label="Narration audio list">
+            <table class="grouped-table" aria-label="Narration audio list">
                 <thead>
                     <tr>
-                        <th>Language</th>
+                        <th>Ngôn ngữ</th>
                         <th>TtsVoiceProfile</th>
                         <th>Duration (s)</th>
                         <th>Is TTS</th>
@@ -256,25 +261,41 @@
                     }
                     else
                     {
-                        foreach (var audio in Model.Audios)
+                        var groupedAudios = Model.Audios
+                            .GroupBy(a => a.TtsVoiceProfileLanguageName ?? "Không rõ")
+                            .OrderBy(g => g.Key)
+                            .ToList();
+                        var groupIndex = 0;
+                        foreach (var group in groupedAudios)
                         {
-                            <tr>
-                                <td>@(audio.TtsVoiceProfileLanguageName ?? "-")</td>
-                                <td>@(audio.TtsVoiceProfileDescription ?? "-")</td>
-                                <td>@(audio.DurationSeconds?.ToString() ?? "-")</td>
-                                <td>@(audio.IsTts ? "Yes" : "No")</td>
-                                <td>@(audio.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
-                                <td>
-                                    @if (!string.IsNullOrWhiteSpace(audio.AudioUrl))
-                                    {
-                                        <a href="@audio.AudioUrl" target="_blank">Open</a>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">-</span>
-                                    }
+                            var groupId = $"audio-group-{groupIndex}";
+                            <tr class="language-group-row" data-group-id="@groupId">
+                                <td colspan="6">
+                                    <button type="button" class="toggle-group-btn collapsed" data-group-target="@groupId" aria-expanded="false"></button>
+                                    <strong>@group.Key</strong> (@group.Count() giọng)
                                 </td>
                             </tr>
+                            foreach (var audio in group)
+                            {
+                                <tr class="voice-row" data-group-id="@groupId">
+                                    <td>@group.Key</td>
+                                    <td>@(audio.TtsVoiceProfileDescription ?? "-")</td>
+                                    <td>@(audio.DurationSeconds?.ToString() ?? "-")</td>
+                                    <td>@(audio.IsTts ? "Yes" : "No")</td>
+                                    <td>@(audio.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(audio.AudioUrl))
+                                        {
+                                            <a href="@audio.AudioUrl" target="_blank">Open</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            groupIndex++;
                         }
                     }
                 </tbody>
@@ -282,3 +303,50 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            function toggleGroup(groupId, expand) {
+                var rows = document.querySelectorAll('.voice-row[data-group-id="' + groupId + '"]');
+                var button = document.querySelector('.toggle-group-btn[data-group-target="' + groupId + '"]');
+                if (!button) {
+                    return;
+                }
+                if (expand) {
+                    rows.forEach(function (row) { row.classList.add('show'); });
+                    button.classList.remove('collapsed');
+                    button.setAttribute('aria-expanded', 'true');
+                } else {
+                    rows.forEach(function (row) { row.classList.remove('show'); });
+                    button.classList.add('collapsed');
+                    button.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            document.querySelectorAll('.toggle-group-btn[data-group-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var groupId = button.getAttribute('data-group-target');
+                    var isCollapsed = button.classList.contains('collapsed');
+                    toggleGroup(groupId, isCollapsed);
+                });
+            });
+
+            var toggleAllButton = document.getElementById('toggleAllAudioGroups');
+            if (toggleAllButton) {
+                var allExpanded = false;
+                toggleAllButton.addEventListener('click', function () {
+                    var groupButtons = document.querySelectorAll('.toggle-group-btn[data-group-target]');
+                    allExpanded = !allExpanded;
+                    groupButtons.forEach(function (button) {
+                        var groupId = button.getAttribute('data-group-target');
+                        toggleGroup(groupId, allExpanded);
+                    });
+                    toggleAllButton.innerHTML = allExpanded
+                        ? '<i class="bi bi-chevron-up me-1"></i>Thu gọn tất cả'
+                        : '<i class="bi bi-chevron-down me-1"></i>Mở rộng tất cả';
+                });
+            }
+        })();
+    </script>
+}
