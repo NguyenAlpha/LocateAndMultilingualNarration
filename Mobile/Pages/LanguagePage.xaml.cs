@@ -1,42 +1,22 @@
 using Mobile.Helpers;
+using Mobile.ViewModels;
 
 namespace Mobile;
 
 public partial class LanguagePage : ContentPage
 {
+    private readonly LanguageViewModel _viewModel;
+
     public LanguagePage()
     {
         InitializeComponent();
+        _viewModel = ServiceHelper.GetService<LanguageViewModel>();
+        BindingContext = _viewModel;
     }
 
-    async void SelectVietnamese(object sender, EventArgs e)
+    protected override async void OnAppearing()
     {
-        LanguageHelper.SetLanguage("vi");
-        await ReloadApp();
-    }
-
-    async void SelectEnglish(object sender, EventArgs e)
-    {
-        LanguageHelper.SetLanguage("en");
-        await ReloadApp();
-    }
-
-    async void SelectJapanese(object sender, EventArgs e)
-    {
-        LanguageHelper.SetLanguage("ja");
-        await ReloadApp();
-    }
-
-    async void SelectKorean(object sender, EventArgs e)
-    {
-        LanguageHelper.SetLanguage("ko");
-        await ReloadApp();
-    }
-
-    async Task ReloadApp()
-    {
-        await Shell.Current.DisplayAlert("Language", "Language changed successfully", "OK");
-
-        Application.Current.MainPage = new AppShell();
+        base.OnAppearing();
+        await _viewModel.LoadLanguagesAsync();
     }
 }

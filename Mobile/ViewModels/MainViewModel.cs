@@ -8,9 +8,7 @@ namespace Mobile.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
-    readonly SessionService sessionService = new();
-    bool isAudioOn;
-    string audioGlyph = "🔊";
+    readonly SessionService sessionService;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -21,36 +19,44 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ProfileCommand { get; }
     public ICommand LogoutCommand { get; }
 
-    public string AudioGlyph
+    string userName = "Guest";
+    public string UserName
     {
-        get => audioGlyph;
-        private set
+        get => userName;
+        set
         {
-            if (audioGlyph == value) return;
-            audioGlyph = value;
+            if (userName == value) return;
+            userName = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(HelloText));
         }
     }
 
-    public MainViewModel()
+    public string HelloText => $"Hello, {UserName}";
+
+    public MainViewModel(SessionService sessionService)
     {
-        StartCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(LanguagePage)));
+        this.sessionService = sessionService;
+        LoadUserName();
+
+        StartCommand = new Command(async () => await Shell.Current.GoToAsync("LanguagePage"));
         MapCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(MapPage)));
-        LanguageCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(LanguagePage)));
-        AudioCommand = new Command(async () => await ToggleAudioAsync());
+        LanguageCommand = new Command(async () => await Shell.Current.GoToAsync("LanguagePage"));
+        AudioCommand = new Command(async () => await ShowAudioHintAsync());
         ProfileCommand = new Command(async () => await ShowProfileAsync());
         LogoutCommand = new Command(async () => await LogoutAsync());
     }
 
-    async Task ToggleAudioAsync()
+    public void LoadUserName()
     {
-        isAudioOn = !isAudioOn;
-        AudioGlyph = isAudioOn ? "🔇" : "🔊";
+        UserName = sessionService.GetUserName();
+    }
 
+    async Task ShowAudioHintAsync()
+    {
         if (Application.Current?.MainPage != null)
         {
-            await Application.Current.MainPage.DisplayAlert("Audio",
-                isAudioOn ? "Đã bật thuyết minh" : "Đã tắt thuyết minh", "OK");
+            await Application.Current.MainPage.DisplayAlert("Audio", "Chọn gian hàng trên bản đồ để phát thuyết minh.", "OK");
         }
     }
 

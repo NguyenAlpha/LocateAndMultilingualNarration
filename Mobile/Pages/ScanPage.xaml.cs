@@ -1,4 +1,5 @@
-﻿using Microsoft.Maui.ApplicationModel;
+﻿using System.Text.RegularExpressions;
+using Microsoft.Maui.ApplicationModel;
 using Mobile.Services;
 using ZXing.Net.Maui;
 
@@ -60,8 +61,37 @@ public partial class ScanPage : ContentPage
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             sessionService.SetGuestMode(true);
+
+            var boothId = ExtractBoothId(result);
+            if (!string.IsNullOrWhiteSpace(boothId))
+            {
+                await Shell.Current.GoToAsync($"{nameof(MapPage)}?boothId={Uri.EscapeDataString(boothId)}");
+                return;
+            }
+
             await DisplayAlert("QR", $"Scanned: {result}", "OK");
-            await Shell.Current.GoToAsync("//MainPage");
+            await Shell.Current.GoToAsync(nameof(MapPage));
         });
+    }
+
+    static string? ExtractBoothId(string result)
+    {
+        if (int.TryParse(result, out _))
+        {
+            return result;
+        }
+
+        var q = Regex.Match(result, @"boothId=(?<id>[^&\s]+)", RegexOptions.IgnoreCase);
+        if (q.Success)
+        {
+            return q.Groups["id"].Value;
+        }
+
+        if (result.StartsWith("stall:", StringComparison.OrdinalIgnoreCase))
+        {
+            return result.Split(':', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        }
+
+        return null;
     }
 }

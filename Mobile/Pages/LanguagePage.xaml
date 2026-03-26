@@ -6,119 +6,63 @@
     Title="Chọn ngôn ngữ"
     BackgroundColor="#F6F6F6">
 
-    <VerticalStackLayout Padding="25" Spacing="20">
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20">
 
-        <!-- Title -->
-        <Label
-            Text="Chọn ngôn ngữ thuyết minh"
-            FontSize="24"
-            FontAttributes="Bold"
-            HorizontalOptions="Center"/>
+        <Label Grid.Row="0"
+               Text="Chọn ngôn ngữ thuyết minh"
+               FontSize="24"
+               FontAttributes="Bold"
+               HorizontalOptions="Center" />
 
-        <!-- Vietnamese -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
+        <Label Grid.Row="1"
+               Margin="0,8,0,12"
+               Text="{Binding SelectedDisplay, StringFormat='Đang chọn: {0}'}"
+               TextColor="#555"
+               HorizontalOptions="Center" />
 
-            <HorizontalStackLayout Spacing="15">
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Languages}"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame BackgroundColor="#6A5AE0"
+                           CornerRadius="15"
+                           Padding="15"
+                           Margin="0,0,0,12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Name}" FontSize="18" TextColor="White" FontAttributes="Bold"/>
+                                <Label Text="{Binding Code}" FontSize="13" TextColor="#D9D9FF"/>
+                            </VerticalStackLayout>
 
-                <Label
-                    Text="🇻🇳"
-                    FontSize="24"/>
+                            <Button Grid.Column="1"
+                                    Text="Chọn"
+                                    TextColor="#6A5AE0"
+                                    BackgroundColor="White"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectLanguageCommand}"
+                                    CommandParameter="{Binding .}" />
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
 
-                <Label
-                    Text="Tiếng Việt"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
+        <ActivityIndicator IsVisible="{Binding IsBusy}"
+                           IsRunning="{Binding IsBusy}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
 
-            </HorizontalStackLayout>
+        <Label Text="{Binding ErrorMessage}"
+               TextColor="Red"
+               HorizontalOptions="Center"
+               VerticalOptions="End" />
 
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectVietnamese"/>
-            </Frame.GestureRecognizers>
+        <!-- OLD CODE
+        <VerticalStackLayout Padding="25" Spacing="20">
+            ... static language cards with TapGestureRecognizer ...
+        </VerticalStackLayout>
+        -->
 
-        </Frame>
-
-        <!-- English -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
-
-            <HorizontalStackLayout Spacing="15">
-
-                <Label
-                    Text="🇺🇸"
-                    FontSize="24"/>
-
-                <Label
-                    Text="English"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
-
-            </HorizontalStackLayout>
-
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectEnglish"/>
-            </Frame.GestureRecognizers>
-
-        </Frame>
-
-        <!-- Japanese -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
-
-            <HorizontalStackLayout Spacing="15">
-
-                <Label
-                    Text="🇯🇵"
-                    FontSize="24"/>
-
-                <Label
-                    Text="日本語"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
-
-            </HorizontalStackLayout>
-
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectJapanese"/>
-            </Frame.GestureRecognizers>
-
-        </Frame>
-
-        <!-- Korean -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
-
-            <HorizontalStackLayout Spacing="15">
-
-                <Label
-                    Text="🇰🇷"
-                    FontSize="24"/>
-
-                <Label
-                    Text="한국어"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
-
-            </HorizontalStackLayout>
-
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectKorean"/>
-            </Frame.GestureRecognizers>
-
-        </Frame>
-
-    </VerticalStackLayout>
+    </Grid>
 
 </ContentPage>
