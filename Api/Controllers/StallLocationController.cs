@@ -73,7 +73,8 @@ namespace Api.Controllers
                 Address = request.Address,
                 MapProviderPlaceId = request.MapProviderPlaceId,
                 IsActive = request.IsActive,
-                UpdatedAt = DateTimeOffset.UtcNow
+                UpdatedAt = DateTimeOffset.UtcNow,
+                Stall = stall
             };
 
             _context.StallLocations.Add(location);
@@ -254,6 +255,7 @@ namespace Api.Controllers
             {
                 Id = location.Id,
                 StallId = location.StallId,
+                StallName = location.Stall?.Name,
                 Latitude = location.Latitude,
                 Longitude = location.Longitude,
                 RadiusMeters = location.RadiusMeters,

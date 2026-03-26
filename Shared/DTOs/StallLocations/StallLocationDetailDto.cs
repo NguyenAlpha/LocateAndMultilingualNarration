@@ -4,6 +4,7 @@ namespace Shared.DTOs.StallLocations
     {
         public Guid Id { get; set; }
         public Guid StallId { get; set; }
+        public string? StallName { get; set; }
         public decimal Latitude { get; set; }
         public decimal Longitude { get; set; }
         public decimal RadiusMeters { get; set; }

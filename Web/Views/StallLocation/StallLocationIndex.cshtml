@@ -1,11 +1,11 @@
 @model Web.Models.StallLocationManagementViewModel
 
 @{
-    ViewData["Title"] = "Quản lý Stall Locations";
+    ViewData["Title"] = "Stall Locations Management";
 }
 
 <div class="page-header">
-    <h1><i class="bi bi-geo-alt me-2"></i>Quản lý Stall Locations</h1>
+    <h1><i class="bi bi-geo-alt me-2"></i>Stall Locations Management</h1>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.SuccessMessage))
@@ -77,7 +77,7 @@
                         @foreach (var item in Model.Items)
                         {
                             <tr>
-                                <td>@item.StallId</td>
+                                <td>@(item.StallName ?? item.StallId.ToString())</td>
                                 <td><code>@item.Latitude.ToString("F6")</code></td>
                                 <td><code>@item.Longitude.ToString("F6")</code></td>
                                 <td>@item.RadiusMeters</td>
