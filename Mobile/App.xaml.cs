@@ -12,6 +12,8 @@ namespace Mobile
     /// </summary>
     public partial class App : Application
     {
+        private readonly SessionService _sessionService;
+
         /// <summary>
         /// Constructor khởi tạo ứng dụng.
         /// <see cref="InitializeComponent"/> được tạo tự động bởi XAML compiler,

@@ -1,12 +1,13 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Android.Media;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Plugin.Maui.Audio;
-using SkiaSharp.Views.Maui.Controls.Hosting;
 using Mobile.Services;
-// Thư viện ZXing.Net.Maui cung cấp tính năng đọc mã vạch (barcode) và mã QR
-using ZXing.Net.Maui.Controls;
 using Mobile.Services;
 using Mobile.ViewModels;
+using Plugin.Maui.Audio;
+using SkiaSharp.Views.Maui.Controls.Hosting;
+// Thư viện ZXing.Net.Maui cung cấp tính năng đọc mã vạch (barcode) và mã QR
+using ZXing.Net.Maui.Controls;
 
 namespace Mobile;
 
@@ -23,7 +24,6 @@ public static class MauiProgram
     /// <returns>Đối tượng MauiApp đã được cấu hình đầy đủ, sẵn sàng để chạy.</returns>
     public static MauiApp CreateMauiApp()
     {
-        // Tạo builder để cấu hình ứng dụng theo mô hình builder pattern
         var builder = MauiApp.CreateBuilder();
 
         builder
