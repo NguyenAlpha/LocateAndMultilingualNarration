@@ -1,67 +1,65 @@
-using System.Net.Http;
 using Plugin.Maui.Audio;
 
 namespace Mobile.Services;
 
 public interface IAudioGuideService
 {
-    Task PlayFromUrlAsync(string audioUrl, CancellationToken cancellationToken = default);
-    void Pause();
-    void Resume();
-    void Stop();
     bool IsPlaying { get; }
+    string? CurrentUrl { get; }
+    Task PlayAsync(string url);
+    Task PauseAsync();
+    Task ResumeAsync();
+    Task StopAsync();
 }
 
 public class AudioGuideService : IAudioGuideService
 {
     private readonly IAudioManager _audioManager;
-    private readonly IHttpClientFactory _httpClientFactory;
-
     private IAudioPlayer? _player;
     private MemoryStream? _buffer;
 
     public bool IsPlaying => _player?.IsPlaying ?? false;
+    public string? CurrentUrl { get; private set; }
 
-    public AudioGuideService(IAudioManager audioManager, IHttpClientFactory httpClientFactory)
-    {
-        _audioManager = audioManager;
-        _httpClientFactory = httpClientFactory;
-    }
+    public AudioGuideService(IAudioManager audioManager)
+        => _audioManager = audioManager;
 
-    public async Task PlayFromUrlAsync(string audioUrl, CancellationToken cancellationToken = default)
+    public async Task PlayAsync(string url)
     {
-        if (string.IsNullOrWhiteSpace(audioUrl))
+        if (string.IsNullOrWhiteSpace(url)) return;
+
+        await StopAsync(); // dừng audio cũ nếu có
+        CurrentUrl = url;
+
+        var stream = await GetStreamFromUrlAsync(url);
+        if (stream is null)
         {
-            throw new InvalidOperationException("Audio URL không hợp lệ.");
+            CurrentUrl = null;
+            return;
         }
 
-        Stop();
-
-        var client = _httpClientFactory.CreateClient();
-        await using var stream = await client.GetStreamAsync(audioUrl, cancellationToken);
-
         _buffer = new MemoryStream();
-        await stream.CopyToAsync(_buffer, cancellationToken);
+        await stream.CopyToAsync(_buffer);
         _buffer.Position = 0;
 
         _player = _audioManager.CreatePlayer(_buffer);
         _player.Play();
     }
 
-    public void Pause()
+    public Task PauseAsync()
     {
         _player?.Pause();
+        return Task.CompletedTask;
     }
 
-    public void Resume()
+    public Task ResumeAsync()
     {
         if (_player is { IsPlaying: false })
-        {
             _player.Play();
-        }
+        return Task.CompletedTask;
     }
 
-    public void Stop()
+    public Task StopAsync()
     {
         _player?.Stop();
         _player?.Dispose();
@@ -69,5 +67,18 @@ public class AudioGuideService : IAudioGuideService
 
         _buffer?.Dispose();
         _buffer = null;
+
+        CurrentUrl = null;
+        return Task.CompletedTask;
+    }
+
+    private static async Task<Stream?> GetStreamFromUrlAsync(string url)
+    {
+        try
+        {
+            using var client = new HttpClient();
+            return await client.GetStreamAsync(url);
+        }
+        catch { return null; }
     }
 }
