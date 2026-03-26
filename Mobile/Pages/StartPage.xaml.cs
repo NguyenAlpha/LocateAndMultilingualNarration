@@ -6,6 +6,7 @@ namespace Mobile;
 public partial class StartPage : ContentPage
 {
     private readonly StartViewModel _viewModel;
+    private bool _initialized;
 
     public StartPage()
     {
@@ -17,6 +18,8 @@ public partial class StartPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        if (_initialized) return;
+        _initialized = true;
         await _viewModel.InitializeAsync();
     }
 }

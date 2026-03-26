@@ -1,23 +1,17 @@
 using Mobile.Helpers;
 using Mobile.Pages;
 using Mobile.Services;
-using Shared.DTOs.DevicePreferences;
-using Shared.DTOs.Languages;
 
 namespace Mobile;
 
 public partial class LanguagePage : ContentPage
 {
-    private readonly LanguageApiService _languageApiService;
-    private readonly IDeviceService _deviceService;
-    private readonly IDevicePreferenceApiService _devicePreferenceApiService;
+    private readonly ILanguageService _languageService;
 
-    public LanguagePage(LanguageApiService languageApiService, IDeviceService deviceService, IDevicePreferenceApiService devicePreferenceApiService)
+    public LanguagePage(ILanguageService languageService)
     {
         InitializeComponent();
-        _languageApiService = languageApiService;
-        _deviceService = deviceService;
-        _devicePreferenceApiService = devicePreferenceApiService;
+        _languageService = languageService;
     }
 
     protected override async void OnAppearing()
@@ -30,11 +24,12 @@ public partial class LanguagePage : ContentPage
     {
         try
         {
-            var languages = await _languageApiService.GetActiveLanguagesAsync();
+            var languages = await _languageService.GetLanguagesAsync();
 
             var items = languages.Select(l => new LanguageItem
             {
                 Code = l.Code,
+                LanguageId = l.Id,
                 FlagEmoji = FlagCodeToEmoji(l.FlagCode),
                 DisplayLabel = l.DisplayName ?? l.Name
             }).ToList();
@@ -55,23 +50,8 @@ public partial class LanguagePage : ContentPage
     {
         if (e.Parameter is not LanguageItem item) return;
 
-        var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
-        var deviceInfo = _deviceService.GetDeviceInfo();
-
-        // Fire-and-forget: lỗi API không block user
-        _ = _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
-        {
-            DeviceId     = deviceId,
-            LanguageCode = item.Code,
-            AutoPlay     = true,
-            Platform     = deviceInfo.Platform,
-            DeviceModel  = deviceInfo.DeviceModel,
-            Manufacturer = deviceInfo.Manufacturer,
-            OsVersion    = deviceInfo.OsVersion
-        });
-
-        LanguageHelper.SetLanguage(item.Code);
-        await Shell.Current.GoToAsync($"//{nameof(MapPage)}");
+        await Shell.Current.GoToAsync(
+            $"{nameof(VoicePage)}?languageId={item.LanguageId}&languageCode={Uri.EscapeDataString(item.Code)}");
     }
 
     private static string FlagCodeToEmoji(string? flagCode)
@@ -87,6 +67,7 @@ public partial class LanguagePage : ContentPage
     private class LanguageItem
     {
         public string Code { get; set; } = null!;
+        public Guid LanguageId { get; set; }
         public string FlagEmoji { get; set; } = null!;
         public string DisplayLabel { get; set; } = null!;
     }

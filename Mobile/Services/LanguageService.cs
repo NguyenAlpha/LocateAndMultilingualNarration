@@ -119,9 +119,12 @@ public class LanguageService : ILanguageService
         {
             result.Add(new LanguageDetailDto
             {
-                Id = item.TryGetProperty("id", out var id) && id.TryGetGuid(out var guid) ? guid : Guid.Empty,
-                Name = item.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty,
-                Code = item.TryGetProperty("code", out var code) ? code.GetString() ?? string.Empty : string.Empty
+                Id          = item.TryGetProperty("id", out var id) && id.TryGetGuid(out var guid) ? guid : Guid.Empty,
+                Name        = item.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty,
+                Code        = item.TryGetProperty("code", out var code) ? code.GetString() ?? string.Empty : string.Empty,
+                DisplayName = item.TryGetProperty("displayName", out var dn) ? dn.GetString() : null,
+                FlagCode    = item.TryGetProperty("flagCode", out var fc) ? fc.GetString() : null,
+                IsActive    = item.TryGetProperty("isActive", out var ia) && ia.GetBoolean()
             });
         }
 

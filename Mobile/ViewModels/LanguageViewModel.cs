@@ -10,7 +10,7 @@ namespace Mobile.ViewModels;
 
 public class LanguageViewModel : INotifyPropertyChanged
 {
-    private readonly LanguageApiService _languageApiService;
+    private readonly ILanguageService _languageService;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -46,9 +46,9 @@ public class LanguageViewModel : INotifyPropertyChanged
     public ICommand LoadLanguagesCommand { get; }
     public ICommand SelectLanguageCommand { get; }
 
-    public LanguageViewModel(LanguageApiService languageApiService)
+    public LanguageViewModel(ILanguageService languageService)
     {
-        _languageApiService = languageApiService;
+        _languageService = languageService;
         LoadLanguagesCommand = new Command(async () => await LoadLanguagesAsync());
         SelectLanguageCommand = new Command<LanguageDetailDto>(async lang => await OnSelectLanguageAsync(lang));
     }
@@ -62,7 +62,7 @@ public class LanguageViewModel : INotifyPropertyChanged
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            var languages = await _languageApiService.GetActiveLanguagesAsync();
+            var languages = await _languageService.GetLanguagesAsync();
             Languages.Clear();
             foreach (var lang in languages)
                 Languages.Add(lang);
