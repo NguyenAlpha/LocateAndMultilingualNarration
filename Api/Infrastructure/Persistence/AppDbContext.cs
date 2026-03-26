@@ -26,6 +26,7 @@ namespace Api.Infrastructure.Persistence
         public DbSet<TtsVoiceProfile> TtsVoiceProfiles => Set<TtsVoiceProfile>();
         public DbSet<VisitorLocationLog> VisitorLocationLogs => Set<VisitorLocationLog>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<DevicePreference> DevicePreferences => Set<DevicePreference>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

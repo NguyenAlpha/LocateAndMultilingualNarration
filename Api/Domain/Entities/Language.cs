@@ -14,6 +14,7 @@
         public ICollection<VisitorPreference> VisitorPreferences { get; set; } = new List<VisitorPreference>();
         public ICollection<StallNarrationContent> StallNarrationContents { get; set; } = new List<StallNarrationContent>();
         public ICollection<TtsVoiceProfile> TtsVoiceProfiles { get; set; } = new List<TtsVoiceProfile>();
+        public ICollection<DevicePreference> DevicePreferences { get; set; } = new List<DevicePreference>();
 
     }
 }
