@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using Microsoft.Extensions.Logging;
 using Mobile.Services;
 using Shared.DTOs.Geo;
 
@@ -20,6 +21,8 @@ public class MapViewModel : INotifyPropertyChanged
 
     // Service điều khiển phát audio thuyết minh
     private readonly IAudioGuideService _audioGuideService;
+
+    private readonly ILogger<MapViewModel> _logger;
 
     // Cờ đánh dấu dữ liệu đã được tải lần đầu hay chưa — tránh gọi API trùng lặp
     private bool _isLoaded;
@@ -118,10 +121,11 @@ public class MapViewModel : INotifyPropertyChanged
     /// Constructor nhận service qua Dependency Injection (đăng ký trong MauiProgram.cs).
     /// Khởi tạo tất cả Command ngay tại đây.
     /// </summary>
-    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService)
+    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService, ILogger<MapViewModel> logger)
     {
         _stallService = stallService;
         _audioGuideService = audioGuideService;
+        _logger = logger;
 
         // forceRefresh = true: bỏ qua cache, luôn gọi API mới
         RefreshCommand = new Command(async () => await LoadStallsAsync(true));
@@ -158,6 +162,7 @@ public class MapViewModel : INotifyPropertyChanged
     /// </summary>
     public void SelectStall(GeoStallDto stall)
     {
+        _logger.LogInformation("SelectStall - StallId: {StallId}", stall.StallId);
         SelectedStall = stall;
     }
 
@@ -218,6 +223,7 @@ public class MapViewModel : INotifyPropertyChanged
             return;
         }
 
+        _logger.LogInformation("Phát audio cho stall - StallId: {StallId}", SelectedStall.StallId);
         ErrorMessage = string.Empty;
         await _audioGuideService.PlayAsync(SelectedStall.AudioUrl);
     }

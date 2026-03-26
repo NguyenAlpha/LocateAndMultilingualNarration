@@ -14,6 +14,7 @@ using Mapsui.Styles;
 using Mapsui.Tiling;
 // MapView control và Pin cho MAUI
 using Mapsui.UI.Maui;
+using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
 using Mobile.ViewModels;
 using Shared.DTOs.Geo;
@@ -44,6 +45,7 @@ namespace Mobile.Pages;
 public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _viewModel;
+    private readonly ILogger<MapPage> _logger;
 
     // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
     private bool _isInitialized;
@@ -64,6 +66,7 @@ public partial class MapPage : ContentPage
 
         // Lấy ViewModel từ DI container thay vì new trực tiếp (để inject đúng service)
         _viewModel = ServiceHelper.GetService<MapViewModel>();
+        _logger = ServiceHelper.GetService<ILogger<MapPage>>();
         BindingContext = _viewModel; // Kết nối binding XAML với ViewModel
 
         // Lắng nghe event từ ViewModel để thực hiện thao tác trên MapView
@@ -123,7 +126,7 @@ public partial class MapPage : ContentPage
         await MoveToCurrentLocationAsync();
 
         // 4. Tải danh sách gian hàng từ API (và tự động chọn booth nếu có BoothId)
-        await _viewModel.InitializeAsync(BoothId);
+        //await _viewModel.InitializeAsync(BoothId);
 
         // 5. Vẽ pin cho tất cả gian hàng lên bản đồ
         RenderPins();
@@ -327,6 +330,7 @@ public partial class MapPage : ContentPage
     /// </summary>
     private async Task OnPinClickedAsync(GeoStallDto stall)
     {
+        _logger.LogInformation("OnPinClickedAsync - StallId: {StallId}", stall.StallId);
         // Thông báo ViewModel gian hàng nào đang được chọn
         _viewModel.SelectStall(stall);
 
