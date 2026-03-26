@@ -25,6 +25,7 @@ namespace Api.Controllers
         {
             _logger.LogInformation("Bắt đầu lấy danh sách stall cho bản đồ - DeviceId: {DeviceId}", deviceId);
             var result = await _geoService.GetAllStallsAsync(deviceId, cancellationToken);
+            _logger.LogInformation("Lấy danh sách stall cho bản đồ thành công - Tổng: {Total}", result.Count);
             return this.OkResult(result);
         }
 

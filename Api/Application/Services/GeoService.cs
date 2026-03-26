@@ -1,5 +1,6 @@
 using Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Shared.DTOs.Geo;
 
 namespace Api.Application.Services
@@ -13,10 +14,12 @@ namespace Api.Application.Services
     public class GeoService : IGeoService
     {
         private readonly AppDbContext _context;
+        private readonly ILogger<GeoService> _logger;
 
-        public GeoService(AppDbContext context)
+        public GeoService(AppDbContext context, ILogger<GeoService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<GeoNearestStallDto?> FindNearestStallAsync(decimal latitude, decimal longitude, string? languageCode, decimal? radiusMeters, CancellationToken cancellationToken)
@@ -120,6 +123,7 @@ namespace Api.Application.Services
 
         public async Task<List<GeoStallDto>> GetAllStallsAsync(string? deviceId, CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Bắt đầu xử lý lấy danh sách stall - DeviceId: {DeviceId}", deviceId);
             // Bước 1: resolve LanguageId + Voice từ DevicePreference hoặc fallback về "vi"
             Guid languageId;
             string? preferredVoice = null;
@@ -155,8 +159,10 @@ namespace Api.Application.Services
                     .ThenInclude(c => c.NarrationAudios)
                 .ToListAsync(cancellationToken);
 
+            _logger.LogInformation("Đã truy vấn {Total} stall khả dụng", locations.Count);
+
             // Bước 3: map sang DTO kèm AudioUrl
-            return locations.Select(l =>
+            var result = locations.Select(l =>
             {
                 var content = l.Stall.StallNarrationContents.FirstOrDefault();
                 return new GeoStallDto
@@ -169,6 +175,9 @@ namespace Api.Application.Services
                     AudioUrl     = PickAudioUrl(content?.NarrationAudios, preferredVoice)
                 };
             }).ToList();
+
+            _logger.LogInformation("Hoàn tất xử lý lấy danh sách stall - Tổng: {Total}", result.Count);
+            return result;
         }
 
         private async Task<Guid> GetFallbackLanguageIdAsync(CancellationToken cancellationToken)
