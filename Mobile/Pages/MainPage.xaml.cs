@@ -1,13 +1,23 @@
-﻿using Mobile.ViewModels;
+﻿using Mobile.Helpers;
+using Mobile.ViewModels;
 
 namespace Mobile
 {
     public partial class MainPage : ContentPage
     {
+        private readonly MainViewModel _viewModel;
+
         public MainPage()
         {
             InitializeComponent();
-            BindingContext = new MainViewModel();
+            _viewModel = ServiceHelper.GetService<MainViewModel>();
+            BindingContext = _viewModel;
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            _viewModel.LoadUserName();
         }
     }
 }

@@ -26,7 +26,7 @@
                 <components:HeaderView Grid.Row="0" Title="Locate" LogoutCommand="{Binding LogoutCommand}" Margin="0,0,0,20" />
 
                 <VerticalStackLayout Grid.Row="1" Spacing="5" Margin="0,0,0,20">
-                    <Label Text="Xin chào, [User]" TextColor="#E0E0E0" FontSize="16" />
+                    <Label Text="{Binding HelloText}" TextColor="#E0E0E0" FontSize="16" />
                     <Label Text="Khám phá du lịch" TextColor="White" FontSize="26" FontAttributes="Bold" />
                 </VerticalStackLayout>
 
@@ -75,7 +75,7 @@
                                 </Frame.Shadow>
                                 <ImageButton BackgroundColor="Transparent" Command="{Binding AudioCommand}">
                                     <ImageButton.Source>
-                                        <FontImageSource Glyph="{Binding AudioGlyph}" Color="#00C9FF" Size="24"/>
+                                        <FontImageSource Glyph="🔊" Color="#00C9FF" Size="24"/>
                                     </ImageButton.Source>
                                 </ImageButton>
                             </Frame>

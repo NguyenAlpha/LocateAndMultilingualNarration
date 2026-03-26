@@ -20,9 +20,12 @@
                IsPassword="True" />
 
         <Button Text="Đăng nhập"
-                Clicked="OnLoginSuccess"
                 Command="{Binding LoginCommand}"
                 BackgroundColor="#6366f1" />
+
+        <Label Text="{Binding ErrorMessage}"
+               TextColor="Red"
+               FontSize="12" />
 
         <Button Text="Chưa có tài khoản? Đăng ký"
                 Command="{Binding GoToRegisterCommand}"

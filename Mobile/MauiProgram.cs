@@ -1,8 +1,12 @@
-﻿// Thư viện logging tích hợp của Microsoft Extensions, dùng để ghi log trong ứng dụng
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Plugin.Maui.Audio;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using Mobile.Services;
 // Thư viện ZXing.Net.Maui cung cấp tính năng đọc mã vạch (barcode) và mã QR
 using ZXing.Net.Maui.Controls;
+using Mobile.Services;
+using Mobile.ViewModels;
 
 namespace Mobile;
 
@@ -23,19 +27,28 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
 
         builder
-            // Đăng ký lớp App làm root application — nơi định nghĩa giao diện chính (Shell/MainPage)
             .UseMauiApp<App>()
-            // Kích hoạt tính năng đọc mã vạch & mã QR từ thư viện ZXing.Net.Maui
-            // Cho phép dùng các control như <zxing:CameraView> trong XAML
+            .UseSkiaSharp()
             .UseBarcodeReader()
-            // Đăng ký các font chữ tùy chỉnh để dùng trong toàn bộ ứng dụng
             .ConfigureFonts(fonts =>
             {
-                // Đăng ký font OpenSans dạng thường, có thể tham chiếu bằng alias "OpenSansRegular"
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                // Đăng ký font OpenSans dạng đậm vừa (semibold), alias "OpenSansSemibold"
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
+
+        builder.Services.AddHttpClient();
+
+        builder.Services.AddSingleton<SessionService>();
+        builder.Services.AddSingleton<IAuthService, AuthService>();
+        builder.Services.AddSingleton<IStallService, StallService>();
+        builder.Services.AddSingleton<ILanguageService, LanguageService>();
+        builder.Services.AddSingleton<IAudioManager>(_ => AudioManager.Current);
+        builder.Services.AddSingleton<IAudioGuideService, AudioGuideService>();
+
+        builder.Services.AddTransient<LoginViewModel>();
+        builder.Services.AddTransient<MainViewModel>();
+        builder.Services.AddTransient<MapViewModel>();
+        builder.Services.AddTransient<LanguageViewModel>();
 
 #if DEBUG
         // Chỉ bật logging ra cửa sổ Debug khi build ở chế độ DEBUG

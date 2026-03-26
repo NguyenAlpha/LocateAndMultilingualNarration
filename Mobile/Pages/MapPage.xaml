@@ -2,33 +2,82 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
+    xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
     x:Class="Mobile.Pages.MapPage"
+    NavigationPage.HasNavigationBar="False"
     Title="Bản đồ">
 
-	<Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
 
-		<!-- HEADER -->
-		<Label Text="🗺 Bản đồ xung quanh bạn"
-               FontSize="18"
-               Padding="10"
-               Grid.Row="0" />
+        <Grid Grid.Row="0" Padding="16" BackgroundColor="#1E3A8A" ColumnDefinitions="*,Auto">
+            <Label Text="🗺 Bản đồ gian hàng (OSM)"
+                   TextColor="White"
+                   FontAttributes="Bold"
+                   FontSize="18" />
 
-        <!-- MAP -->
-        <!--
-<maps:Map x:Name="map"
-          Grid.Row="1"
-          IsShowingUser="True" />
--->
+            <Button Grid.Column="1"
+                    Text="Làm mới"
+                    Command="{Binding RefreshCommand}" />
+        </Grid>
 
-        <!-- BUTTON -->
-		<Button Text="📍 Lấy vị trí"
-                Grid.Row="1"
-                VerticalOptions="End"
-                HorizontalOptions="Center"
-                Margin="0,0,0,20"
-                Clicked="OnRefreshClicked" />
+        <Grid Grid.Row="1" RowDefinitions="2*,*">
+            <mapsui:MapView x:Name="mapView"
+                            Grid.Row="0" />
 
-	</Grid>
+            <CollectionView Grid.Row="1"
+                            ItemsSource="{Binding Stalls}"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedStall}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Margin="10,6"
+                               Padding="12"
+                               CornerRadius="14"
+                               BorderColor="#D1D5DB">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                <Label Text="{Binding Id, StringFormat='Booth ID: {0}'}" FontSize="12" TextColor="Gray" />
+                            </VerticalStackLayout>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="10" Padding="16,8">
+            <Button Grid.Column="0"
+                    Text="▶ Phát"
+                    Command="{Binding PlayAudioCommand}"
+                    BackgroundColor="#2563EB"
+                    TextColor="White"
+                    CornerRadius="12" />
+
+            <Button Grid.Column="1"
+                    Text="⏸ Tạm dừng"
+                    Command="{Binding PauseAudioCommand}"
+                    BackgroundColor="#64748B"
+                    TextColor="White"
+                    CornerRadius="12" />
+
+            <Button Grid.Column="2"
+                    Text="⏹ Dừng"
+                    Command="{Binding StopAudioCommand}"
+                    BackgroundColor="#DC2626"
+                    TextColor="White"
+                    CornerRadius="12" />
+        </Grid>
+
+        <Grid Grid.Row="3" Padding="0,0,0,10">
+            <ActivityIndicator IsVisible="{Binding IsBusy}"
+                               IsRunning="{Binding IsBusy}"
+                               HorizontalOptions="Center" />
+            <Label Text="{Binding ErrorMessage}"
+                   HorizontalOptions="Center"
+                   VerticalOptions="End"
+                   TextColor="Red"
+                   FontSize="12" />
+        </Grid>
+
+    </Grid>
 
 </ContentPage>

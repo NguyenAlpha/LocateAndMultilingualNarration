@@ -1,5 +1,7 @@
 ﻿// Thư viện hỗ trợ Dependency Injection của Microsoft Extensions
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Maui.ApplicationModel;
+using Mobile.Services;
 
 namespace Mobile
 {
@@ -19,6 +21,7 @@ namespace Mobile
         public App()
         {
             InitializeComponent();
+            _sessionService = sessionService;
         }
 
         /// <summary>
