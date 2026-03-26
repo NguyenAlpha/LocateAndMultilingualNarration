@@ -1,42 +1,73 @@
 using Mobile.Helpers;
+using Mobile.Services;
+using Shared.DTOs.Languages;
 
 namespace Mobile;
 
 public partial class LanguagePage : ContentPage
 {
-    public LanguagePage()
+    private readonly LanguageApiService _languageApiService;
+
+    public LanguagePage(LanguageApiService languageApiService)
     {
         InitializeComponent();
+        _languageApiService = languageApiService;
     }
 
-    async void SelectVietnamese(object sender, EventArgs e)
+    protected override async void OnAppearing()
     {
-        LanguageHelper.SetLanguage("vi");
-        await ReloadApp();
+        base.OnAppearing();
+        await LoadLanguagesAsync();
     }
 
-    async void SelectEnglish(object sender, EventArgs e)
+    private async Task LoadLanguagesAsync()
     {
-        LanguageHelper.SetLanguage("en");
-        await ReloadApp();
+        try
+        {
+            var languages = await _languageApiService.GetActiveLanguagesAsync();
+
+            var items = languages.Select(l => new LanguageItem
+            {
+                Code = l.Code,
+                FlagEmoji = FlagCodeToEmoji(l.FlagCode),
+                DisplayLabel = l.DisplayName ?? l.Name
+            }).ToList();
+
+            LanguageList.ItemsSource = items;
+            LoadingIndicator.IsVisible = false;
+            LoadingIndicator.IsRunning = false;
+            LanguageList.IsVisible = true;
+        }
+        catch (Exception ex)
+        {
+            LoadingIndicator.IsVisible = false;
+            await DisplayAlert("Lỗi", ex.Message, "OK");
+        }
     }
 
-    async void SelectJapanese(object sender, EventArgs e)
+    async void OnLanguageTapped(object sender, TappedEventArgs e)
     {
-        LanguageHelper.SetLanguage("ja");
-        await ReloadApp();
+        if (e.Parameter is not LanguageItem item) return;
+
+        LanguageHelper.SetLanguage(item.Code);
+        await DisplayAlert("Ngôn ngữ", $"Đã chọn: {item.DisplayLabel}", "OK");
+        Application.Current!.MainPage = new AppShell();
     }
 
-    async void SelectKorean(object sender, EventArgs e)
+    private static string FlagCodeToEmoji(string? flagCode)
     {
-        LanguageHelper.SetLanguage("ko");
-        await ReloadApp();
+        if (string.IsNullOrWhiteSpace(flagCode) || flagCode.Length < 2)
+            return "🌐";
+
+        var code = flagCode.ToUpperInvariant();
+        return char.ConvertFromUtf32(0x1F1E6 + (code[0] - 'A'))
+             + char.ConvertFromUtf32(0x1F1E6 + (code[1] - 'A'));
     }
 
-    async Task ReloadApp()
+    private class LanguageItem
     {
-        await Shell.Current.DisplayAlert("Language", "Language changed successfully", "OK");
-
-        Application.Current.MainPage = new AppShell();
+        public string Code { get; set; } = null!;
+        public string FlagEmoji { get; set; } = null!;
+        public string DisplayLabel { get; set; } = null!;
     }
 }

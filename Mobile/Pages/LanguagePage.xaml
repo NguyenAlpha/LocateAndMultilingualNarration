@@ -6,119 +6,70 @@
     Title="Chọn ngôn ngữ"
     BackgroundColor="#F6F6F6">
 
-    <VerticalStackLayout Padding="25" Spacing="20">
+    <Grid RowDefinitions="Auto,*">
 
         <!-- Title -->
         <Label
+            Grid.Row="0"
             Text="Chọn ngôn ngữ thuyết minh"
-            FontSize="24"
+            FontSize="22"
             FontAttributes="Bold"
+            HorizontalOptions="Center"
+            Margin="0,25,0,15"/>
+
+        <!-- Loading indicator -->
+        <ActivityIndicator
+            x:Name="LoadingIndicator"
+            Grid.Row="1"
+            IsRunning="True"
+            IsVisible="True"
+            Color="#6A5AE0"
+            VerticalOptions="Center"
             HorizontalOptions="Center"/>
 
-        <!-- Vietnamese -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
+        <!-- Language list -->
+        <CollectionView
+            x:Name="LanguageList"
+            Grid.Row="1"
+            IsVisible="False"
+            Margin="20,0,20,20"
+            SelectionMode="None">
 
-            <HorizontalStackLayout Spacing="15">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border
+                        BackgroundColor="#6A5AE0"
+                        Padding="15"
+                        Margin="0,0,0,12"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="15"/>
+                        </Border.StrokeShape>
 
-                <Label
-                    Text="🇻🇳"
-                    FontSize="24"/>
+                        <HorizontalStackLayout Spacing="15">
+                            <Label
+                                Text="{Binding FlagEmoji}"
+                                FontSize="24"
+                                VerticalOptions="Center"/>
+                            <Label
+                                Text="{Binding DisplayLabel}"
+                                FontSize="18"
+                                TextColor="White"
+                                VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
 
-                <Label
-                    Text="Tiếng Việt"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                CommandParameter="{Binding .}"
+                                Tapped="OnLanguageTapped"/>
+                        </Border.GestureRecognizers>
 
-            </HorizontalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
 
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectVietnamese"/>
-            </Frame.GestureRecognizers>
+        </CollectionView>
 
-        </Frame>
-
-        <!-- English -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
-
-            <HorizontalStackLayout Spacing="15">
-
-                <Label
-                    Text="🇺🇸"
-                    FontSize="24"/>
-
-                <Label
-                    Text="English"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
-
-            </HorizontalStackLayout>
-
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectEnglish"/>
-            </Frame.GestureRecognizers>
-
-        </Frame>
-
-        <!-- Japanese -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
-
-            <HorizontalStackLayout Spacing="15">
-
-                <Label
-                    Text="🇯🇵"
-                    FontSize="24"/>
-
-                <Label
-                    Text="日本語"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
-
-            </HorizontalStackLayout>
-
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectJapanese"/>
-            </Frame.GestureRecognizers>
-
-        </Frame>
-
-        <!-- Korean -->
-        <Frame
-            BackgroundColor="#6A5AE0"
-            CornerRadius="15"
-            Padding="15">
-
-            <HorizontalStackLayout Spacing="15">
-
-                <Label
-                    Text="🇰🇷"
-                    FontSize="24"/>
-
-                <Label
-                    Text="한국어"
-                    FontSize="18"
-                    TextColor="White"
-                    VerticalOptions="Center"/>
-
-            </HorizontalStackLayout>
-
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="SelectKorean"/>
-            </Frame.GestureRecognizers>
-
-        </Frame>
-
-    </VerticalStackLayout>
+    </Grid>
 
 </ContentPage>

@@ -1,13 +1,39 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
+<!--
+    File XAML gốc của ứng dụng, tương ứng với lớp App trong App.xaml.cs.
+    Dùng để khai báo tài nguyên toàn cục (màu sắc, style, template...)
+    có hiệu lực trên toàn bộ ứng dụng ở mọi trang và mọi nền tảng.
+-->
+
+<!--
+    xmlns         : namespace MAUI mặc định, cung cấp các control cơ bản (Label, Button, Page...)
+    xmlns:x       : namespace XAML, hỗ trợ các thuộc tính đặc biệt như x:Class, x:Name, x:Key
+    xmlns:local   : ánh xạ namespace C# "Mobile" vào XAML, cho phép dùng các lớp tự định nghĩa
+    x:Class       : liên kết file XAML này với lớp partial App trong App.xaml.cs (code-behind)
+-->
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:Mobile"
              x:Class="Mobile.App">
+
+    <!-- Khu vực khai báo tài nguyên toàn cục của ứng dụng -->
     <Application.Resources>
+
+        <!-- ResourceDictionary là kho lưu trữ tài nguyên dùng chung (màu, style, converter...) -->
         <ResourceDictionary>
+
+            <!-- MergedDictionaries cho phép gộp nhiều file ResourceDictionary riêng lẻ lại,
+                 giúp tổ chức tài nguyên theo từng chủ đề thay vì dồn vào một file duy nhất -->
             <ResourceDictionary.MergedDictionaries>
+
+                <!-- Định nghĩa toàn bộ bảng màu của ứng dụng (primary, secondary, background...)
+                     Các màu khai báo ở đây có thể dùng bằng cú pháp {StaticResource TênMàu} -->
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+
+                <!-- Định nghĩa các style mặc định cho control (Button, Label, Entry...)
+                     Thường tham chiếu đến các màu trong Colors.xaml thông qua StaticResource -->
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

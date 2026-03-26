@@ -222,7 +222,9 @@ namespace Api.Controllers
             {
                 Id = language.Id,
                 Name = language.Name,
+                DisplayName = language.DisplayName,
                 Code = language.Code,
+                FlagCode = language.FlagCode,
                 IsActive = language.IsActive
             };
         }

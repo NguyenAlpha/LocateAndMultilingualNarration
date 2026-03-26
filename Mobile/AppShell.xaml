@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+    AppShell là trung tâm điều hướng (navigation hub) của toàn bộ ứng dụng.
+    Shell cung cấp cấu trúc điều hướng tích hợp sẵn: tab bar, flyout menu, back stack...
+    Các trang được khai báo ở đây sẽ là "trang gốc" — hiển thị trực tiếp trên thanh điều hướng.
+    Các trang phụ (đi sâu hơn) được đăng ký bằng Routing.RegisterRoute() trong code-behind.
+
+    x:Class   : liên kết với lớp AppShell trong AppShell.xaml.cs
+    xmlns:local : ánh xạ namespace Mobile để tham chiếu đến các trang (StartPage, MainPage...)
+    Title     : tiêu đề mặc định hiển thị trên thanh điều hướng của Shell
+-->
 <Shell
     x:Class="Mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -6,15 +16,29 @@
     xmlns:local="clr-namespace:Mobile"
     Title="Mobile">
 
+    <!--
+        ShellContent đại diện cho một trang trong hệ thống điều hướng Shell.
+        ContentTemplate dùng DataTemplate để tạo trang theo kiểu lazy loading —
+        trang chỉ được khởi tạo khi người dùng thực sự điều hướng đến, không tạo sẵn từ đầu.
+
+        Title    : nhãn hiển thị (trên tab bar hoặc flyout menu nếu có)
+        Route    : định danh route dùng để điều hướng bằng Shell.GoToAsync("//StartPage")
+                   Tiền tố "//" biểu thị đây là route tuyệt đối (absolute route) — trang gốc
+        ContentTemplate : chỉ định lớp Page sẽ được tạo khi route này được kích hoạt
+    -->
     <ShellContent
-    Title="Start"
-    Route="StartPage"
-    ContentTemplate="{DataTemplate local:StartPage}" />
+        Title="Start"
+        Route="StartPage"
+        ContentTemplate="{DataTemplate local:StartPage}" />
 
-
+    <!--
+        Trang chính của ứng dụng (MainPage).
+        Sau khi người dùng hoàn thành luồng khởi động (login, scan, chọn ngôn ngữ...),
+        ứng dụng có thể điều hướng đến đây bằng: await Shell.Current.GoToAsync("//MainPage")
+    -->
     <ShellContent
         Title="Home"
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
-    
+
 </Shell>
