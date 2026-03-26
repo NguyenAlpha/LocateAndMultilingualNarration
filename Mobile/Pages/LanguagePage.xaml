@@ -6,62 +6,69 @@
     Title="Chọn ngôn ngữ"
     BackgroundColor="#F6F6F6">
 
-    <Grid RowDefinitions="Auto,Auto,*" Padding="20">
+    <Grid RowDefinitions="Auto,*">
 
-        <Label Grid.Row="0"
-               Text="Chọn ngôn ngữ thuyết minh"
-               FontSize="24"
-               FontAttributes="Bold"
-               HorizontalOptions="Center" />
+        <!-- Title -->
+        <Label
+            Grid.Row="0"
+            Text="Chọn ngôn ngữ thuyết minh"
+            FontSize="22"
+            FontAttributes="Bold"
+            HorizontalOptions="Center"
+            Margin="0,25,0,15"/>
 
-        <Label Grid.Row="1"
-               Margin="0,8,0,12"
-               Text="{Binding SelectedDisplay, StringFormat='Đang chọn: {0}'}"
-               TextColor="#555"
-               HorizontalOptions="Center" />
+        <!-- Loading indicator -->
+        <ActivityIndicator
+            x:Name="LoadingIndicator"
+            Grid.Row="1"
+            IsRunning="True"
+            IsVisible="True"
+            Color="#6A5AE0"
+            VerticalOptions="Center"
+            HorizontalOptions="Center"/>
 
-        <CollectionView Grid.Row="2"
-                        ItemsSource="{Binding Languages}"
-                        SelectionMode="None">
+        <!-- Language list -->
+        <CollectionView
+            x:Name="LanguageList"
+            Grid.Row="1"
+            IsVisible="False"
+            Margin="20,0,20,20"
+            SelectionMode="None">
+
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Frame BackgroundColor="#6A5AE0"
-                           CornerRadius="15"
-                           Padding="15"
-                           Margin="0,0,0,12">
-                        <Grid ColumnDefinitions="*,Auto">
-                            <VerticalStackLayout>
-                                <Label Text="{Binding Name}" FontSize="18" TextColor="White" FontAttributes="Bold"/>
-                                <Label Text="{Binding Code}" FontSize="13" TextColor="#D9D9FF"/>
-                            </VerticalStackLayout>
+                    <Border
+                        BackgroundColor="#6A5AE0"
+                        Padding="15"
+                        Margin="0,0,0,12"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="15"/>
+                        </Border.StrokeShape>
 
-                            <Button Grid.Column="1"
-                                    Text="Chọn"
-                                    TextColor="#6A5AE0"
-                                    BackgroundColor="White"
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SelectLanguageCommand}"
-                                    CommandParameter="{Binding .}" />
-                        </Grid>
-                    </Frame>
+                        <HorizontalStackLayout Spacing="15">
+                            <Label
+                                Text="{Binding FlagEmoji}"
+                                FontSize="24"
+                                VerticalOptions="Center"/>
+                            <Label
+                                Text="{Binding DisplayLabel}"
+                                FontSize="18"
+                                TextColor="White"
+                                VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                CommandParameter="{Binding .}"
+                                Tapped="OnLanguageTapped"/>
+                        </Border.GestureRecognizers>
+
+                    </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
+
         </CollectionView>
-
-        <ActivityIndicator IsVisible="{Binding IsBusy}"
-                           IsRunning="{Binding IsBusy}"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-
-        <Label Text="{Binding ErrorMessage}"
-               TextColor="Red"
-               HorizontalOptions="Center"
-               VerticalOptions="End" />
-
-        <!-- OLD CODE
-        <VerticalStackLayout Padding="25" Spacing="20">
-            ... static language cards with TapGestureRecognizer ...
-        </VerticalStackLayout>
-        -->
 
     </Grid>
 

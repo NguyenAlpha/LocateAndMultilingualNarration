@@ -128,8 +128,11 @@ using (var scope = app.Services.CreateScope())
         db.Database.Migrate();
 }
 
-// Chuyển HTTP sang HTTPS
-app.UseHttpsRedirection();
+// Chuyển HTTP sang HTTPS (tắt ở Development để emulator/mobile dùng HTTP)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Bật CORS middleware (phải chạy trước Authentication)
 app.UseCors("AllowWeb");

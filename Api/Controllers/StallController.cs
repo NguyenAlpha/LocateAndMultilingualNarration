@@ -241,7 +241,7 @@ namespace Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetStalls([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] Guid? businessId = null)
         {
-            _logger.LogInformation("Bắt đầu lấy danh sách stall - Page: {Page}, PageSize: {PageSize}", page, pageSize);
+            _logger.LogInformation("<<BEGIN>>Bắt đầu lấy danh sách stall - Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
             // Lấy userId từ claim, nếu không có -> trả về 401
             if (!TryGetUserId(out var userId))
@@ -308,7 +308,7 @@ namespace Api.Controllers
                 TotalCount = totalCount
             };
 
-            _logger.LogInformation("Lấy danh sách stall thành công - TotalCount: {TotalCount}", totalCount);
+            _logger.LogInformation("Lấy danh sách stall thành công - TotalCount: {TotalCount}<<END>>", totalCount);
             return this.OkResult(result);
         }
 
