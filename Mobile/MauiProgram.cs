@@ -1,7 +1,5 @@
-﻿using Android.Media;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Mobile.Services;
 using Mobile.Services;
 using Mobile.ViewModels;
 using Plugin.Maui.Audio;
