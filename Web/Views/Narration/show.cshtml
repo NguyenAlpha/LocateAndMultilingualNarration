@@ -1,0 +1,368 @@
+﻿
+@model Web.Models.StallNarrationContentShowViewModel
+@{
+    ViewData["Title"] = "Stall Narration Content";
+    var content = Model.Content;
+}
+
+@section Styles {
+    <style>
+        .audio-player-mock {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: #fff
+        }
+
+        .audio-waveform {
+            height: 60px;
+            background: linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, .3) 10%, rgba(59, 130, 246, .6) 30%, rgba(59, 130, 246, .4) 50%, rgba(59, 130, 246, .7) 70%, rgba(59, 130, 246, .3) 90%, transparent 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px
+        }
+
+        .audio-controls button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%
+        }
+
+        .grouped-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff
+        }
+
+            .grouped-table thead {
+                background: #f8f9fa;
+                border-bottom: 2px solid #dee2e6
+            }
+
+            .grouped-table th {
+                padding: 12px;
+                text-align: left;
+                font-weight: 600;
+                color: #212529;
+                white-space: nowrap
+            }
+
+            .grouped-table tbody tr {
+                border-bottom: 1px solid #dee2e6;
+                transition: background-color .2s
+            }
+
+                .grouped-table tbody tr:hover {
+                    background: #f8f9fa
+                }
+
+            .grouped-table td {
+                padding: 12px
+            }
+
+        .language-group-row {
+            background: #e7f3ff;
+            font-weight: 600
+        }
+
+            .language-group-row td {
+                padding: 10px 12px
+            }
+
+        .toggle-group-btn {
+            background: none;
+            border: none;
+            color: #0d6efd;
+            cursor: pointer;
+            padding: 0 8px;
+            font-size: 14px
+        }
+
+            .toggle-group-btn.collapsed::before {
+                content: '▶ '
+            }
+
+            .toggle-group-btn:not(.collapsed)::before {
+                content: '▼ '
+            }
+
+        .voice-row {
+            display: none
+        }
+
+            .voice-row.show {
+                display: table-row
+            }
+
+        .play-btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%
+        }
+
+            .play-btn.playing {
+                background: #0d6efd;
+                color: #fff
+            }
+
+        .gender-badge-m {
+            background: #cce5ff;
+            color: #0d6efd
+        }
+
+        .gender-badge-f {
+            background: #ffd1dc;
+            color: #c2185b
+        }
+
+        .filter-controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px
+        }
+
+        @@media (max-width:768px) {
+
+            .grouped-table th,
+            .grouped-table td {
+                padding: 8px;
+                font-size: 14px
+            }
+
+            .play-btn {
+                width: 32px;
+                height: 32px
+            }
+
+            .filter-controls {
+                padding: 10px
+            }
+
+                .filter-controls .form-select,
+                .filter-controls .form-control {
+                    font-size: 14px
+                }
+        }
+
+
+        /* Balanced 3-column status */
+        .border-end-md {
+            border-right: 1px solid #dee2e6
+        }
+
+        @@media (max-width: 767.98px) {
+            .border-end-md {
+                border-right: 0
+            }
+        }
+
+        .status-equal .col-md-4 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 64px
+        }
+    </style>
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Narration" asp-action="StallNarrationContents">Narration</a></li>
+            <li aria-current="page" class="breadcrumb-item active">Stall Narration Content</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="bi bi-file-earmark-music me-2"></i>Stall Narration Content</h1>
+            <p class="text-muted mb-0">Xem và chỉnh sửa nội dung narration của stall.</p>
+        </div>
+        <div class="btn-group">
+            <a class="btn btn-outline-secondary" asp-controller="Narration" asp-action="StallNarrationContents">
+                <i class="bi bi-arrow-left me-1"></i>Quay lại
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] is string successMessage)
+{
+    <div class="alert alert-success" role="alert">
+        @successMessage
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+<!-- Text To Speech Section (kept) -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form id="textContentForm" asp-action="Update" asp-route-id="@content?.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label class="form-label" for="stallName">Stall</label>
+                <input class="form-control" id="stallName" type="text" value="@Model.StallName" readonly />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="languageName">Ngôn ngữ</label>
+                <input class="form-control" id="languageName" type="text" value="@Model.LanguageName" readonly />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="contentTitle">Tiêu đề</label>
+                <input class="form-control" id="contentTitle" name="Title" type="text" value="@content?.Title" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="contentDescription">Mô tả</label>
+                <textarea class="form-control" id="contentDescription" name="Description" rows="4">@content?.Description</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="scriptContent">Kịch bản</label>
+                <textarea class="form-control" id="scriptContent" name="ScriptText" rows="8" required>@content?.ScriptText</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="contentStatus">Trạng thái</label>
+                <select class="form-select" id="contentStatus" name="IsActive" required>
+                    <option value="true" selected="@(content?.IsActive == true)">Active</option>
+                    <option value="false" selected="@(content?.IsActive == false)">Inactive</option>
+                </select>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>Cập nhật nội dung
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Narration Audio Table -->
+<div class="card mb-5">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="mb-0">Danh sách narration audio</h5>
+            <button type="button" class="btn btn-outline-secondary" id="toggleAllAudioGroups">
+                <i class="bi bi-chevron-down me-1"></i>Mở rộng tất cả
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="grouped-table" aria-label="Narration audio list">
+                <thead>
+                    <tr>
+                        <th>Ngôn ngữ</th>
+                        <th>TtsVoiceProfile</th>
+                        <th>Duration (s)</th>
+                        <th>Is TTS</th>
+                        <th>Updated</th>
+                        <th>Audio Url</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Audios.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Chưa có narration audio.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        var groupedAudios = Model.Audios
+                            .GroupBy(a => a.TtsVoiceProfileLanguageName ?? "Không rõ")
+                            .OrderBy(g => g.Key)
+                            .ToList();
+                        var groupIndex = 0;
+                        foreach (var group in groupedAudios)
+                        {
+                            var groupId = $"audio-group-{groupIndex}";
+                            <tr class="language-group-row" data-group-id="@groupId">
+                                <td colspan="6">
+                                    <button type="button" class="toggle-group-btn collapsed" data-group-target="@groupId" aria-expanded="false"></button>
+                                    <strong>@group.Key</strong> (@group.Count() giọng)
+                                </td>
+                            </tr>
+                            foreach (var audio in group)
+                            {
+                                <tr class="voice-row" data-group-id="@groupId">
+                                    <td>@group.Key</td>
+                                    <td>@(audio.TtsVoiceProfileDescription ?? "-")</td>
+                                    <td>@(audio.DurationSeconds?.ToString() ?? "-")</td>
+                                    <td>@(audio.IsTts ? "Yes" : "No")</td>
+                                    <td>@(audio.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(audio.AudioUrl))
+                                        {
+                                            <a href="@audio.AudioUrl" target="_blank">Open</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            groupIndex++;
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            function toggleGroup(groupId, expand) {
+                var rows = document.querySelectorAll('.voice-row[data-group-id="' + groupId + '"]');
+                var button = document.querySelector('.toggle-group-btn[data-group-target="' + groupId + '"]');
+                if (!button) {
+                    return;
+                }
+                if (expand) {
+                    rows.forEach(function (row) { row.classList.add('show'); });
+                    button.classList.remove('collapsed');
+                    button.setAttribute('aria-expanded', 'true');
+                } else {
+                    rows.forEach(function (row) { row.classList.remove('show'); });
+                    button.classList.add('collapsed');
+                    button.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            document.querySelectorAll('.toggle-group-btn[data-group-target]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    var groupId = button.getAttribute('data-group-target');
+                    var isCollapsed = button.classList.contains('collapsed');
+                    toggleGroup(groupId, isCollapsed);
+                });
+            });
+
+            var toggleAllButton = document.getElementById('toggleAllAudioGroups');
+            if (toggleAllButton) {
+                var allExpanded = false;
+                toggleAllButton.addEventListener('click', function () {
+                    var groupButtons = document.querySelectorAll('.toggle-group-btn[data-group-target]');
+                    allExpanded = !allExpanded;
+                    groupButtons.forEach(function (button) {
+                        var groupId = button.getAttribute('data-group-target');
+                        toggleGroup(groupId, allExpanded);
+                    });
+                    toggleAllButton.innerHTML = allExpanded
+                        ? '<i class="bi bi-chevron-up me-1"></i>Thu gọn tất cả'
+                        : '<i class="bi bi-chevron-down me-1"></i>Mở rộng tất cả';
+                });
+            }
+        })();
+    </script>
+}

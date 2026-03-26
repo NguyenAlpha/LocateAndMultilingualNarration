@@ -1,0 +1,180 @@
+@model Web.Models.StallNarrationContentManagementViewModel
+@{
+    ViewData["Title"] = "Stall Narration Content Management";
+    var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
+    var stallLookup = Model.Stalls.ToDictionary(s => s.Id, s => s.Name);
+    var languageLookup = Model.Languages.ToDictionary(l => l.Id, l => l.Name);
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a href="#">Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Stall Narration Content</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div>
+            <h1><i class="bi bi-mic me-2"></i>Stall Narration Content</h1>
+            <p class="text-muted mb-0">Quản lý nội dung narration theo stall và ngôn ngữ.</p>
+        </div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary">
+                <i class="bi bi-upload me-1"></i>Xuất dữ liệu
+            </button>
+            <button type="button" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>Thêm nội dung
+            </button>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+
+<!-- Search/Filter -->
+<div class="search-filter-bar">
+    <form method="get" asp-action="StallNarrationContents" class="row g-3">
+        <div class="col-md-4">
+            <label for="narrationSearch" class="form-label visually-hidden">Search</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control table-search" id="narrationSearch" name="search" value="@Model.Search" placeholder="Tìm theo tiêu đề hoặc mô tả...">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label for="stallFilter" class="form-label visually-hidden">Stall</label>
+            <select class="form-select" id="stallFilter" name="stallId" aria-label="Filter by stall">
+                <option value="">Tất cả stall</option>
+                @foreach (var stall in Model.Stalls)
+                {
+                    <option value="@stall.Id" selected="@(Model.StallId == stall.Id)">@stall.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="languageFilter" class="form-label visually-hidden">Language</label>
+            <select class="form-select" id="languageFilter" name="languageId" aria-label="Filter by language">
+                <option value="">Tất cả ngôn ngữ</option>
+                @foreach (var language in Model.Languages)
+                {
+                    <option value="@language.Id" selected="@(Model.LanguageId == language.Id)">@language.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="statusFilter" class="form-label visually-hidden">Status</label>
+            <select class="form-select" id="statusFilter" name="isActive" aria-label="Filter by status">
+                <option value="" selected="@(Model.IsActive == null)">Tất cả trạng thái</option>
+                <option value="true" selected="@(Model.IsActive == true)">Active</option>
+                <option value="false" selected="@(Model.IsActive == false)">Inactive</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <label for="pageSize" class="form-label visually-hidden">Page size</label>
+            <select class="form-select" id="pageSize" name="pageSize" aria-label="Page size">
+                <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                <option value="25" selected="@(Model.PageSize == 25)">25</option>
+                <option value="50" selected="@(Model.PageSize == 50)">50</option>
+            </select>
+        </div>
+        <div class="col-md-1 d-grid">
+            <button class="btn btn-outline-secondary" type="submit">
+                <i class="bi bi-filter"></i>
+            </button>
+        </div>
+        <div class="col-md-12">
+            <a class="btn btn-outline-secondary" asp-action="StallNarrationContents">
+                <i class="bi bi-x-circle me-1"></i>Xóa bộ lọc
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Narration Contents Table -->
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-hover" aria-label="Narration content list">
+            <thead>
+                <tr>
+                    <th scope="col">Tiêu đề</th>
+                    <th scope="col">Stall</th>
+                    <th scope="col">Ngôn ngữ</th>
+                    <th scope="col">Trạng thái</th>
+                    <th scope="col">Cập nhật</th>
+                    <th scope="col" class="no-export">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">Chưa có narration content.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Items)
+                    {
+                        var statusClass = item.IsActive ? "success" : "secondary";
+                        var statusText = item.IsActive ? "Active" : "Inactive";
+                        var stallName = stallLookup.TryGetValue(item.StallId, out var stallValue) ? stallValue : item.StallId.ToString();
+                        var languageName = languageLookup.TryGetValue(item.LanguageId, out var langValue) ? langValue : item.LanguageId.ToString();
+                        <tr>
+                            <td>
+                                <strong>@item.Title</strong>
+                                <small class="d-block text-muted">ID: @item.Id</small>
+                            </td>
+                            <td>@stallName</td>
+                            <td>@languageName</td>
+                            <td><span class="badge bg-@statusClass">@statusText</span></td>
+                            <td>@(item.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
+                            <td>
+                                <div class="btn-group">
+                                    @* <button type="button" class="btn btn-sm btn-outline-primary" title="Edit" disabled>
+                                        <i class="bi bi-pencil"></i>
+                                    </button> *@
+                                    <a class="btn btn-sm btn-outline-info" title="View/Edit" asp-controller="Narration" asp-action="Show" asp-route-id="@item.Id">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+        <div class="text-muted">
+            Hiển thị @startIndex-@endIndex trong tổng @Model.TotalCount bản ghi
+        </div>
+        <nav aria-label="Narration pagination">
+            <ul class="pagination mb-0">
+                <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="StallNarrationContents" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-stallId="@Model.StallId" asp-route-languageId="@Model.LanguageId" asp-route-isActive="@Model.IsActive" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-action="StallNarrationContents" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-stallId="@Model.StallId" asp-route-languageId="@Model.LanguageId" asp-route-isActive="@Model.IsActive">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="StallNarrationContents" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-stallId="@Model.StallId" asp-route-languageId="@Model.LanguageId" asp-route-isActive="@Model.IsActive" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>

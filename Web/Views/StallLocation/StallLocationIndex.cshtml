@@ -1,0 +1,136 @@
+@model Web.Models.StallLocationManagementViewModel
+
+@{
+    ViewData["Title"] = "Quản lý Stall Locations";
+}
+
+<div class="page-header">
+    <h1><i class="bi bi-geo-alt me-2"></i>Quản lý Stall Locations</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label for="stallId" class="form-label">Chọn Stall</label>
+                <select name="stallId" id="stallId" class="form-select">
+                    <option value="">-- Tất cả stall --</option>
+                    @foreach (var s in Model.Stalls)
+                    {
+                        <option value="@s.Id" selected="@(Model.StallId == s.Id)">@s.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="isActive" class="form-label">Trạng thái</label>
+                <select name="isActive" id="isActive" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="true" selected="@(Model.IsActive == true)">Kích hoạt</option>
+                    <option value="false" selected="@(Model.IsActive == false)">Tắt</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i>Lọc
+                </button>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <a href="@Url.Action("CreateMap")" class="btn btn-success w-100">
+                    <i class="bi bi-plus-lg me-1"></i>Tạo mới
+                </a>
+            </div>
+        </form>
+
+        @if (Model.Items.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Stall</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                            <th>Bán kính (m)</th>
+                            <th>Địa chỉ</th>
+                            <th>Cập nhật</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.StallId</td>
+                                <td><code>@item.Latitude.ToString("F6")</code></td>
+                                <td><code>@item.Longitude.ToString("F6")</code></td>
+                                <td>@item.RadiusMeters</td>
+                                <td>@(string.IsNullOrEmpty(item.Address) ? "-" : item.Address)</td>
+                                <td>@item.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge bg-success">Kích hoạt</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Tắt</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a href="@Url.Action("EditMap", new { id = item.Id })" class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalCount > Model.PageSize)
+            {
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        @for (int i = 1; i <= Math.Ceiling((double)Model.TotalCount / Model.PageSize); i++)
+                        {
+                            var routeValues = new Dictionary<string, object>
+                            {
+                                { "page", i },
+                                { "pageSize", Model.PageSize },
+                                { "stallId", Model.StallId },
+                                { "isActive", Model.IsActive }
+                            };
+                            <li class="page-item @(i == Model.Page ? "active" : "")">
+                                <a class="page-link" href="@Url.Action("Index", routeValues)">@i</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+        else
+        {
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle me-2"></i>Chưa có dữ liệu vị trí nào
+            </div>
+        }
+    </div>
+</div>

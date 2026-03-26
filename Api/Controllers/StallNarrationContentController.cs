@@ -122,7 +122,22 @@ namespace Api.Controllers
 
             // Chuyển UpdatedAt sang timezone client (nếu header có) trước khi trả về
             var timeZone = GetTimeZone();
-            return this.OkResult(MapDetail(content, timeZone));
+            var audios = await _context.NarrationAudios
+                .Include(a => a.TtsVoiceProfile)
+                .ThenInclude(p => p.Language)
+                .AsNoTracking()
+                .Where(a => a.NarrationContentId == content.Id)
+                .OrderByDescending(a => a.UpdatedAt)
+                .ThenByDescending(a => a.Id)
+                .ToListAsync();
+
+            var audioItems = audios.Select(a => MapAudioDetail(a, timeZone)).ToList();
+
+            return this.OkResult(new StallNarrationContentWithAudiosDto
+            {
+                Content = MapDetail(content, timeZone),
+                Audios = audioItems
+            });
         }
 
         /// <summary>
@@ -236,7 +251,22 @@ namespace Api.Controllers
 
             // Convert thời gian theo timezone client trước khi trả về
             var timeZone = GetTimeZone();
-            return this.OkResult(MapDetail(content, timeZone));
+            var audios = await _context.NarrationAudios
+                .Include(a => a.TtsVoiceProfile)
+                .ThenInclude(p => p.Language)
+                .AsNoTracking()
+                .Where(a => a.NarrationContentId == content.Id)
+                .OrderByDescending(a => a.UpdatedAt)
+                .ThenByDescending(a => a.Id)
+                .ToListAsync();
+
+            var audioItems = audios.Select(a => MapAudioDetail(a, timeZone)).ToList();
+
+            return this.OkResult(new StallNarrationContentWithAudiosDto
+            {
+                Content = MapDetail(content, timeZone),
+                Audios = audioItems
+            });
         }
 
         /// <summary>
@@ -251,7 +281,7 @@ namespace Api.Controllers
         /// <param name="languageId">Lọc theo LanguageId (tùy chọn).</param>
         /// <returns>Danh sách phân trang các narration content.</returns>
         [HttpGet]
-        public async Task<IActionResult> GetList([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? stallId = null, [FromQuery] Guid? languageId = null)
+        public async Task<IActionResult> GetList([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? stallId = null, [FromQuery] Guid? languageId = null, [FromQuery] string? search = null, [FromQuery] bool? isActive = null)
         {
             _logger.LogInformation("Bắt đầu lấy danh sách narration content - Page: {Page}, PageSize: {PageSize}", page, pageSize);
             // Xác thực user
@@ -294,6 +324,20 @@ namespace Api.Controllers
                 query = query.Where(n => n.LanguageId == languageId.Value);
             }
 
+            if (isActive.HasValue)
+            {
+                query = query.Where(n => n.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+                query = query.Where(n =>
+                    EF.Functions.Like(n.Title, $"%{keyword}%") ||
+                    (n.Description != null && EF.Functions.Like(n.Description, $"%{keyword}%")) ||
+                    EF.Functions.Like(n.ScriptText, $"%{keyword}%"));
+            }
+
             // Lấy tổng số và phân trang
             var totalCount = await query.CountAsync();
             var contents = await query
@@ -331,6 +375,25 @@ namespace Api.Controllers
                 IsActive = content.IsActive,
                 // Convert thời gian lưu ở UTC sang timezone của client
                 UpdatedAt = ConvertFromUtc(content.UpdatedAt, timeZone)
+            };
+        }
+
+        private static NarrationAudioDetailDto MapAudioDetail(Api.Domain.Entities.NarrationAudio audio, TimeZoneInfo timeZone)
+        {
+            return new NarrationAudioDetailDto
+            {
+                Id = audio.Id,
+                NarrationContentId = audio.NarrationContentId,
+                TtsVoiceProfileId = audio.TtsVoiceProfileId,
+                TtsVoiceProfileDescription = audio.TtsVoiceProfile?.Description,
+                TtsVoiceProfileLanguageName = audio.TtsVoiceProfile?.Language?.Name,
+                AudioUrl = audio.AudioUrl,
+                BlobId = audio.BlobId,
+                Voice = audio.Voice,
+                Provider = audio.Provider,
+                DurationSeconds = audio.DurationSeconds,
+                IsTts = audio.IsTts,
+                UpdatedAt = ConvertFromUtc(audio.UpdatedAt, timeZone)
             };
         }
 
