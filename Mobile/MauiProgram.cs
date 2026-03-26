@@ -42,7 +42,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<ILanguageService, LanguageService>();
         builder.Services.AddSingleton<IAudioManager>(_ => AudioManager.Current);
         builder.Services.AddSingleton<IAudioGuideService, AudioGuideService>();
+        builder.Services.AddSingleton<IDeviceService, DeviceService>();
 
+        builder.Services.AddTransient<StartViewModel>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<MapViewModel>();
@@ -61,6 +63,8 @@ public static class MauiProgram
         });
 
         builder.Services.AddTransient<LanguagePage>();
+        builder.Services.AddTransient<StartPage>();
+        builder.Services.AddSingleton<IDevicePreferenceApiService, DevicePreferenceApiService>();
 
         // Hoàn tất cấu hình và trả về đối tượng MauiApp để framework khởi chạy
         return builder.Build();

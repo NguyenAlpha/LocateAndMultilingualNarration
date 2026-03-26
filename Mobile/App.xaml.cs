@@ -23,7 +23,7 @@ namespace Mobile
         public App()
         {
             InitializeComponent();
-            _sessionService = sessionService;
+            //_sessionService = sessionService;
         }
 
         /// <summary>

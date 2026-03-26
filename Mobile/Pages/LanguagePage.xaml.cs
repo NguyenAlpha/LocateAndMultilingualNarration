@@ -1,5 +1,7 @@
 using Mobile.Helpers;
+using Mobile.Pages;
 using Mobile.Services;
+using Shared.DTOs.DevicePreferences;
 using Shared.DTOs.Languages;
 
 namespace Mobile;
@@ -7,11 +9,15 @@ namespace Mobile;
 public partial class LanguagePage : ContentPage
 {
     private readonly LanguageApiService _languageApiService;
+    private readonly IDeviceService _deviceService;
+    private readonly IDevicePreferenceApiService _devicePreferenceApiService;
 
-    public LanguagePage(LanguageApiService languageApiService)
+    public LanguagePage(LanguageApiService languageApiService, IDeviceService deviceService, IDevicePreferenceApiService devicePreferenceApiService)
     {
         InitializeComponent();
         _languageApiService = languageApiService;
+        _deviceService = deviceService;
+        _devicePreferenceApiService = devicePreferenceApiService;
     }
 
     protected override async void OnAppearing()
@@ -49,9 +55,23 @@ public partial class LanguagePage : ContentPage
     {
         if (e.Parameter is not LanguageItem item) return;
 
+        var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+        var deviceInfo = _deviceService.GetDeviceInfo();
+
+        // Fire-and-forget: lỗi API không block user
+        _ = _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
+        {
+            DeviceId     = deviceId,
+            LanguageCode = item.Code,
+            AutoPlay     = true,
+            Platform     = deviceInfo.Platform,
+            DeviceModel  = deviceInfo.DeviceModel,
+            Manufacturer = deviceInfo.Manufacturer,
+            OsVersion    = deviceInfo.OsVersion
+        });
+
         LanguageHelper.SetLanguage(item.Code);
-        await DisplayAlert("Ngôn ngữ", $"Đã chọn: {item.DisplayLabel}", "OK");
-        Application.Current!.MainPage = new AppShell();
+        await Shell.Current.GoToAsync($"//{nameof(MapPage)}");
     }
 
     private static string FlagCodeToEmoji(string? flagCode)
