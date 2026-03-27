@@ -4,7 +4,6 @@ using Mobile.Services;
 using Mobile.ViewModels;
 using Plugin.Maui.Audio;
 using SkiaSharp.Views.Maui.Controls.Hosting;
-// Thư viện ZXing.Net.Maui cung cấp tính năng đọc mã vạch (barcode) và mã QR
 using ZXing.Net.Maui.Controls;
 
 namespace Mobile;
@@ -40,6 +39,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<IAuthService, AuthService>();
         builder.Services.AddSingleton<IStallService, StallService>();
         builder.Services.AddSingleton<ILanguageService, LanguageService>();
+
+        // Dịch vụ âm thanh cho thuyết minh
         builder.Services.AddSingleton<IAudioManager>(_ => AudioManager.Current);
         builder.Services.AddSingleton<IAudioGuideService, AudioGuideService>();
 

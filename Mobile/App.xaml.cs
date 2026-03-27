@@ -20,9 +20,10 @@ namespace Mobile
         /// có nhiệm vụ nạp toàn bộ tài nguyên khai báo trong App.xaml
         /// (ResourceDictionary, styles, màu sắc, v.v.) vào bộ nhớ.
         /// </summary>
-        public App()
+        public App(SessionService sessionService)
         {
             InitializeComponent();
+            // Lưu SessionService được inject từ DI container để dùng xuyên suốt vòng đời ứng dụng
             _sessionService = sessionService;
         }
 

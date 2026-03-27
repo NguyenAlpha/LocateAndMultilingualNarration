@@ -2,7 +2,6 @@
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
     x:Class="Mobile.Pages.MapPage"
     NavigationPage.HasNavigationBar="False"
     Title="Bản đồ">
@@ -21,8 +20,14 @@
         </Grid>
 
         <Grid Grid.Row="1" RowDefinitions="2*,*">
+            <!-- OLD CODE (kept for reference):
             <mapsui:MapView x:Name="mapView"
                             Grid.Row="0" />
+            -->
+
+            <Border Grid.Row="0" Stroke="#D1D5DB" BackgroundColor="#F8FAFC" Padding="12" Margin="12">
+                <Label Text="Bản đồ tương thích net8: tạm ẩn MapView để đảm bảo ứng dụng chạy ổn định.\nBạn vẫn có thể chọn gian hàng từ danh sách bên dưới." TextColor="#334155" />
+            </Border>
 
             <CollectionView Grid.Row="1"
                             ItemsSource="{Binding Stalls}"

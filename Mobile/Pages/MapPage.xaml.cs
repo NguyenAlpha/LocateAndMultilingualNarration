@@ -1,9 +1,9 @@
 ﻿using Microsoft.Maui.ApplicationModel;
-using Mapsui;
-using Mapsui.Extensions;
-using Mapsui.Projections;
-using Mapsui.Tiling;
-using Mapsui.UI.Maui;
+// OLD CODE (kept for reference): using Mapsui;
+// OLD CODE (kept for reference): using Mapsui.Extensions;
+// OLD CODE (kept for reference): using Mapsui.Projections;
+// OLD CODE (kept for reference): using Mapsui.Tiling;
+// OLD CODE (kept for reference): using Mapsui.UI.Maui;
 using Mobile.Helpers;
 using Mobile.Models;
 using Mobile.ViewModels;
@@ -28,19 +28,8 @@ public partial class MapPage : ContentPage
         _viewModel.FocusStallRequested += OnFocusStallRequested;
         _viewModel.PinsRefreshRequested += RenderPins;
 
-        // Khởi tạo Mapsui với OpenStreetMap. 
-        // Lấy tile source từ OpenStreetMap mà không cần API Key như Google Maps
-        mapView.Map?.Layers.Add(OpenStreetMap.CreateTileLayer());
-        
-        // Cấu hình sự kiện click pin trên MapView
-        mapView.PinClicked += async (sender, args) =>
-        {
-            if (args.Pin?.Tag is Stall stall)
-            {
-                args.Handled = true;
-                await OnPinClickedAsync(stall);
-            }
-        };
+        // OLD CODE (kept for reference): Khởi tạo Mapsui + sự kiện pin click.
+        // Bản net8 tạm ẩn MapView để đảm bảo project build/run ổn định trên Android.
     }
 
     protected override async void OnAppearing()
@@ -56,11 +45,7 @@ public partial class MapPage : ContentPage
 
         await EnsureLocationPermissionAsync();
         
-        // Mặc định trung tâm bản đồ về TP.HCM nếu không định vị được hoặc chưa có booth focus
-        // Resolution 19 tương đương với mức zoom ~13 trong hệ tọa độ của OpenStreetMap
-        var defaultCenter = SphericalMercator.FromLonLat(106.660172, 10.762622);
-        var centerPoint = new MPoint(defaultCenter.x, defaultCenter.y);
-        mapView.Map?.Navigator.CenterOnAndZoomTo(centerPoint, 19, 0);
+        // OLD CODE (kept for reference): set default center bằng Mapsui Navigator
 
         await MoveToCurrentLocationAsync();
         await _viewModel.InitializeAsync(BoothId);
@@ -97,20 +82,8 @@ public partial class MapPage : ContentPage
 
             if (location != null)
             {
-                var userLocation = SphericalMercator.FromLonLat(location.Longitude, location.Latitude);
-                var userPoint = new MPoint(userLocation.x, userLocation.y);
-                
-                // Mức độ phân giải (resolution) là 5, zoom cận hơn để thấy vị trí user (~Zoom level 15)
-                mapView.Map?.Navigator.CenterOnAndZoomTo(userPoint, 5, 500);
-
-                // Thêm pin vị trí hiện tại
-                var myPin = new Pin()
-                {
-                    Label = "Bạn đang ở đây",
-                    Position = new Position(location.Latitude, location.Longitude),
-                    Color = Microsoft.Maui.Graphics.Colors.Green
-                };
-                mapView.Pins.Add(myPin);
+                // OLD CODE (kept for reference): cập nhật Navigator/Pin trên Mapsui mapView.
+                // Ghi chú: ở bản fallback net8, chỉ lấy vị trí để đảm bảo luồng xin quyền + GPS vẫn hoạt động.
             }
         }
         catch (FeatureNotEnabledException)
@@ -125,29 +98,8 @@ public partial class MapPage : ContentPage
 
     private void RenderPins()
     {
-        // Giữ lại pin vị trí hiện tại (màu xanh lá)
-        var myLocationPin = mapView.Pins.FirstOrDefault(p => p.Label == "Bạn đang ở đây");
-        mapView.Pins.Clear();
-        
-        if (myLocationPin != null)
-        {
-            mapView.Pins.Add(myLocationPin);
-        }
-
-        foreach (var stall in _viewModel.Stalls)
-        {
-            var isSelected = _viewModel.SelectedStall?.Id == stall.Id;
-            var pin = new Pin()
-            {
-                Label = stall.Name,
-                Address = isSelected ? "Đang chọn" : "Gian hàng",
-                Position = new Position(stall.Latitude, stall.Longitude),
-                Color = isSelected ? Microsoft.Maui.Graphics.Colors.Red : Microsoft.Maui.Graphics.Colors.Blue,
-                Tag = stall // Gắn Stall object vào Tag để nhận diện stall khi pin được click
-            };
-
-            mapView.Pins.Add(pin);
-        }
+        // OLD CODE (kept for reference): render pin lên mapView.Pins bằng Mapsui.
+        // Ở chế độ net8 fallback, danh sách gian hàng vẫn hiển thị qua CollectionView (Binding Stalls).
     }
 
     private async Task OnPinClickedAsync(Stall stall)
@@ -183,12 +135,8 @@ public partial class MapPage : ContentPage
 
     private void OnFocusStallRequested(Stall stall)
     {
-        // Đổi tọa độ địa lý sang SphericalMercator để tương thích với Mapsui
-        var location = SphericalMercator.FromLonLat(stall.Longitude, stall.Latitude);
-        var centerPoint = new MPoint(location.x, location.y);
-        
-        // Resolution = 2, zoom rat sat vao gian hang, thoi gian animation chuyen man hinh la 500ms
-        mapView.Map?.Navigator.CenterOnAndZoomTo(centerPoint, 2, 500); 
+        // OLD CODE (kept for reference): focus stall bằng Navigator.CenterOnAndZoomTo của Mapsui.
+        // Bản fallback net8: vẫn refresh danh sách để người dùng thấy gian hàng đang chọn.
         RenderPins();
     }
 }

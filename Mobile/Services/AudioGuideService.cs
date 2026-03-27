@@ -20,6 +20,7 @@ public class AudioGuideService : IAudioGuideService
     private IAudioPlayer? _player;
     private MemoryStream? _buffer;
 
+    // Check if player is actively playing
     public bool IsPlaying => _player?.IsPlaying ?? false;
 
     public AudioGuideService(IAudioManager audioManager, IHttpClientFactory httpClientFactory)
@@ -44,6 +45,7 @@ public class AudioGuideService : IAudioGuideService
         await stream.CopyToAsync(_buffer, cancellationToken);
         _buffer.Position = 0;
 
+        // Tạo trình phát từ buffer trong bộ nhớ
         _player = _audioManager.CreatePlayer(_buffer);
         _player.Play();
     }

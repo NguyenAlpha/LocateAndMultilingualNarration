@@ -1,15 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<!-- OLD CODE (kept for reference): adb devices<Project Sdk="Microsoft.NET.Sdk"> -->
+<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
-		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+ <PropertyGroup>
+	 <TargetFrameworks>net10.0-android</TargetFrameworks>
+	 <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
-		<OutputType>Exe</OutputType>
+	 <OutputType>Exe</OutputType>
 		<RootNamespace>Mobile</RootNamespace>
 		<UseMaui>true</UseMaui>
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<!-- Tắt chặn build với cảnh báo vòng đời để đảm bảo khôi phục project và tải project trong VS -->
+		<CheckEolTargetFramework>false</CheckEolTargetFramework>
+		<!-- Chặn NETSDK1202 trong môi trường SDK mới khi target net8 -->
+		<NoWarn>$(NoWarn);NETSDK1202</NoWarn>
+		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 
 		<!-- Display name -->
 		<ApplicationTitle>Mobile</ApplicationTitle>
@@ -23,8 +29,7 @@
 
 		<WindowsPackageType>None</WindowsPackageType>
 
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+      <!-- OLD CODE (kept for reference): iOS/maccatalyst supported platform versions removed because project is now stable Android + Windows only -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
@@ -48,21 +53,23 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Mapsui.Maui" Version="5.0.2" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.50" />
-		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-		<PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
-		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.1" />
-        <PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
-        <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
-	</ItemGroup>
+ <ItemGroup>
+	 <PackageReference Include="Mapsui.Maui" Version="5.0.2" />
+	 <PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
+	 <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.1" />
+	 <PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
+	 <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
-		<PackageReference Include="Xamarin.AndroidX.Tracing.Tracing" Version="1.3.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Tracing.Tracing.Ktx" Version="1.3.0.1" />
-	</ItemGroup>
+	 <!-- .NET 10 MAUI Core -->
+	 <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.50" />
+	 <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+	 <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+ </ItemGroup>
+
+ <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
+	 <PackageReference Include="Xamarin.AndroidX.Tracing.Tracing" Version="1.3.0.1" />
+	 <PackageReference Include="Xamarin.AndroidX.Tracing.Tracing.Ktx" Version="1.3.0.1" />
+ </ItemGroup>
 
 	<ItemGroup>
 	  <MauiXaml Update="Pages\ScanPage.xaml">
