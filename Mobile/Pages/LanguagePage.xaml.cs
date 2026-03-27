@@ -1,17 +1,17 @@
 using Mobile.Helpers;
+using Mobile.Pages;
 using Mobile.Services;
-using Shared.DTOs.Languages;
 
 namespace Mobile;
 
 public partial class LanguagePage : ContentPage
 {
-    private readonly LanguageApiService _languageApiService;
+    private readonly ILanguageService _languageService;
 
-    public LanguagePage(LanguageApiService languageApiService)
+    public LanguagePage(ILanguageService languageService)
     {
         InitializeComponent();
-        _languageApiService = languageApiService;
+        _languageService = languageService;
     }
 
     protected override async void OnAppearing()
@@ -24,11 +24,12 @@ public partial class LanguagePage : ContentPage
     {
         try
         {
-            var languages = await _languageApiService.GetActiveLanguagesAsync();
+            var languages = await _languageService.GetLanguagesAsync();
 
             var items = languages.Select(l => new LanguageItem
             {
                 Code = l.Code,
+                LanguageId = l.Id,
                 FlagEmoji = FlagCodeToEmoji(l.FlagCode),
                 DisplayLabel = l.DisplayName ?? l.Name
             }).ToList();
@@ -49,9 +50,8 @@ public partial class LanguagePage : ContentPage
     {
         if (e.Parameter is not LanguageItem item) return;
 
-        LanguageHelper.SetLanguage(item.Code);
-        await DisplayAlert("Ngôn ngữ", $"Đã chọn: {item.DisplayLabel}", "OK");
-        Application.Current!.MainPage = new AppShell();
+        await Shell.Current.GoToAsync(
+            $"{nameof(VoicePage)}?languageId={item.LanguageId}&languageCode={Uri.EscapeDataString(item.Code)}");
     }
 
     private static string FlagCodeToEmoji(string? flagCode)
@@ -67,6 +67,7 @@ public partial class LanguagePage : ContentPage
     private class LanguageItem
     {
         public string Code { get; set; } = null!;
+        public Guid LanguageId { get; set; }
         public string FlagEmoji { get; set; } = null!;
         public string DisplayLabel { get; set; } = null!;
     }

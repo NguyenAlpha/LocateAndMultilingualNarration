@@ -1,110 +1,153 @@
-using System.Net.Http;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+// Kiểm tra trạng thái kết nối mạng (có Internet hay không)
 using Microsoft.Maui.Networking;
-using Mobile.Models;
+// DTO bọc response chung của API: { success, data, message }
+using Shared.DTOs.Common;
+// DTO thông tin gian hàng kèm tọa độ địa lý
+using Shared.DTOs.Geo;
 
 namespace Mobile.Services;
 
+/// <summary>
+/// Contract (hợp đồng) cho StallService — các class khác chỉ phụ thuộc vào interface này,
+/// không phụ thuộc trực tiếp vào StallService, giúp dễ test và thay thế implementation.
+/// </summary>
 public interface IStallService
 {
-    Task<List<Stall>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
-    Task<Stall?> GetStallByIdAsync(string boothId, CancellationToken cancellationToken = default);
+    /// <summary>Lấy toàn bộ danh sách gian hàng, có hỗ trợ cache.</summary>
+    /// <param name="forceRefresh">true = bỏ qua cache, gọi API mới (mặc định false)</param>
+    Task<List<GeoStallDto>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
+
+    /// <summary>Lấy một gian hàng cụ thể theo ID (tìm trong cache/danh sách đã tải).</summary>
+    Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Implementation của IStallService.
+/// Chiến lược lấy dữ liệu theo thứ tự ưu tiên:
+///   1. Cache còn hạn (< 5 phút) và không forceRefresh → trả về ngay
+///   2. Không có mạng → trả về cache cũ (nếu có) hoặc dữ liệu mock
+///   3. Có mạng → gọi API, cập nhật cache → trả về
+///   4. API lỗi / exception → fallback về cache cũ hoặc dữ liệu mock
+/// </summary>
 public class StallService : IStallService
 {
+    // Factory tạo HttpClient — dùng factory thay vì new HttpClient() để tránh socket exhaustion
     private readonly IHttpClientFactory _httpClientFactory;
 
+    // Lấy DeviceId để gửi kèm request (backend dùng để nhận dạng thiết bị)
+    private readonly IDeviceService _deviceService;
+
+    private readonly ILogger<StallService> _logger;
+
+    // Thời gian cache hợp lệ — sau 5 phút cache hết hạn, lần gọi tiếp theo sẽ fetch API mới
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-    private List<Stall>? _cachedStalls;
+
+    // Danh sách gian hàng đang được cache trong bộ nhớ
+    private List<GeoStallDto>? _cachedStalls;
+
+    // Thời điểm lần cuối fetch thành công từ API (UTC)
     private DateTime _lastFetchUtc;
 
-    private const string BaseUrl = "http://10.0.2.2:5299";
-    private const string StallsEndpoint = "/api/stalls";
+    // Cấu hình JSON: JsonSerializerDefaults.Web = camelCase, case-insensitive, number từ string...
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public StallService(IHttpClientFactory httpClientFactory)
+    // Địa chỉ backend — 10.0.2.2 là alias của localhost trên Android Emulator
+    private const string BaseUrl = "http://10.0.2.2:5299";
+    private const string StallsEndpoint = "/api/geo/stalls";
+
+    public StallService(IHttpClientFactory httpClientFactory, IDeviceService deviceService, ILogger<StallService> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _deviceService = deviceService;
+        _logger = logger;
     }
 
-    public async Task<List<Stall>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Lấy danh sách gian hàng với chiến lược cache + offline fallback.
+    /// </summary>
+    public async Task<List<GeoStallDto>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
     {
-        // Dùng cache để giảm số lần gọi API và tránh lag khi vào map nhiều lần.
+        // 1. Trả về cache nếu: không yêu cầu refresh, cache có dữ liệu, và chưa hết hạn
         if (!forceRefresh && _cachedStalls is { Count: > 0 } && DateTime.UtcNow - _lastFetchUtc < CacheDuration)
         {
+            _logger.LogDebug("GetStallsAsync: trả về cache ({Count} gian hàng)", _cachedStalls.Count);
             return _cachedStalls;
         }
 
+        // 2. Không có Internet → dùng dữ liệu cũ hoặc mock để app vẫn hoạt động được
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
         {
+            var offlineSource = _cachedStalls != null ? "cache cũ" : "mock";
+            _logger.LogWarning("GetStallsAsync: không có Internet, dùng {Source}", offlineSource);
             return _cachedStalls ?? GetMockStalls();
         }
 
         try
         {
+            // 3. Lấy DeviceId và gọi API
+            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
             var client = _httpClientFactory.CreateClient();
-            using var response = await client.GetAsync($"{BaseUrl}{StallsEndpoint}", cancellationToken);
+
+            // Gửi deviceId qua query string — Uri.EscapeDataString đảm bảo ký tự đặc biệt được encode
+            var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
+            _logger.LogInformation("GetStallsAsync: gọi API {Url}", url);
+            using var response = await client.GetAsync(url, cancellationToken);
+
             if (!response.IsSuccessStatusCode)
             {
+                // API trả về lỗi (4xx, 5xx) → fallback
+                var statusCode = (int)response.StatusCode;
+                var errorSource = _cachedStalls != null ? "cache cũ" : "mock";
+                _logger.LogWarning("GetStallsAsync: API trả về {StatusCode}, dùng {Source}", statusCode, errorSource);
                 return _cachedStalls ?? GetMockStalls();
             }
 
-            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-            var parsed = ParseStalls(raw);
+            // Deserialize stream trực tiếp (không đọc vào string trước) — hiệu quả hơn về memory
+            var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var result = await JsonSerializer.DeserializeAsync<ApiResult<List<GeoStallDto>>>(stream, JsonOptions, cancellationToken);
+            var dtos = result?.Data ?? [];
 
-            _cachedStalls = parsed.Count == 0 ? GetMockStalls() : parsed;
-            _lastFetchUtc = DateTime.UtcNow;
+            // Nếu API trả về rỗng → dùng mock để trang không bị trống hoàn toàn
+            _cachedStalls = dtos.Count == 0 ? GetMockStalls() : dtos;
+            _lastFetchUtc = DateTime.UtcNow; // Cập nhật thời điểm fetch thành công
+
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                var isMock = dtos.Count == 0 ? " (mock)" : "";
+                _logger.LogInformation("GetStallsAsync: tải thành công {Count} gian hàng{IsMock}", _cachedStalls.Count, isMock);
+            }
             return _cachedStalls;
         }
-        catch
+        catch (Exception ex)
         {
+            // 4. Mọi exception (timeout, parse lỗi...) → fallback về cache hoặc mock
+            _logger.LogError(ex, "GetStallsAsync: exception, dùng {Source}",
+                _cachedStalls != null ? "cache cũ" : "mock");
             return _cachedStalls ?? GetMockStalls();
         }
     }
 
-    public async Task<Stall?> GetStallByIdAsync(string boothId, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Tìm gian hàng theo ID — tận dụng cache từ GetStallsAsync thay vì gọi API riêng.
+    /// OrdinalIgnoreCase: so sánh không phân biệt hoa thường.
+    /// </summary>
+    public async Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default)
     {
         var stalls = await GetStallsAsync(false, cancellationToken);
-        return stalls.FirstOrDefault(x => x.Id.Equals(boothId, StringComparison.OrdinalIgnoreCase));
+        return stalls.FirstOrDefault(x => x.StallId.ToString().Equals(stallId, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static List<Stall> ParseStalls(string json)
-    {
-        var result = new List<Stall>();
-        using var doc = JsonDocument.Parse(json);
-
-        var root = doc.RootElement;
-        var list = root;
-
-        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var dataNode))
-        {
-            list = dataNode;
-        }
-
-        if (list.ValueKind != JsonValueKind.Array)
-        {
-            return result;
-        }
-
-        foreach (var item in list.EnumerateArray())
-        {
-            result.Add(new Stall
-            {
-                Id = item.TryGetProperty("id", out var id) ? id.ToString() : Guid.NewGuid().ToString(),
-                Name = item.TryGetProperty("name", out var name) ? name.GetString() ?? "Unknown stall" : "Unknown stall",
-                Latitude = item.TryGetProperty("latitude", out var lat) ? lat.GetDouble() : 0,
-                Longitude = item.TryGetProperty("longitude", out var lng) ? lng.GetDouble() : 0,
-                AudioUrl = item.TryGetProperty("audioUrl", out var audio) ? audio.GetString() ?? string.Empty : string.Empty
-            });
-        }
-
-        return result;
-    }
-
-    private static List<Stall> GetMockStalls() =>
+    /// <summary>
+    /// Dữ liệu mock dùng khi không có mạng hoặc API chưa có dữ liệu.
+    /// Giúp dev/test app mà không cần backend đang chạy.
+    /// Tọa độ mock nằm gần khu vực trung tâm TP.HCM (Q1).
+    /// </summary>
+    private static List<GeoStallDto> GetMockStalls() =>
     [
-        new Stall { Id = "1", Name = "Bánh Mì Ông 3", Latitude = 10.762622, Longitude = 106.660172, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-        new Stall { Id = "2", Name = "Phở Bò Bình Dân", Latitude = 10.7628, Longitude = 106.6595, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-        new Stall { Id = "3", Name = "Kem Trái Cây", Latitude = 10.7625, Longitude = 106.6605, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" }
+        new GeoStallDto { StallId = Guid.Parse("00000000-0000-0000-0000-000000000001"), StallName = "Bánh Mì Ông 3",   Latitude = 10.777534, Longitude = 106.710669, RadiusMeters = 50, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+        new GeoStallDto { StallId = Guid.Parse("00000000-0000-0000-0000-000000000002"), StallName = "Phở Bò Bình Dân", Latitude = 10.7782,   Longitude = 106.7115,   RadiusMeters = 40, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+        new GeoStallDto { StallId = Guid.Parse("00000000-0000-0000-0000-000000000003"), StallName = "Kem Trái Cây",     Latitude = 10.7769,   Longitude = 106.7098,   RadiusMeters = 30, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" }
     ];
 }

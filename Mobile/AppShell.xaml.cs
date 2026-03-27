@@ -36,6 +36,9 @@ namespace Mobile
             // Trang chọn ngôn ngữ thuyết minh — hiển thị sau khi quét thành công
             Routing.RegisterRoute(nameof(LanguagePage), typeof(LanguagePage));
 
+            // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
+            Routing.RegisterRoute(nameof(VoicePage), typeof(VoicePage));
+
             // Trang bản đồ — hiển thị vị trí gian hàng và hành trình của người dùng
             Routing.RegisterRoute(nameof(MapPage), typeof(MapPage));
         }

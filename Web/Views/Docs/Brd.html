@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BRD - Business Requirements Document</title>
+    <style>
+        body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; margin: 24px; color: #222; }
+        h1, h2, h3 { color: #1f3b57; }
+        h1 { border-bottom: 2px solid #1f3b57; padding-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #f2f5f9; }
+        ul { margin-top: 8px; }
+        .section { margin-bottom: 28px; }
+        .note { background: #f8fafc; border-left: 4px solid #4a90e2; padding: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Business Requirements Document (BRD)</h1>
+
+    <div class="section">
+        <h2>1. Tổng quan dự án</h2>
+        <p>
+            Dự án <strong>Locate And Multilingual Narration</strong> là hệ thống quản trị và trình bày nội dung
+            thuyết minh đa ngôn ngữ cho các gian hàng/doanh nghiệp. Hệ thống bao gồm: Web portal quản trị,
+            API dịch vụ dữ liệu, ứng dụng di động (MAUI), và các thành phần dùng chung.
+        </p>
+        <p>
+            Mục tiêu chính là hỗ trợ doanh nghiệp đăng ký gian hàng, quản lý nội dung thuyết minh đa ngôn ngữ,
+            quản trị người dùng và theo dõi thống kê hoạt động.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>2. Phạm vi dự án</h2>
+        <ul>
+            <li>Quản trị doanh nghiệp và gian hàng (Business/Stall Management).</li>
+            <li>Quản lý vị trí gian hàng trên bản đồ.</li>
+            <li>Quản lý nội dung thuyết minh đa ngôn ngữ và nội dung âm thanh.</li>
+            <li>Xác thực và phân quyền người dùng.</li>
+            <li>Thống kê, báo cáo và bảng điều khiển quản trị.</li>
+            <li>API phục vụ Web và Mobile với mô hình client-server.</li>
+        </ul>
+        <p class="note">
+            Phạm vi không bao gồm: hệ thống thanh toán, tích hợp IoT, hoặc các module bán hàng trực tuyến.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>3. Bối cảnh nghiệp vụ</h2>
+        <p>
+            Doanh nghiệp cần một nền tảng tập trung để đăng ký và quản lý gian hàng, đồng thời cung cấp
+            nội dung thuyết minh đa ngôn ngữ cho khách tham quan. Hệ thống hiện tại phân tán hoặc thiếu
+            tính đồng bộ, dẫn đến khó quản trị nội dung và thống kê hiệu quả.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>4. Mục tiêu nghiệp vụ</h2>
+        <ul>
+            <li>Tăng hiệu quả quản trị dữ liệu doanh nghiệp và gian hàng.</li>
+            <li>Chuẩn hóa nội dung thuyết minh đa ngôn ngữ.</li>
+            <li>Cung cấp trải nghiệm người dùng nhất quán giữa Web và Mobile.</li>
+            <li>Hỗ trợ báo cáo và ra quyết định dựa trên dữ liệu.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Các bên liên quan (Stakeholders)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nhóm</th>
+                    <th>Vai trò</th>
+                    <th>Kỳ vọng</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Ban quản trị hệ thống</td>
+                    <td>Quản trị chung, phân quyền</td>
+                    <td>Giao diện dễ sử dụng, báo cáo đầy đủ</td>
+                </tr>
+                <tr>
+                    <td>Doanh nghiệp</td>
+                    <td>Quản lý gian hàng</td>
+                    <td>Đăng ký nhanh, cập nhật nội dung dễ dàng</td>
+                </tr>
+                <tr>
+                    <td>Nhân sự nội dung</td>
+                    <td>Biên soạn thuyết minh</td>
+                    <td>Quản lý đa ngôn ngữ, kiểm soát phiên bản</td>
+                </tr>
+                <tr>
+                    <td>Khách tham quan</td>
+                    <td>Người tiêu thụ nội dung</td>
+                    <td>Truy cập nội dung chính xác, rõ ràng</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>6. Yêu cầu chức năng chính</h2>
+        <h3>6.1 Quản lý tài khoản và phân quyền</h3>
+        <ul>
+            <li>Đăng ký, đăng nhập, đăng xuất.</li>
+            <li>Phân quyền theo vai trò (Admin, Business, Staff, Viewer).</li>
+            <li>Quản trị người dùng và vai trò.</li>
+        </ul>
+
+        <h3>6.2 Quản lý doanh nghiệp</h3>
+        <ul>
+            <li>Tạo mới, cập nhật, tra cứu thông tin doanh nghiệp.</li>
+            <li>Duyệt hồ sơ đăng ký doanh nghiệp.</li>
+            <li>Theo dõi trạng thái hoạt động.</li>
+        </ul>
+
+        <h3>6.3 Quản lý gian hàng</h3>
+        <ul>
+            <li>Đăng ký gian hàng, cập nhật thông tin.</li>
+            <li>Quản lý vị trí gian hàng trên bản đồ.</li>
+            <li>Gán nội dung thuyết minh cho gian hàng.</li>
+        </ul>
+
+        <h3>6.4 Quản lý nội dung thuyết minh đa ngôn ngữ</h3>
+        <ul>
+            <li>Tạo và cập nhật nội dung theo ngôn ngữ.</li>
+            <li>Quản lý tệp âm thanh (upload, replace, delete).</li>
+            <li>Trạng thái nội dung: nháp, chờ duyệt, đã duyệt.</li>
+        </ul>
+
+        <h3>6.5 Thống kê và báo cáo</h3>
+        <ul>
+            <li>Thống kê số lượng doanh nghiệp, gian hàng, nội dung.</li>
+            <li>Báo cáo hoạt động theo thời gian.</li>
+            <li>Bảng điều khiển tổng quan.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>7. Yêu cầu phi chức năng</h2>
+        <ul>
+            <li>Hiệu năng: thời gian phản hồi giao diện &lt; 2 giây cho các thao tác chính.</li>
+            <li>Bảo mật: xác thực JWT/Token, phân quyền theo vai trò.</li>
+            <li>Khả dụng: hệ thống hoạt động ổn định 99.5%.</li>
+            <li>Tương thích: hỗ trợ trình duyệt hiện đại và ứng dụng mobile.</li>
+            <li>Khả năng mở rộng: thiết kế API độc lập, dễ mở rộng module.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>8. Quy trình nghiệp vụ (tóm tắt)</h2>
+        <ol>
+            <li>Doanh nghiệp đăng ký tài khoản và gửi hồ sơ.</li>
+            <li>Admin xét duyệt hồ sơ và kích hoạt doanh nghiệp.</li>
+            <li>Doanh nghiệp đăng ký gian hàng và cập nhật thông tin.</li>
+            <li>Nhân sự nội dung tạo nội dung thuyết minh đa ngôn ngữ.</li>
+            <li>Admin duyệt nội dung trước khi công bố.</li>
+            <li>Khách tham quan truy cập nội dung qua Web/Mobile.</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>9. Mô hình dữ liệu khái quát</h2>
+        <ul>
+            <li>Người dùng (User): thông tin đăng nhập, vai trò.</li>
+            <li>Doanh nghiệp (Business): hồ sơ, trạng thái, chủ sở hữu.</li>
+            <li>Gian hàng (Stall): thông tin, vị trí, liên kết doanh nghiệp.</li>
+            <li>Nội dung (Content): đa ngôn ngữ, tệp âm thanh, trạng thái.</li>
+            <li>Thống kê (Statistics): số liệu tổng hợp theo thời gian.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>10. Danh sách bảng dữ liệu và mục đích</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Bảng</th>
+                    <th>Mục đích</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Users</td>
+                    <td>Lưu thông tin tài khoản đăng nhập, trạng thái, thời điểm tạo/cập nhật.</td>
+                </tr>
+                <tr>
+                    <td>Roles</td>
+                    <td>Định nghĩa vai trò hệ thống (Admin, BusinessOwner, ...).</td>
+                </tr>
+                <tr>
+                    <td>UserRoles</td>
+                    <td>Liên kết nhiều-nhiều giữa Users và Roles.</td>
+                </tr>
+                <tr>
+                    <td>BusinessOwnerProfiles</td>
+                    <td>Thông tin hồ sơ chủ doanh nghiệp gắn với tài khoản.</td>
+                </tr>
+                <tr>
+                    <td>EmployeeProfiles</td>
+                    <td>Thông tin nhân sự nội bộ, phòng ban, chức vụ.</td>
+                </tr>
+                <tr>
+                    <td>VisitorProfiles</td>
+                    <td>Thông tin khách tham quan, ngôn ngữ ưu tiên.</td>
+                </tr>
+                <tr>
+                    <td>Languages</td>
+                    <td>Danh mục ngôn ngữ được hỗ trợ trong hệ thống.</td>
+                </tr>
+                <tr>
+                    <td>Businesses</td>
+                    <td>Hồ sơ doanh nghiệp: tên, mã số thuế, liên hệ, chủ sở hữu.</td>
+                </tr>
+                <tr>
+                    <td>Stalls</td>
+                    <td>Thông tin gian hàng, mô tả, slug, liên hệ, thuộc doanh nghiệp.</td>
+                </tr>
+                <tr>
+                    <td>RefreshTokens</td>
+                    <td>Lưu refresh token phục vụ đăng nhập lâu dài và bảo mật phiên.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>11. Mục đích bản đồ vị trí gian hàng</h2>
+        <ul>
+            <li>Hiển thị trực quan vị trí các gian hàng theo khu vực hoặc tọa độ.</li>
+            <li>Giúp quản trị viên và doanh nghiệp xác định vị trí để cập nhật nội dung thuyết minh phù hợp.</li>
+            <li>Hỗ trợ khách tham quan tìm kiếm và định hướng gian hàng nhanh hơn.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>12. Danh sách API và mô tả</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nhóm API</th>
+                    <th>Endpoint</th>
+                    <th>Mô tả</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Auth</td>
+                    <td>POST /api/auth/register/business-owner</td>
+                    <td>Đăng ký tài khoản Business Owner, tạo hồ sơ chủ doanh nghiệp và gán vai trò.</td>
+                </tr>
+                <tr>
+                    <td>Auth</td>
+                    <td>POST /api/auth/login</td>
+                    <td>Đăng nhập, trả về JWT token và refresh token.</td>
+                </tr>
+                <tr>
+                    <td>Auth</td>
+                    <td>POST /api/auth/refresh</td>
+                    <td>Làm mới token dựa trên refresh token hợp lệ.</td>
+                </tr>
+                <tr>
+                    <td>Auth</td>
+                    <td>POST /api/auth/logout</td>
+                    <td>Thu hồi refresh token hiện tại.</td>
+                </tr>
+                <tr>
+                    <td>User</td>
+                    <td>GET /api/user/{id}</td>
+                    <td>Lấy chi tiết user, roles và các profile liên quan (cần xác thực).</td>
+                </tr>
+                <tr>
+                    <td>Business</td>
+                    <td>POST /api/business</td>
+                    <td>Tạo mới doanh nghiệp cho BusinessOwner/Admin.</td>
+                </tr>
+                <tr>
+                    <td>Business</td>
+                    <td>PUT /api/business/{id}</td>
+                    <td>Cập nhật thông tin doanh nghiệp.</td>
+                </tr>
+                <tr>
+                    <td>Business</td>
+                    <td>GET /api/business/{id}</td>
+                    <td>Lấy chi tiết doanh nghiệp theo Id.</td>
+                </tr>
+                <tr>
+                    <td>Business</td>
+                    <td>GET /api/business</td>
+                    <td>Lấy danh sách doanh nghiệp có phân trang và tìm kiếm.</td>
+                </tr>
+                <tr>
+                    <td>Stall</td>
+                    <td>POST /api/stall</td>
+                    <td>Tạo mới gian hàng thuộc doanh nghiệp.</td>
+                </tr>
+                <tr>
+                    <td>Stall</td>
+                    <td>PUT /api/stall/{id}</td>
+                    <td>Cập nhật thông tin gian hàng.</td>
+                </tr>
+                <tr>
+                    <td>Stall</td>
+                    <td>GET /api/stall/{id}</td>
+                    <td>Lấy chi tiết gian hàng theo Id.</td>
+                </tr>
+                <tr>
+                    <td>Stall</td>
+                    <td>GET /api/stall</td>
+                    <td>Lấy danh sách gian hàng có phân trang, lọc theo businessId.</td>
+                </tr>
+                <tr>
+                    <td>Language</td>
+                    <td>POST /api/languages</td>
+                    <td>Tạo mới ngôn ngữ (Admin).</td>
+                </tr>
+                <tr>
+                    <td>Language</td>
+                    <td>PUT /api/languages/{id}</td>
+                    <td>Cập nhật ngôn ngữ theo Id (Admin).</td>
+                </tr>
+                <tr>
+                    <td>Language</td>
+                    <td>GET /api/languages</td>
+                    <td>Lấy danh sách ngôn ngữ (Admin).</td>
+                </tr>
+                <tr>
+                    <td>Language</td>
+                    <td>GET /api/languages/active</td>
+                    <td>Lấy danh sách ngôn ngữ đang hoạt động (public).</td>
+                </tr>
+                <tr>
+                    <td>Language</td>
+                    <td>DELETE /api/languages/{id}</td>
+                    <td>Vô hiệu hóa ngôn ngữ (Admin).</td>
+                </tr>
+                <tr>
+                    <td>VisitorProfile</td>
+                    <td>POST /api/visitor-profile</td>
+                    <td>Tạo hồ sơ khách tham quan, chọn ngôn ngữ mặc định.</td>
+                </tr>
+                <tr>
+                    <td>VisitorProfile</td>
+                    <td>PUT /api/visitor-profile</td>
+                    <td>Cập nhật ngôn ngữ cho hồ sơ khách tham quan.</td>
+                </tr>
+                <tr>
+                    <td>Demo</td>
+                    <td>GET /weatherforecast</td>
+                    <td>API demo trả về dữ liệu thời tiết mẫu.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>13. Giả định và ràng buộc</h2>
+        <ul>
+            <li>Dữ liệu được lưu trữ trong hệ quản trị cơ sở dữ liệu tập trung.</li>
+            <li>Hạ tầng triển khai đáp ứng yêu cầu bảo mật và khả dụng.</li>
+            <li>Nội dung âm thanh tuân thủ chuẩn định dạng được hệ thống hỗ trợ.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>14. Tiêu chí chấp nhận</h2>
+        <ul>
+            <li>Đầy đủ các module quản trị doanh nghiệp, gian hàng, nội dung.</li>
+            <li>Phân quyền hoạt động đúng theo vai trò.</li>
+            <li>Các báo cáo và thống kê hiển thị chính xác.</li>
+            <li>Trải nghiệm người dùng mượt, không lỗi nghiêm trọng.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>15. Kế hoạch triển khai (khuyến nghị)</h2>
+        <ol>
+            <li>Giai đoạn 1: Hoàn thiện quản trị người dùng và doanh nghiệp.</li>
+            <li>Giai đoạn 2: Hoàn thiện quản lý gian hàng và bản đồ.</li>
+            <li>Giai đoạn 3: Hoàn thiện nội dung thuyết minh đa ngôn ngữ.</li>
+            <li>Giai đoạn 4: Hoàn thiện báo cáo và dashboard.</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>16. Phụ lục</h2>
+        <p>
+            Tài liệu BRD này được dùng làm cơ sở để phát triển PRD, thiết kế UI/UX, và kế hoạch kiểm thử.
+        </p>
+    </div>
+</body>
+</html>

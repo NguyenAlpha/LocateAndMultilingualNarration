@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+    MapPage: Trang bản đồ chính của ứng dụng.
+    Hiển thị bản đồ OSM (OpenStreetMap) để người dùng xem vị trí các gian hàng,
+    danh sách gian hàng để chọn, và bộ điều khiển phát audio thuyết minh.
+
+    xmlns:mapsui : import namespace của thư viện Mapsui — thư viện bản đồ mã nguồn mở
+                   dùng OpenStreetMap, không cần API key như Google Maps
+    NavigationPage.HasNavigationBar="False" : ẩn thanh navigation bar mặc định,
+                   vì trang này tự có header riêng ở Row 0
+-->
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -6,21 +16,46 @@
     NavigationPage.HasNavigationBar="False"
     Title="Bản đồ">
 
+    <!--
+        Layout tổng thể: Grid dọc chia 4 hàng
+          Row 0 (Auto) : Header — tiêu đề + nút Làm mới
+          Row 1 (*)    : Nội dung chính — bản đồ + danh sách gian hàng
+          Row 2 (Auto) : Điều khiển audio — Phát / Tạm dừng / Dừng
+          Row 3 (Auto) : Trạng thái — loading indicator + thông báo lỗi
+    -->
     <Grid RowDefinitions="Auto,*,Auto,Auto">
 
+        <!-- ===== ROW 0: HEADER ===== -->
+        <!-- Thanh tiêu đề tùy chỉnh với nền xanh đậm, gồm tiêu đề bên trái và nút Làm mới bên phải -->
         <Grid Grid.Row="0" Padding="16" BackgroundColor="#1E3A8A" ColumnDefinitions="*,Auto">
+
+            <!-- Tiêu đề trang -->
             <Label Text="🗺 Bản đồ gian hàng (OSM)"
                    TextColor="White"
                    FontAttributes="Bold"
                    FontSize="18" />
 
+            <!-- Nút gọi RefreshCommand trong ViewModel để tải lại dữ liệu gian hàng và vẽ lại bản đồ -->
             <Button Grid.Column="1"
                     Text="Làm mới"
                     Command="{Binding RefreshCommand}" />
         </Grid>
 
+        <!-- ===== ROW 1: BẢN ĐỒ + DANH SÁCH GIAN HÀNG ===== -->
+        <!--
+            Grid dọc chia 2 phần:
+              Row 0 (2*) : Bản đồ chiếm 2/3 chiều cao
+              Row 1 (*)  : Danh sách gian hàng chiếm 1/3 chiều cao
+        -->
         <Grid Grid.Row="1" RowDefinitions="2*,*">
-            <!-- OLD CODE (kept for reference):
+
+            <!--
+                MapView: Control bản đồ của thư viện Mapsui
+                x:Name="mapView" cho phép code-behind truy cập trực tiếp để:
+                  - Khởi tạo bản đồ (gán Map object)
+                  - Thêm/xóa pin marker cho gian hàng
+                  - Di chuyển camera đến vị trí cụ thể
+            -->
             <mapsui:MapView x:Name="mapView"
                             Grid.Row="0" />
             -->
@@ -29,19 +64,33 @@
                 <Label Text="Bản đồ tương thích net8: tạm ẩn MapView để đảm bảo ứng dụng chạy ổn định.\nBạn vẫn có thể chọn gian hàng từ danh sách bên dưới." TextColor="#334155" />
             </Border>
 
+            <!--
+                Danh sách gian hàng dạng cuộn ngang/dọc
+                ItemsSource   : bind đến List<Stall> Stalls trong ViewModel
+                SelectionMode : cho phép chọn 1 item tại một thời điểm
+                SelectedItem  : bind 2 chiều đến SelectedStall trong ViewModel —
+                                khi người dùng tap vào gian hàng, ViewModel nhận được
+                                đối tượng đó và có thể di chuyển bản đồ đến vị trí tương ứng
+            -->
             <CollectionView Grid.Row="1"
                             ItemsSource="{Binding Stalls}"
                             SelectionMode="Single"
                             SelectedItem="{Binding SelectedStall}">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
+                        <!--
+                            Mỗi item hiển thị trong một card bo góc
+                            Binding trực tiếp vào từng đối tượng Stall trong danh sách
+                        -->
                         <Frame Margin="10,6"
                                Padding="12"
                                CornerRadius="14"
                                BorderColor="#D1D5DB">
                             <VerticalStackLayout>
-                                <Label Text="{Binding Name}" FontAttributes="Bold" />
-                                <Label Text="{Binding Id, StringFormat='Booth ID: {0}'}" FontSize="12" TextColor="Gray" />
+                                <!-- Tên gian hàng -->
+                                <Label Text="{Binding StallName}" FontAttributes="Bold" />
+                                <!-- ID gian hàng, dùng StringFormat để thêm nhãn "Booth ID: " phía trước -->
+                                <Label Text="{Binding StallId, StringFormat='Booth ID: {0}'}" FontSize="12" TextColor="Gray" />
                             </VerticalStackLayout>
                         </Frame>
                     </DataTemplate>
@@ -49,7 +98,14 @@
             </CollectionView>
         </Grid>
 
+        <!-- ===== ROW 2: ĐIỀU KHIỂN AUDIO ===== -->
+        <!--
+            3 nút điều khiển phát audio thuyết minh của gian hàng đang chọn
+            Mỗi nút bind đến ICommand tương ứng trong ViewModel
+        -->
         <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="10" Padding="16,8">
+
+            <!-- Phát audio — gọi PlayAudioCommand, phát file audio thuyết minh -->
             <Button Grid.Column="0"
                     Text="▶ Phát"
                     Command="{Binding PlayAudioCommand}"
@@ -57,6 +113,7 @@
                     TextColor="White"
                     CornerRadius="12" />
 
+            <!-- Tạm dừng — gọi PauseAudioCommand, giữ nguyên vị trí phát -->
             <Button Grid.Column="1"
                     Text="⏸ Tạm dừng"
                     Command="{Binding PauseAudioCommand}"
@@ -64,6 +121,7 @@
                     TextColor="White"
                     CornerRadius="12" />
 
+            <!-- Dừng hẳn — gọi StopAudioCommand, reset về đầu file audio -->
             <Button Grid.Column="2"
                     Text="⏹ Dừng"
                     Command="{Binding StopAudioCommand}"
@@ -72,11 +130,23 @@
                     CornerRadius="12" />
         </Grid>
 
+        <!-- ===== ROW 3: TRẠNG THÁI ===== -->
+        <!--
+            Hiển thị loading indicator hoặc thông báo lỗi
+            Cả hai cùng nằm trong một Grid (chồng lên nhau),
+            nhưng ActivityIndicator chỉ hiện khi IsBusy = true,
+            còn Label lỗi chỉ hiện khi ErrorMessage có nội dung
+        -->
         <Grid Grid.Row="3" Padding="0,0,0,10">
+
+            <!-- Vòng tròn loading — hiển thị và quay khi ViewModel đang tải dữ liệu -->
             <ActivityIndicator IsVisible="{Binding IsBusy}"
                                IsRunning="{Binding IsBusy}"
                                HorizontalOptions="Center" />
+
+            <!-- Thông báo lỗi — hiển thị khi gọi API thất bại hoặc không có dữ liệu -->
             <Label Text="{Binding ErrorMessage}"
+                   IsVisible="{Binding HasError}"
                    HorizontalOptions="Center"
                    VerticalOptions="End"
                    TextColor="Red"
