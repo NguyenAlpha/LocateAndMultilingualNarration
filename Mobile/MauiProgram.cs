@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 // Hỗ trợ logging trong ứng dụng .NET
 using Microsoft.Extensions.Logging;
+using Mobile.LocalDb;
 using Mobile.Pages;
 using Mobile.Services;
 using Mobile.ViewModels;
@@ -69,6 +70,12 @@ public static class MauiProgram
 
         // Lưu/lấy ngôn ngữ ưa thích của thiết bị từ API backend
         builder.Services.AddSingleton<IDevicePreferenceApiService, DevicePreferenceApiService>();
+
+        // SQLite local database — cache stall data để hỗ trợ offline
+        builder.Services.AddSingleton<ILocalStallRepository, LocalStallRepository>();
+
+        // Download và quản lý cache file audio local theo ngôn ngữ
+        builder.Services.AddSingleton<IAudioCacheService, AudioCacheService>();
 
         // ---- VIEWMODELS (Transient — tạo mới mỗi khi được resolve) ----
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,
