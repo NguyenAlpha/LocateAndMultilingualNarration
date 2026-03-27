@@ -13,6 +13,7 @@ namespace Mobile
     public partial class App : Application
     {
         private readonly SessionService _sessionService;
+        private readonly ISyncBackgroundService _syncBackgroundService;
 
         /// <summary>
         /// Constructor khởi tạo ứng dụng.
@@ -20,11 +21,11 @@ namespace Mobile
         /// có nhiệm vụ nạp toàn bộ tài nguyên khai báo trong App.xaml
         /// (ResourceDictionary, styles, màu sắc, v.v.) vào bộ nhớ.
         /// </summary>
-        public App(SessionService sessionService)
+        public App(SessionService sessionService, ISyncBackgroundService syncBackgroundService)
         {
             InitializeComponent();
-            // Lưu SessionService được inject từ DI container để dùng xuyên suốt vòng đời ứng dụng
             _sessionService = sessionService;
+            _syncBackgroundService = syncBackgroundService;
         }
 
         /// <summary>
@@ -42,9 +43,24 @@ namespace Mobile
         /// </returns>
         protected override Window CreateWindow(IActivationState? activationState)
         {
+            // Khởi động background sync sau khi app sẵn sàng
+            _syncBackgroundService.Start();
+
             // Tạo cửa sổ chính với AppShell là root page
             // AppShell quản lý toàn bộ luồng điều hướng (tab bar, flyout menu, routes...)
             return new Window(new AppShell());
+        }
+
+        protected override void OnSleep()
+        {
+            // Dừng timer khi app vào background để tiết kiệm pin
+            _syncBackgroundService.Stop();
+        }
+
+        protected override void OnResume()
+        {
+            // Khởi động lại khi app quay về foreground
+            _syncBackgroundService.Start();
         }
     }
 }

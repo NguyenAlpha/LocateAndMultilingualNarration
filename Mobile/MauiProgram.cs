@@ -80,6 +80,9 @@ public static class MauiProgram
         // Điều phối sync: API → SQLite → download audio
         builder.Services.AddSingleton<ISyncService, SyncService>();
 
+        // Background service: timer 3 phút + connectivity trigger
+        builder.Services.AddSingleton<ISyncBackgroundService, SyncBackgroundService>();
+
         // ---- VIEWMODELS (Transient — tạo mới mỗi khi được resolve) ----
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
