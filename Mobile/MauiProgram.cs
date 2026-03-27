@@ -77,6 +77,9 @@ public static class MauiProgram
         // Download và quản lý cache file audio local theo ngôn ngữ
         builder.Services.AddSingleton<IAudioCacheService, AudioCacheService>();
 
+        // Điều phối sync: API → SQLite → download audio
+        builder.Services.AddSingleton<ISyncService, SyncService>();
+
         // ---- VIEWMODELS (Transient — tạo mới mỗi khi được resolve) ----
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
