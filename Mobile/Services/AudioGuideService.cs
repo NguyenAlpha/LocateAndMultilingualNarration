@@ -32,7 +32,15 @@ public class AudioGuideService : IAudioGuideService
         await StopAsync(); // dừng audio cũ nếu có
         CurrentUrl = url;
 
-        var stream = await GetStreamFromUrlAsync(url);
+        Stream? stream;
+
+        // Local file path → đọc từ disk, không cần mạng
+        // Remote URL → stream từ network
+        if (File.Exists(url))
+            stream = File.OpenRead(url);
+        else
+            stream = await GetStreamFromUrlAsync(url);
+
         if (stream is null)
         {
             CurrentUrl = null;
@@ -41,9 +49,9 @@ public class AudioGuideService : IAudioGuideService
 
         _buffer = new MemoryStream();
         await stream.CopyToAsync(_buffer);
+        await stream.DisposeAsync();
         _buffer.Position = 0;
 
-        // Tạo trình phát từ buffer trong bộ nhớ
         _player = _audioManager.CreatePlayer(_buffer);
         _player.Play();
     }
