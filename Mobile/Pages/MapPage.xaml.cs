@@ -366,19 +366,21 @@ public partial class MapPage : ContentPage
 
     /// <summary>
     /// Handler cho event FocusStallRequested từ ViewModel.
-    /// Di chuyển camera bản đồ đến vị trí gian hàng được chọn với animation 500ms.
-    /// Resolution = 2: zoom rất gần để nhìn rõ gian hàng.
+    /// Di chuyển camera bản đồ đến vị trí gian hàng được chọn, giữ nguyên mức zoom hiện tại.
     /// </summary>
     private void OnFocusStallRequested(GeoStallDto stall)
     {
         var location = SphericalMercator.FromLonLat(stall.Longitude, stall.Latitude);
         var centerPoint = new MPoint(location.x, location.y);
-        // CenterOn: chỉ di chuyển camera đến vị trí, giữ nguyên mức zoom hiện tại của người dùng
-        mapView.Map?.Navigator.CenterOn(centerPoint);
+
+        // Đọc resolution hiện tại của viewport — giữ nguyên zoom người dùng đang ở
+        // Fallback về 0.7 nếu chưa có viewport (trường hợp hiếm khi map chưa render xong)
+        var currentResolution = mapView.Map?.Navigator.Viewport.Resolution ?? 0.7;
+
+        // CenterOnAndZoomTo với resolution hiện tại = chỉ pan, không zoom
+        mapView.Map?.Navigator.CenterOnAndZoomTo(centerPoint, currentResolution, 500);
 
         // Vẽ lại pin để cập nhật màu pin đang chọn (đỏ) vs các pin còn lại (xanh)
         RenderPins();
-        // Resolution = 2, zoom rat sat vao gian hang, thoi gian animation chuyen man hinh la 500ms
-        mapView.Map?.Navigator.CenterOnAndZoomTo(centerPoint, 2, 500);
     }
 }
