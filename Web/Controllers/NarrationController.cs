@@ -78,6 +78,42 @@ namespace Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleStatus(Guid id, bool isActive, CancellationToken cancellationToken = default)
+        {
+            var result = await _stallNarrationContentApiClient.ToggleStatusAsync(id, isActive, cancellationToken);
+            if (result?.Success != true)
+            {
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không đổi được trạng thái narration content.";
+                return RedirectToAction(nameof(StallNarrationContents));
+            }
+
+            TempData["SuccessMessage"] = $"Đã đổi trạng thái thành {(isActive ? "Active" : "Inactive")}.";
+            return RedirectToAction(nameof(StallNarrationContents));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(StallNarrationContentCreateDto request, CancellationToken cancellationToken = default)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "Dữ liệu không hợp lệ.";
+                return RedirectToAction(nameof(StallNarrationContents));
+            }
+
+            var result = await _stallNarrationContentApiClient.CreateContentAsync(request, cancellationToken);
+            if (result?.Success != true)
+            {
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không tạo được narration content.";
+                return RedirectToAction(nameof(StallNarrationContents));
+            }
+
+            TempData["SuccessMessage"] = "Tạo narration content thành công.";
+            return RedirectToAction(nameof(StallNarrationContents));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Update(Guid id, StallNarrationContentUpdateDto request, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)

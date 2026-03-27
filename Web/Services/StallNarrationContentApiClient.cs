@@ -50,5 +50,17 @@ namespace Web.Services
             var response = await _httpClient.PutAsJsonAsync($"api/stall-narration-content/{id}", request, cancellationToken);
             return await response.Content.ReadFromJsonAsync<ApiResult<StallNarrationContentDetailDto>>(cancellationToken: cancellationToken);
         }
+
+        public async Task<ApiResult<StallNarrationContentDetailDto>?> CreateContentAsync(StallNarrationContentCreateDto request, CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/stall-narration-content", request, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<ApiResult<StallNarrationContentDetailDto>>(cancellationToken: cancellationToken);
+        }
+
+        public async Task<ApiResult<StallNarrationContentDetailDto>?> ToggleStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.PatchAsJsonAsync($"api/stall-narration-content/{id}/status", isActive, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<ApiResult<StallNarrationContentDetailDto>>(cancellationToken: cancellationToken);
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Shared.DTOs.StallLocations;
 using Web.Models;
@@ -66,16 +67,35 @@ namespace Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> CreateMap(CancellationToken cancellationToken = default)
+        public async Task<IActionResult> CreateMap(Guid? stallId = null, CancellationToken cancellationToken = default)
         {
             var stallsResult = await _stallApiClient.GetStallsAsync(1, 500, null, null, cancellationToken);
             var stalls = stallsResult?.Success == true && stallsResult.Data != null
                 ? stallsResult.Data.Items
                 : Array.Empty<Shared.DTOs.Stalls.StallDetailDto>();
 
-            ViewBag.Mode = "create";
             ViewBag.Stalls = stalls;
             ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "https://localhost:7188/";
+            ViewBag.Mode = "create";
+            ViewBag.AllLocationsJson = await BuildAllLocationsJsonAsync(cancellationToken);
+
+            if (stallId.HasValue)
+            {
+                ViewBag.StallId = stallId;
+                var existingResult = await _stallLocationApiClient.GetLocationsAsync(1, 1, stallId, null, cancellationToken);
+                var existing = existingResult?.Success == true ? existingResult.Data?.Items.FirstOrDefault() : null;
+                if (existing != null)
+                {
+                    ViewBag.Mode = "edit";
+                    ViewBag.LocationId = existing.Id;
+                    ViewBag.Latitude = existing.Latitude;
+                    ViewBag.Longitude = existing.Longitude;
+                    ViewBag.RadiusMeters = existing.RadiusMeters;
+                    ViewBag.Address = existing.Address;
+                    ViewBag.IsActive = existing.IsActive;
+                }
+            }
+
             return View("StallLocationMap");
         }
 
@@ -107,6 +127,7 @@ namespace Web.Controllers
             ViewBag.Address = location.Address;
             ViewBag.IsActive = location.IsActive;
             ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "https://localhost:7188/";
+            ViewBag.AllLocationsJson = await BuildAllLocationsJsonAsync(cancellationToken);
 
             return View("StallLocationMap");
         }
@@ -181,6 +202,24 @@ namespace Web.Controllers
 
             TempData["SuccessMessage"] = "Cập nhật vị trí thành công.";
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task<string> BuildAllLocationsJsonAsync(CancellationToken cancellationToken)
+        {
+            var result = await _stallLocationApiClient.GetLocationsAsync(1, 500, null, null, cancellationToken);
+            var items = result?.Success == true && result.Data != null
+                ? result.Data.Items
+                : Array.Empty<StallLocationDetailDto>();
+
+            return JsonSerializer.Serialize(items.Select(l => new
+            {
+                id = l.Id.ToString(),
+                stallId = l.StallId.ToString(),
+                stallName = l.StallName ?? "",
+                latitude = l.Latitude,
+                longitude = l.Longitude,
+                radiusMeters = l.RadiusMeters
+            }));
         }
     }
 }

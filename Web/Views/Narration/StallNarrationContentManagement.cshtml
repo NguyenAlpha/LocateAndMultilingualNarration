@@ -25,8 +25,8 @@
             <button type="button" class="btn btn-outline-secondary">
                 <i class="bi bi-upload me-1"></i>Xuất dữ liệu
             </button>
-            <button type="button" class="btn btn-primary">
-                <i class="bi bi-plus-lg me-1"></i>Thêm nội dung
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createNarrationContentModal">
+                <i class="bi bi-plus-lg me-1"></i>Thêm nội dung thuyết minh
             </button>
         </div>
     </div>
@@ -36,6 +36,22 @@
 {
     <div class="alert alert-danger" role="alert">
         @Model.ErrorMessage
+    </div>
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
@@ -105,8 +121,8 @@
             <thead>
                 <tr>
                     <th scope="col">Tiêu đề</th>
-                    <th scope="col">Stall</th>
-                    <th scope="col">Ngôn ngữ</th>
+                    <th scope="col">Gian hàng</th>
+                    <th scope="col">Ngôn ngữ gốc</th>
                     <th scope="col">Trạng thái</th>
                     <th scope="col">Cập nhật</th>
                     <th scope="col" class="no-export">Hành động</th>
@@ -144,6 +160,16 @@
                                     <a class="btn btn-sm btn-outline-info" title="View/Edit" asp-controller="Narration" asp-action="Show" asp-route-id="@item.Id">
                                         <i class="bi bi-eye"></i>
                                     </a>
+                                    <button type="button"
+                                            class="btn btn-sm @(item.IsActive ? "btn-outline-warning" : "btn-outline-success")"
+                                            title="@(item.IsActive ? "Deactivate" : "Activate")"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#toggleStatusModal"
+                                            data-id="@item.Id"
+                                            data-title="@item.Title"
+                                            data-is-active="@item.IsActive.ToString().ToLowerInvariant()">
+                                        <i class="bi @(item.IsActive ? "bi-toggle-on" : "bi-toggle-off")"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -176,5 +202,122 @@
                 </li>
             </ul>
         </nav>
+    </div>
+</div>
+
+<!-- Toggle Status Confirmation Modal -->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1" aria-labelledby="toggleStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-controller="Narration" asp-action="ToggleStatus" method="post" id="toggleStatusForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="toggleStatusId">
+                <input type="hidden" name="isActive" id="toggleStatusIsActive">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="toggleStatusModalLabel">
+                        <i class="bi bi-toggle-on me-2"></i>Xác nhận đổi trạng thái
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="toggleStatusMessage"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn" id="toggleStatusConfirmBtn">Xác nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('toggleStatusModal').addEventListener('show.bs.modal', function (event) {
+        var btn = event.relatedTarget;
+        var id = btn.getAttribute('data-id');
+        var title = btn.getAttribute('data-title');
+        var isActive = btn.getAttribute('data-is-active') === 'true';
+        var newState = !isActive;
+
+        document.getElementById('toggleStatusId').value = id;
+        document.getElementById('toggleStatusIsActive').value = newState;
+
+        var message = document.getElementById('toggleStatusMessage');
+        var confirmBtn = document.getElementById('toggleStatusConfirmBtn');
+
+        if (newState) {
+            message.innerHTML = 'Bạn có chắc muốn <strong>kích hoạt</strong> nội dung <strong>"' + title + '"</strong>?<br><small class="text-muted">Các nội dung khác của cùng stall sẽ bị deactivate.</small>';
+            confirmBtn.className = 'btn btn-success';
+            confirmBtn.textContent = 'Kích hoạt';
+        } else {
+            message.innerHTML = 'Bạn có chắc muốn <strong>vô hiệu hóa</strong> nội dung <strong>"' + title + '"</strong>?';
+            confirmBtn.className = 'btn btn-warning';
+            confirmBtn.textContent = 'Vô hiệu hóa';
+        }
+    });
+</script>
+
+<!-- Create Narration Content Modal -->
+<div class="modal fade" id="createNarrationContentModal" tabindex="-1" aria-labelledby="createNarrationContentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form asp-controller="Narration" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createNarrationContentModalLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Thêm nội dung Narration
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="createStallId" class="form-label">Stall <span class="text-danger">*</span></label>
+                            <select class="form-select" id="createStallId" name="StallId" required>
+                                <option value="">-- Chọn stall --</option>
+                                @foreach (var stall in Model.Stalls)
+                                {
+                                    <option value="@stall.Id">@stall.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="createLanguageId" class="form-label">Ngôn ngữ gốc <span class="text-danger">*</span></label>
+                            <select class="form-select" id="createLanguageId" name="LanguageId" required>
+                                <option value="">-- Chọn ngôn ngữ gốc --</option>
+                                @foreach (var language in Model.Languages)
+                                {
+                                    <option value="@language.Id">@language.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="createTitle" class="form-label">Tiêu đề <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="createTitle" name="Title" maxlength="128" required placeholder="Nhập tiêu đề...">
+                        </div>
+                        <div class="col-12">
+                            <label for="createDescription" class="form-label">Mô tả</label>
+                            <input type="text" class="form-control" id="createDescription" name="Description" maxlength="256" placeholder="Nhập mô tả (tùy chọn)...">
+                        </div>
+                        <div class="col-12">
+                            <label for="createScriptText" class="form-label">Nội dung kịch bản <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="createScriptText" name="ScriptText" rows="5" required placeholder="Nhập nội dung kịch bản..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="createIsActive" name="IsActive" value="true" checked>
+                                <label class="form-check-label" for="createIsActive">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Tạo nội dung & thuyết minh tự động
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>

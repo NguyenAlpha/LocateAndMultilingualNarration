@@ -117,16 +117,16 @@ public partial class MapPage : ContentPage
 
         // 2. Di chuyển camera về vị trí mặc định (tọa độ trung tâm triển lãm)
         //    SphericalMercator.FromLonLat: chuyển GPS (lon, lat) → tọa độ bản đồ Mercator
-        //    Resolution = 19: mức zoom gần (số nhỏ = zoom gần hơn trong Mapsui)
+        //    Resolution = 18: mức zoom gần (số nhỏ = zoom gần hơn trong Mapsui)
         //    Duration = 0: không có animation khi mới vào trang
         var defaultCenter = SphericalMercator.FromLonLat(106.710669, 10.777534);
-        mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(defaultCenter.x, defaultCenter.y), 19, 0);
+        mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(defaultCenter.x, defaultCenter.y), 0.7, 0);
 
         // 3. Lấy vị trí GPS thực tế của người dùng và đặt pin xanh "Bạn đang ở đây"
         await MoveToCurrentLocationAsync();
 
         // 4. Tải danh sách gian hàng từ API (và tự động chọn booth nếu có BoothId)
-        //await _viewModel.InitializeAsync(BoothId);
+        await _viewModel.InitializeAsync(BoothId);
 
         // 5. Vẽ pin cho tất cả gian hàng lên bản đồ
         RenderPins();
@@ -264,15 +264,15 @@ public partial class MapPage : ContentPage
             var feature = new GeometryFeature { Geometry = polygon };
 
             // Màu sắc khác nhau tùy trạng thái: đỏ nếu đang chọn, xanh nếu không
-            var fillAlpha   = isSelected ? 70  : 40;  // Độ trong suốt của fill (0-255)
+            var fillAlpha = isSelected ? 70 : 40;  // Độ trong suốt của fill (0-255)
             var outlineWidth = isSelected ? 3.0 : 1.5; // Độ dày viền
             var r = isSelected ? 220 : 33;
-            var g = isSelected ? 50  : 150;
-            var b = isSelected ? 50  : 243;
+            var g = isSelected ? 50 : 150;
+            var b = isSelected ? 50 : 243;
 
             feature.Styles.Add(new VectorStyle
             {
-                Fill    = new MapsuiBrush(new Mapsui.Styles.Color(r, g, b, fillAlpha)),
+                Fill = new MapsuiBrush(new Mapsui.Styles.Color(r, g, b, fillAlpha)),
                 Outline = new Pen(new Mapsui.Styles.Color(r, g, b, 200), outlineWidth)
             });
 
@@ -372,7 +372,8 @@ public partial class MapPage : ContentPage
     private void OnFocusStallRequested(GeoStallDto stall)
     {
         var location = SphericalMercator.FromLonLat(stall.Longitude, stall.Latitude);
-        mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(location.x, location.y), 2, 500);
+        // CenterOn: chỉ di chuyển camera đến vị trí, giữ nguyên mức zoom hiện tại của người dùng
+        mapView.Map?.Navigator.CenterOn(new MPoint(location.x, location.y));
 
         // Vẽ lại pin để cập nhật màu pin đang chọn (đỏ) vs các pin còn lại (xanh)
         RenderPins();

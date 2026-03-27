@@ -33,47 +33,51 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
+                    @{
+                        var token = Context.Session.GetString("AuthToken");
+                        var isLoggedIn = !string.IsNullOrWhiteSpace(token);
+                    }
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Home" asp-action="Index">
                             <i class="bi bi-house-door me-1"></i>Home
                         </a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-speedometer2 me-1"></i>Admin
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">Dashboard</a></li>
-                            <li><a class="dropdown-item" href="#">User/Role Management</a></li>
-                            <li><a class="dropdown-item" href="#">Statistics</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-gear me-1"></i>Management
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" asp-controller="Business" asp-action="Index">Business Management</a></li>
-                            <li><a class="dropdown-item" asp-controller="Stall" asp-action="Index">Stall Management</a></li>
-                            <li><a class="dropdown-item" href="#">Language Management</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#">Enterprise Stall Registration</a></li>
-                            <li><a class="dropdown-item" href="#">Stall Location Map</a></li>
-                            <li><a class="dropdown-item" asp-controller="Narration" asp-action="StallNarrationContents">Stall Narration Contents Management</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="StallLocation" asp-action="Index"><i class="bi bi-geo-alt me-1"></i>Stall Location Management</a></li>
-                            <li><a class="dropdown-item" asp-controller="StallGeoFence" asp-action="Index"><i class="bi bi-polygon me-1"></i>Stall GeoFence Management</a></li>
-                        </ul>
-                    </li>
+                    @if (isLoggedIn)
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-speedometer2 me-1"></i>Admin
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Dashboard</a></li>
+                                <li><a class="dropdown-item" href="#">User/Role Management</a></li>
+                                <li><a class="dropdown-item" href="#">Statistics</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-gear me-1"></i>Management
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-controller="Business" asp-action="Index">Business Management</a></li>
+                                <li><a class="dropdown-item" asp-controller="Stall" asp-action="Index">Stall Management</a></li>
+                                @* <li><a class="dropdown-item" href="#">Language Management</a></li> *@
+                                @* <li><hr class="dropdown-divider"></li> *@
+                                @* <li><a class="dropdown-item" href="#">Enterprise Stall Registration</a></li> *@
+                                @* <li><a class="dropdown-item" href="#">Stall Location Map</a></li> *@
+                                <li><a class="dropdown-item" asp-controller="Narration" asp-action="StallNarrationContents">Stall Narration Contents Management</a></li>
+                                @* <li><hr class="dropdown-divider"></li> *@
+                                <li><a class="dropdown-item" asp-controller="StallLocation" asp-action="Index">Stall Location Management</a></li>
+                                @* <li><a class="dropdown-item" asp-controller="StallGeoFence" asp-action="Index">Stall GeoFence Management</a></li> *@
+                            </ul>
+                        </li>
+                    }
                     <li class="nav-item">
                         <a class="nav-link" asp-controller="Home" asp-action="Privacy">Privacy</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
-                    @{
-                        var token = Context.Session.GetString("AuthToken");
-                    }
-                    @if (string.IsNullOrWhiteSpace(token))
+                    @if (!isLoggedIn)
                     {
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Auth" asp-action="Login">

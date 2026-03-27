@@ -89,6 +89,16 @@ namespace Api.Controllers
                 return this.NotFoundResult("Không tìm thấy language", "LanguageId");
             }
 
+            // Nếu content mới là active thì deactivate tất cả content khác của cùng stall
+            if (request.IsActive)
+            {
+                var others = await _context.StallNarrationContents
+                    .Where(c => c.StallId == request.StallId && c.IsActive)
+                    .ToListAsync();
+                foreach (var other in others)
+                    other.IsActive = false;
+            }
+
             // Tạo entity mới từ DTO (lưu UpdatedAt ở UTC)
             var content = new Api.Domain.Entities.StallNarrationContent
             {
@@ -101,7 +111,7 @@ namespace Api.Controllers
                 UpdatedAt = DateTimeOffset.UtcNow
             };
 
-            // Thêm và lưu thay đổi
+            // Thêm và lưu thay đổi (deactivate others + add new trong cùng transaction)
             _context.StallNarrationContents.Add(content);
             await _context.SaveChangesAsync();
 
@@ -184,6 +194,19 @@ namespace Api.Controllers
                 return this.ForbiddenResult("Không có quyền truy cập");
             }
 
+            // Nếu cập nhật thành active thì deactivate tất cả content khác của cùng stall
+            if (request.IsActive)
+            {
+                var others = await _context.StallNarrationContents
+                    .Where(c => c.StallId == content.StallId && c.Id != id && c.IsActive)
+                    .ToListAsync();
+                foreach (var other in others)
+                    other.IsActive = false;
+            }
+
+            // Kiểm tra ScriptText có thay đổi không để quyết định có chạy TTS lại không
+            var scriptChanged = content.ScriptText != request.ScriptText;
+
             // Áp các cập nhật từ DTO vào entity và set UpdatedAt
             content.Title = request.Title;
             content.Description = request.Description;
@@ -191,24 +214,80 @@ namespace Api.Controllers
             content.IsActive = request.IsActive;
             content.UpdatedAt = DateTimeOffset.UtcNow;
 
+            // Lưu deactivate others + cập nhật content trong cùng transaction
             await _context.SaveChangesAsync();
 
-            try
+            if (scriptChanged)
             {
-                await _narrationAudioService.CreateOrUpdateFromTtsAsync(
-                    content.Id,
-                    content.ScriptText,
-                    content.LanguageId,
-                    null,
-                    null);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "TTS thất bại khi cập nhật narration content - ContentId: {ContentId}", content.Id);
-                return this.ServerErrorResult("Cập nhật narration content thành công nhưng TTS thất bại.");
+                try
+                {
+                    await _narrationAudioService.CreateOrUpdateFromTtsAsync(
+                        content.Id,
+                        content.ScriptText,
+                        content.LanguageId,
+                        null,
+                        null);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "TTS thất bại khi cập nhật narration content - ContentId: {ContentId}", content.Id);
+                    return this.ServerErrorResult("Cập nhật narration content thành công nhưng TTS thất bại.");
+                }
             }
 
             // Trả về DTO đã map (đã convert thời gian theo timezone client)
+            var timeZone = GetTimeZone();
+            return this.OkResult(MapDetail(content, timeZone));
+        }
+
+        /// <summary>
+        /// Đổi trạng thái IsActive của một StallNarrationContent.
+        /// Nếu set active = true thì deactivate tất cả content khác của cùng stall.
+        /// </summary>
+        [HttpPatch("{id:guid}/status")]
+        public async Task<IActionResult> ToggleStatus(Guid id, [FromBody] bool isActive)
+        {
+            _logger.LogInformation("Bắt đầu đổi trạng thái narration content - Id: {ContentId}, IsActive: {IsActive}", id, isActive);
+
+            if (!TryGetUserId(out var userId))
+            {
+                return this.UnauthorizedResult("Không xác thực");
+            }
+
+            if (!IsAdmin() && !IsBusinessOwner())
+            {
+                return this.ForbiddenResult("Không có quyền truy cập");
+            }
+
+            var content = await _context.StallNarrationContents
+                .Include(n => n.Stall)
+                .ThenInclude(s => s.Business)
+                .FirstOrDefaultAsync(n => n.Id == id);
+
+            if (content == null)
+            {
+                return this.NotFoundResult("Không tìm thấy narration content");
+            }
+
+            if (!IsAdmin() && content.Stall.Business.OwnerUserId != userId)
+            {
+                return this.ForbiddenResult("Không có quyền truy cập");
+            }
+
+            if (isActive)
+            {
+                var others = await _context.StallNarrationContents
+                    .Where(c => c.StallId == content.StallId && c.Id != id && c.IsActive)
+                    .ToListAsync();
+                foreach (var other in others)
+                    other.IsActive = false;
+            }
+
+            content.IsActive = isActive;
+            content.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await _context.SaveChangesAsync();
+
             var timeZone = GetTimeZone();
             return this.OkResult(MapDetail(content, timeZone));
         }
