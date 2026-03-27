@@ -54,6 +54,12 @@ public partial class MapPage : ContentPage
     // Style = null để mỗi feature tự mang style riêng (màu khác nhau khi selected/unselected)
     private WritableLayer _circlesLayer = new WritableLayer { Name = "StallCircles", Style = null };
 
+    // Tái sử dụng factory thay vì new mỗi lần gọi BuildCirclePolygon
+    private static readonly GeometryFactory GeomFactory = new();
+
+    // Label của pin vị trí người dùng — dùng để nhận dạng khi RenderPins cần giữ lại pin này
+    private const string MyLocationLabel = "Bạn đang ở đây";
+
     // Nhận boothId từ query string khi điều hướng đến trang này (có thể null)
     public string? BoothId { get; set; }
 
@@ -189,7 +195,7 @@ public partial class MapPage : ContentPage
             // Thêm pin xanh đánh dấu vị trí người dùng
             mapView.Pins.Add(new Pin
             {
-                Label = "Bạn đang ở đây",
+                Label = MyLocationLabel,
                 Position = new MauiPosition(location.Latitude, location.Longitude),
                 Color = Colors.Green
             });
@@ -216,32 +222,25 @@ public partial class MapPage : ContentPage
     private void RenderPins()
     {
         // Lưu lại pin vị trí người dùng trước khi xóa toàn bộ
-        var myLocationPin = mapView.Pins.FirstOrDefault(p => p.Label == "Bạn đang ở đây");
+        var myLocationPin = mapView.Pins.FirstOrDefault(p => p.Label == MyLocationLabel);
         mapView.Pins.Clear();
 
-        // Khôi phục pin vị trí người dùng
         if (myLocationPin != null)
-        {
             mapView.Pins.Add(myLocationPin);
-        }
 
-        // Thêm pin cho từng gian hàng
         foreach (var stall in _viewModel.Stalls)
         {
             var isSelected = _viewModel.SelectedStall?.StallId == stall.StallId;
-            mapView.Pins.Add(new Pin()
+            mapView.Pins.Add(new Pin
             {
                 Label = stall.StallName,
-                Address = isSelected ? "Đang chọn" : "Gian hàng", // Hiển thị dưới label khi tap
+                Address = isSelected ? "Đang chọn" : "Gian hàng",
                 Position = new MauiPosition(stall.Latitude, stall.Longitude),
-                Color = isSelected
-                    ? Microsoft.Maui.Graphics.Colors.Red   // Gian hàng đang chọn → đỏ
-                    : Microsoft.Maui.Graphics.Colors.Blue, // Gian hàng khác → xanh dương
-                Tag = stall // Lưu object Stall vào Tag để dùng lại khi PinClicked
+                Color = isSelected ? Colors.Red : Colors.Blue,
+                Tag = stall
             });
         }
 
-        // Vẽ lại vòng tròn geofence sau khi vẽ xong pin
         RenderCircles();
     }
 
@@ -252,36 +251,34 @@ public partial class MapPage : ContentPage
     /// </summary>
     private void RenderCircles()
     {
-        _circlesLayer.Clear(); // Xóa vòng tròn cũ trước khi vẽ lại
+        _circlesLayer.Clear();
 
         foreach (var stall in _viewModel.Stalls)
         {
-            if (stall.RadiusMeters <= 0) continue; // Bỏ qua gian hàng không có geofence
+            if (stall.RadiusMeters <= 0) continue;
 
             var isSelected = _viewModel.SelectedStall?.StallId == stall.StallId;
-
-            // Tạo polygon hình tròn xấp xỉ bằng 64 đoạn thẳng
             var polygon = BuildCirclePolygon(stall.Latitude, stall.Longitude, stall.RadiusMeters);
             var feature = new GeometryFeature { Geometry = polygon };
-
-            // Màu sắc khác nhau tùy trạng thái: đỏ nếu đang chọn, xanh nếu không
-            var fillAlpha = isSelected ? 70 : 40;  // Độ trong suốt của fill (0-255)
-            var outlineWidth = isSelected ? 3.0 : 1.5; // Độ dày viền
-            var r = isSelected ? 220 : 33;
-            var g = isSelected ? 50 : 150;
-            var b = isSelected ? 50 : 243;
-
-            feature.Styles.Add(new VectorStyle
-            {
-                Fill = new MapsuiBrush(new Mapsui.Styles.Color(r, g, b, fillAlpha)),
-                Outline = new Pen(new Mapsui.Styles.Color(r, g, b, 200), outlineWidth)
-            });
-
+            feature.Styles.Add(BuildCircleStyle(isSelected));
             _circlesLayer.Add(feature);
         }
 
-        // Thông báo cho Mapsui biết layer đã thay đổi để re-render
         _circlesLayer.DataHasChanged();
+    }
+
+    // Đỏ nếu đang chọn, xanh nếu không — alpha và độ dày viền cũng khác nhau
+    private static VectorStyle BuildCircleStyle(bool isSelected)
+    {
+        var color = isSelected
+            ? new Mapsui.Styles.Color(220, 50, 50)
+            : new Mapsui.Styles.Color(33, 150, 243);
+
+        return new VectorStyle
+        {
+            Fill = new MapsuiBrush(color with { A = isSelected ? 70 : 40 }),
+            Outline = new Pen(color with { A = 200 }, isSelected ? 3.0 : 1.5)
+        };
     }
 
     /// <summary>
@@ -306,23 +303,15 @@ public partial class MapPage : ContentPage
         var coords = new Coordinate[segments + 1];
         for (int i = 0; i < segments; i++)
         {
-            // Góc của điểm thứ i trên đường tròn (0 → 2π)
             var angle = 2 * Math.PI * i / segments;
-
-            // Tọa độ GPS của điểm trên đường tròn
-            var ptLat = lat + dLat * Math.Sin(angle);
-            var ptLon = lon + dLon * Math.Cos(angle);
-
-            // Chuyển từ GPS sang tọa độ Mercator để vẽ trên Mapsui
-            var projected = SphericalMercator.FromLonLat(ptLon, ptLat);
-            coords[i] = new Coordinate(projected.x, projected.y);
+            var (x, y) = SphericalMercator.FromLonLat(lon + dLon * Math.Cos(angle), lat + dLat * Math.Sin(angle));
+            coords[i] = new Coordinate(x, y);
         }
 
         // Điểm cuối = điểm đầu để đóng polygon
         coords[segments] = coords[0];
 
-        var factory = new GeometryFactory();
-        return factory.CreatePolygon(factory.CreateLinearRing(coords));
+        return GeomFactory.CreatePolygon(GeomFactory.CreateLinearRing(coords));
     }
 
     /// <summary>
@@ -336,13 +325,7 @@ public partial class MapPage : ContentPage
         _viewModel.SelectStall(stall);
 
         // Hiện menu tuỳ chọn dạng bottom sheet
-        var action = await DisplayActionSheet(
-            stall.StallName,   // Tiêu đề
-            "Đóng",       // Nút huỷ
-            null,         // Nút destructive (không dùng)
-            "Phát audio",
-            "Xem chi tiết",
-            "Dừng audio");
+        var action = await DisplayActionSheetAsync(stall.StallName, "Đóng", null, "Phát audio", "Xem chi tiết", "Dừng audio");
 
         if (action == "Phát audio")
         {
