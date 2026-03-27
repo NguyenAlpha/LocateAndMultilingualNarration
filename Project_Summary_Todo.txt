@@ -1,0 +1,51 @@
+========================================================================
+TÓM TẮT HƯỚNG ĐI ĐỒ ÁN: LẬP BẢN ĐỒ VÀ THUYẾT MINH ĐA NGÔN NGỮ
+========================================================================
+
+1. MỤC TIÊU & HƯỚNG ĐI CHÍNH
+- Xây dựng hệ thống cho du khách tham quan định vị các gian hàng (stalls), điểm đến thông qua bản đồ tương tác.
+- Cung cấp tính năng thuyết minh đa ngôn ngữ (Multilingual Narration) cho từng gian hàng tự động, giúp du khách dễ dàng hiểu thông tin bằng ngôn ngữ mẹ đẻ (thông qua Text-To-Speech của Azure).
+- Hệ thống gồm: 
+  + Backend CMS: Quản lý dữ liệu gian hàng, tự động dịch & sinh file mp3 bằng AI (ASP.NET Core API).
+  + Mobile App: Ứng dụng gốc (Native) cho khách du lịch trải nghiệm (.NET MAUI).
+
+2. CÔNG NGHỆ ÁP DỤNG TRONG MOBILE APP
+- Bản đồ: Chuyển đổi từ Google Maps sang Mapsui (nguồn dữ liệu OpenStreetMap), khắc phục vấn đề màn hình trắng, không lo chi phí hay rắc rối về API Key của Google.
+- Quét QR Code: Sử dụng ZXing.Net.Maui. Cho phép khách đến trước gian hàng, quét mã để nghe ngay.
+- Trình phát âm thanh: Plugin.Maui.Audio để tải và phát trực tiếp URL âm thanh (không phải tải tải tệp mp3 về máy giúp tiết kiệm dung lượng).
+- Performance & Kiến trúc: Chuẩn hoá MVVM, dùng Dependency Injection (DI) quản lý các Services. Implement cơ chế Caching dữ liệu (5-15 phút) dể tránh việc Request API liên tục gây lag ứng dụng.
+
+3. CÁC TÍNH NĂNG ĐÃ HOÀN THIỆN (PHÍA APP)
+- [x] Map UI: Hiển thị bản đồ full screen mượt mà, định vị GPS người dùng (Chấm xanh).
+- [x] Stalls (Gian hàng): Fetch dữ liệu từ API và ghim (Pin) lên bản đồ.
+- [x] QR Flow: Quét mã -> Tách ID -> Focus và làm nổi bật khu vực của gian hàng đó.
+- [x] Thuyết minh (Audio): Khởi tạo bộ phát âm (Play/Pause/Stop) khi ấn vào các Pin.
+- [x] Ngôn ngữ (Language): Tự động load danh sách từ DB, có gọi API lưu tùy chọn ngôn ngữ vào VisitorProfile của người dùng.
+
+========================================================================
+CÁC LỖI CHƯA SỬA & CÔNG VIỆC CẦN LÀM TIẾP THEO (TO-DO LIST)
+========================================================================
+
+[ ] 1. Quản lý vòng đời âm thanh (Bug rò rỉ Audio):
+    - Vấn đề: Nếu người dùng đang nghe audio mà nhấn Back ra khỏi MapPage hoặc thoát ẩn ứng dụng, có thể đoạn âm thanh vẫn phát dưới ngầm (background).
+    - Hướng sửa: Cần overide hàm `OnDisappearing()` bên MapPage.xaml.cs để tự động gọi `_viewModel.StopAudioCommand.Execute(null)`.
+
+[ ] 2. Xử lý Token hết hạn (Lỗi 401 Unauthorized):
+    - Vấn đề: Token JWT sau 1-2 tiếng sẽ hết hạn. Lúc đó các hàm Push/Update API sẽ âm thầm lỗi (HTTP 401).
+    - Hướng sửa: Cần gắn 1 Interceptor (hoặc bắt try-catch StatusCode) trong thư mục Services để cảnh báo "Phiên đăng nhập hết hạn" rồi gọi hàm `sessionService.ClearSession()` và thoát ra StartPage.
+
+[ ] 3. Vấn đề "Quyền" (Permissions API) nếu bị cấm cản từ chối:
+    - Vấn đề: Android yêu cầu quyền Location (để vẽ map) và Camera (để quét QR). Nếu User ấn "Don't Allow" hoài, ứng dụng chỉ hiện thông báo rồi treo UI ở Scanner.
+    - Hướng sửa: Nên chèn thêm nút "Mở cài đặt chuyển quyền" bằng cách gọi phương thức `AppInfo.ShowSettingsUI()`.
+
+[ ] 4. Fix cứng Base URL Localhost:
+    - Vấn đề: `BaseUrl = "http://10.0.2.2:5299"` nằm rải rác ở `StallService.cs`, `LanguageService.cs`, `AuthService.cs`. Điều này khiến việc đưa code lên Server thật (Production) phải đi rà sửa từng file.
+    - Hướng sửa: Chuyển URL gốc này vào `MauiProgram.cs` cấu hình thành `HttpClient.BaseAddress`.
+
+[ ] 5. Module Web Admin (Trang dành cho tổ chức):
+    - Vấn đề: Bạn có cấu trúc Entity và API đẩy đủ (Biz, Stalls, Narration), tuy nhiên đồ án còn thiếu phần Nhập liệu từ trên Web (Razor Pages / MVC).
+    - Hướng sửa: Xây dựng CRUD cho gian hàng + nút "Generate QR Code" in ra để dán lên tường.
+
+[ ] 6. Căn chỉnh Mức Độ Zoom Bản Đồ (Mapsui):
+    - Vấn đề: `mapView.Map?.Navigator.CenterOnAndZoomTo(centerPoint, 2, 500);` (Resolution = 2) có thể nhìn đẹp trên Emulator nhưng trên máy thực tế màn 2K hoặc 4K bị nhỏ.
+    - Hướng sửa: Cần test trên thiết bị thật và kết hợp lấy thông tin dpi màn hình (`DeviceDisplay.MainDisplayInfo.Density`) để nhân tỷ lệ zoom cho phù hợp.
