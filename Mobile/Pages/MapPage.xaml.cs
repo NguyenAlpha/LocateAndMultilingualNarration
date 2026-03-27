@@ -372,12 +372,13 @@ public partial class MapPage : ContentPage
     private void OnFocusStallRequested(GeoStallDto stall)
     {
         var location = SphericalMercator.FromLonLat(stall.Longitude, stall.Latitude);
+        var centerPoint = new MPoint(location.x, location.y);
         // CenterOn: chỉ di chuyển camera đến vị trí, giữ nguyên mức zoom hiện tại của người dùng
-        mapView.Map?.Navigator.CenterOn(new MPoint(location.x, location.y));
+        mapView.Map?.Navigator.CenterOn(centerPoint);
 
         // Vẽ lại pin để cập nhật màu pin đang chọn (đỏ) vs các pin còn lại (xanh)
         RenderPins();
         // Resolution = 2, zoom rat sat vao gian hang, thoi gian animation chuyen man hinh la 500ms
-        mapView.Map?.Navigator.CenterOnAndZoomTo(centerPoint, 2, 500); 
+        mapView.Map?.Navigator.CenterOnAndZoomTo(centerPoint, 2, 500);
     }
 }
