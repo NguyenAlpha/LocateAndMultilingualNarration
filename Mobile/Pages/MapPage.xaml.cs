@@ -96,40 +96,48 @@ public partial class MapPage : ContentPage
 
     /// <summary>
     /// Chạy mỗi khi trang hiện ra (lần đầu và khi quay lại từ trang khác).
-    /// Dùng _isInitialized để chỉ chạy logic khởi tạo nặng một lần duy nhất.
+    /// Không async để tránh async void — delegate toàn bộ logic async sang InitializePageAsync.
     /// </summary>
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
-
-        // Bắt đầu (hoặc khởi động lại) polling GPS mỗi khi trang hiện ra
         _viewModel.StartPolling();
 
-        if (_isInitialized)
-        {
-            return; // Đã khởi tạo rồi, không làm gì thêm
-        }
-
+        if (_isInitialized) return;
         _isInitialized = true;
 
-        // 1. Xin quyền GPS nếu chưa có
-        await EnsureLocationPermissionAsync();
+        _ = InitializePageAsync(); // fire-and-forget rõ ràng, exception được bắt bên trong
+    }
 
-        // 2. Di chuyển camera về vị trí mặc định (tọa độ trung tâm triển lãm)
-        //    SphericalMercator.FromLonLat: chuyển GPS (lon, lat) → tọa độ bản đồ Mercator
-        //    Resolution = 18: mức zoom gần (số nhỏ = zoom gần hơn trong Mapsui)
-        //    Duration = 0: không có animation khi mới vào trang
-        var defaultCenter = SphericalMercator.FromLonLat(106.710669, 10.777534);
-        mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(defaultCenter.x, defaultCenter.y), 0.7, 0);
+    /// <summary>
+    /// Chuỗi khởi tạo bất đồng bộ khi lần đầu vào trang.
+    /// Tách ra khỏi OnAppearing để có thể bắt exception — async void không bắt được exception.
+    /// </summary>
+    private async Task InitializePageAsync()
+    {
+        try
+        {
+            // 1. Xin quyền GPS nếu chưa có
+            await EnsureLocationPermissionAsync();
 
-        // 3. Lấy vị trí GPS thực tế của người dùng và đặt pin xanh "Bạn đang ở đây"
-        await MoveToCurrentLocationAsync();
+            // 2. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
+            var located = await MoveToCurrentLocationAsync();
+            if (!located)
+            {
+                var (x, y) = SphericalMercator.FromLonLat(106.710669, 10.777534);
+                mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 0.7, 0);
+            }
 
-        // 4. Tải danh sách gian hàng từ API (và tự động chọn booth nếu có BoothId)
-        await _viewModel.InitializeAsync(BoothId);
+            // 4. Tải danh sách gian hàng từ API (và tự động chọn booth nếu có BoothId)
+            await _viewModel.InitializeAsync(BoothId);
 
-        // 5. Vẽ pin cho tất cả gian hàng lên bản đồ
-        RenderPins();
+            // 5. Vẽ pin cho tất cả gian hàng lên bản đồ
+            RenderPins();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Khởi tạo MapPage thất bại");
+        }
     }
 
     protected override void OnDisappearing()
@@ -144,66 +152,59 @@ public partial class MapPage : ContentPage
     /// </summary>
     private async Task EnsureLocationPermissionAsync()
     {
-        var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
-        if (status == PermissionStatus.Granted)
-        {
-            return; // Đã có quyền rồi
-        }
-
-        // Hiện dialog xin quyền của hệ điều hành
-        status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+        // RequestAsync tự kiểm tra trước — nếu đã granted thì trả về ngay, không hiện dialog
+        var status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
         if (status != PermissionStatus.Granted)
         {
-            await DisplayAlert("GPS", "Bạn chưa cấp quyền vị trí. Bản đồ vẫn chạy nhưng không thể định vị bạn.", "OK");
+            await DisplayAlertAsync("GPS", "Bạn chưa cấp quyền vị trí. Bản đồ vẫn chạy nhưng không thể định vị bạn.", "OK");
         }
     }
 
     /// <summary>
     /// Lấy vị trí GPS hiện tại của người dùng, di chuyển camera đến đó
     /// và thêm pin xanh đánh dấu vị trí người dùng trên bản đồ.
+    /// Trả về true nếu lấy được vị trí và đã di chuyển camera, false nếu thất bại.
     /// </summary>
-    private async Task MoveToCurrentLocationAsync()
+    private async Task<bool> MoveToCurrentLocationAsync()
     {
         try
         {
             var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
             if (status != PermissionStatus.Granted)
-            {
-                return; // Không có quyền, bỏ qua
-            }
+                return false;
 
             // Yêu cầu GPS với độ chính xác Medium, timeout 8 giây
             var request = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(8));
             var location = await Geolocation.Default.GetLocationAsync(request);
 
-            if (location != null)
+            if (location is null)
+                return false;
+
+            // Chuyển tọa độ GPS sang tọa độ Mercator để dùng với Mapsui
+            var (x, y) = SphericalMercator.FromLonLat(location.Longitude, location.Latitude);
+
+            // Di chuyển camera đến vị trí người dùng, Duration = 500ms: animation mượt mà
+            mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 0.7);
+
+            // Thêm pin xanh đánh dấu vị trí người dùng
+            mapView.Pins.Add(new Pin
             {
-                // Chuyển tọa độ GPS sang tọa độ Mercator để dùng với Mapsui
-                var userLocation = SphericalMercator.FromLonLat(location.Longitude, location.Latitude);
+                Label = "Bạn đang ở đây",
+                Position = new MauiPosition(location.Latitude, location.Longitude),
+                Color = Colors.Green
+            });
 
-                // Di chuyển camera đến vị trí người dùng
-                // Resolution = 5: zoom gần hơn so với mặc định ban đầu
-                // Duration = 500ms: animation mượt mà
-                mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(userLocation.x, userLocation.y), 5, 500);
-
-                // Thêm pin xanh đánh dấu vị trí người dùng
-                var myPin = new Pin()
-                {
-                    Label = "Bạn đang ở đây",
-                    Position = new MauiPosition(location.Latitude, location.Longitude),
-                    Color = Microsoft.Maui.Graphics.Colors.Green
-                };
-                mapView.Pins.Add(myPin);
-            }
+            return true;
         }
         catch (FeatureNotEnabledException)
         {
-            // GPS bị tắt trong cài đặt thiết bị
-            await DisplayAlert("GPS", "Vui lòng bật GPS để xem vị trí hiện tại.", "OK");
+            await DisplayAlertAsync("GPS", "Vui lòng bật GPS để xem vị trí hiện tại.", "OK");
+            return false;
         }
         catch (Exception ex)
         {
-            await DisplayAlert("GPS", $"Không thể lấy vị trí: {ex.Message}", "OK");
+            await DisplayAlertAsync("GPS", $"Không thể lấy vị trí: {ex.Message}", "OK");
+            return false;
         }
     }
 
@@ -358,7 +359,7 @@ public partial class MapPage : ContentPage
         if (action == "Xem chi tiết")
         {
             // Hiện thông tin chi tiết của gian hàng trong dialog
-            await DisplayAlert("Chi tiết gian hàng",
+            await DisplayAlertAsync("Chi tiết gian hàng",
                 $"Tên: {stall.StallName}\nID: {stall.StallId}\nBán kính: {stall.RadiusMeters}m\nAudio: {stall.AudioUrl}",
                 "OK");
         }
