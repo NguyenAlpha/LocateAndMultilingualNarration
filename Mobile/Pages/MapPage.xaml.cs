@@ -136,9 +136,6 @@ public partial class MapPage : ContentPage
 
             // 4. Tải danh sách gian hàng từ API (và tự động chọn booth nếu có BoothId)
             await _viewModel.InitializeAsync(BoothId);
-
-            // 5. Vẽ pin cho tất cả gian hàng lên bản đồ
-            RenderPins();
         }
         catch (Exception ex)
         {
