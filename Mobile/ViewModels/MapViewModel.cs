@@ -255,20 +255,44 @@ public class MapViewModel : INotifyPropertyChanged
     /// </summary>
     private async Task StartLocationPollingAsync(CancellationToken ct)
     {
+        _logger.LogInformation("[Polling] Bắt đầu polling GPS");
+        var tickCount = 0;
+
         while (!ct.IsCancellationRequested)
         {
+            tickCount++;
             try
             {
                 var location = await Geolocation.Default.GetLocationAsync(
                     new GeolocationRequest(GeolocationAccuracy.Medium), ct);
 
                 if (location is not null)
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        _logger.LogDebug("[Polling] Tick #{Tick} — lat={Lat:F6}, lng={Lng:F6}",
+                            tickCount, location.Latitude, location.Longitude);
                     await CheckGeofencesAsync(location.Latitude, location.Longitude);
+                }
+                else
+                {
+                    if (_logger.IsEnabled(LogLevel.Debug))
+                        _logger.LogDebug("[Polling] Tick #{Tick} — GPS trả về null", tickCount);
+                }
             }
-            catch { /* ignore — GPS không khả dụng hoặc bị hủy */ }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("[Polling] Bị hủy ở tick #{Tick}", tickCount);
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("[Polling] Tick #{Tick} lỗi GPS: {Message}", tickCount, ex.Message);
+            }
 
             await Task.Delay(TimeSpan.FromSeconds(5), ct).ContinueWith(_ => { }); // không throw khi bị cancel
         }
+
+        _logger.LogInformation("[Polling] Dừng polling GPS sau {Tick} tick", tickCount);
     }
 
     /// <summary>
