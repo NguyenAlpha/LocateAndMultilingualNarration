@@ -15,6 +15,7 @@
     xmlns:mapsui="clr-namespace:Mapsui.UI.Maui;assembly=Mapsui.UI.Maui"
     x:Class="Mobile.Pages.MapPage"
     NavigationPage.HasNavigationBar="False"
+    Shell.NavBarIsVisible="False"
     Title="Bản đồ">
 
     <!--
@@ -28,13 +29,14 @@
 
         <!-- ===== ROW 0: HEADER ===== -->
         <!-- Thanh tiêu đề tùy chỉnh với nền xanh đậm, gồm tiêu đề bên trái và nút Làm mới bên phải -->
-        <Grid Grid.Row="0" Padding="16" BackgroundColor="#1E3A8A" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="0" Padding="8" BackgroundColor="#1E3A8A" ColumnDefinitions="*,Auto">
 
             <!-- Tiêu đề trang -->
             <Label Text="🗺 Bản đồ gian hàng (OSM)"
                    TextColor="White"
                    FontAttributes="Bold"
-                   FontSize="18" />
+                   FontSize="18"
+                   VerticalOptions="Center" />
 
             <!-- Nút gọi RefreshCommand trong ViewModel để tải lại dữ liệu gian hàng và vẽ lại bản đồ -->
             <Button Grid.Column="1"
@@ -86,7 +88,7 @@
                                 <!-- Tên gian hàng -->
                                 <Label Text="{Binding StallName}" FontAttributes="Bold" />
                                 <!-- ID gian hàng, dùng StringFormat để thêm nhãn "Booth ID: " phía trước -->
-                                <Label Text="{Binding StallId, StringFormat='Booth ID: {0}'}" FontSize="12" TextColor="Gray" />
+                                <!-- <Label Text="{Binding StallId, StringFormat='Booth ID: {0}'}" FontSize="12" TextColor="Gray" /> -->
                             </VerticalStackLayout>
                         </Frame>
                     </DataTemplate>
@@ -99,7 +101,8 @@
             3 nút điều khiển phát audio thuyết minh của gian hàng đang chọn
             Mỗi nút bind đến ICommand tương ứng trong ViewModel
         -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="10" Padding="16,8">
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10" Padding="8"
+              IsVisible="{Binding HasSelectedStall}">
 
             <!-- Phát audio — gọi PlayAudioCommand, phát file audio thuyết minh -->
             <Button Grid.Column="0"
@@ -110,15 +113,15 @@
                     CornerRadius="12" />
 
             <!-- Tạm dừng — gọi PauseAudioCommand, giữ nguyên vị trí phát -->
-            <Button Grid.Column="1"
+            <!-- <Button Grid.Column="1"
                     Text="⏸ Tạm dừng"
                     Command="{Binding PauseAudioCommand}"
                     BackgroundColor="#64748B"
                     TextColor="White"
-                    CornerRadius="12" />
+                    CornerRadius="12" /> -->
 
             <!-- Dừng hẳn — gọi StopAudioCommand, reset về đầu file audio -->
-            <Button Grid.Column="2"
+            <Button Grid.Column="1"
                     Text="⏹ Dừng"
                     Command="{Binding StopAudioCommand}"
                     BackgroundColor="#DC2626"

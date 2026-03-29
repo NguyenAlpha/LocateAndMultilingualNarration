@@ -64,6 +64,7 @@ public class MapViewModel : INotifyPropertyChanged
             if (selectedStall == value) return;
             selectedStall = value;
             OnPropertyChanged(); // Thông báo UI cập nhật
+            OnPropertyChanged(nameof(HasSelectedStall));
 
             if (selectedStall != null)
             {
@@ -104,6 +105,8 @@ public class MapViewModel : INotifyPropertyChanged
     }
 
     public bool HasError => !string.IsNullOrEmpty(_errorMessage);
+
+    public bool HasSelectedStall => selectedStall != null;
 
     // ---- COMMANDS (xử lý sự kiện từ các nút bấm) ----
 
