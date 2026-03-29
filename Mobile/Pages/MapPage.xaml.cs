@@ -14,6 +14,7 @@ using Mapsui.Styles;
 using Mapsui.Tiling;
 // MapView control và Pin cho MAUI
 using Mapsui.UI.Maui;
+using CommunityToolkit.Maui.Extensions;
 using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
 using Mobile.ViewModels;
@@ -109,6 +110,8 @@ public partial class MapPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("[MapPage] OnAppearing — _isInitialized={IsInitialized}", _isInitialized);
         _viewModel.StartPolling();
 
         if (_isInitialized) return;
@@ -320,31 +323,11 @@ public partial class MapPage : ContentPage
     private async Task OnPinClickedAsync(GeoStallDto stall)
     {
         _logger.LogInformation("OnPinClickedAsync - StallId: {StallId}", stall.StallId);
-        // Thông báo ViewModel gian hàng nào đang được chọn
         _viewModel.SelectStall(stall);
 
-        // Hiện menu tuỳ chọn dạng bottom sheet
-        var action = await DisplayActionSheetAsync(stall.StallName, "Đóng", null, "Phát audio", "Xem chi tiết", "Dừng audio");
-
-        if (action == "Phát audio")
-        {
-            _viewModel.PlayAudioCommand.Execute(null);
-            return;
-        }
-
-        if (action == "Dừng audio")
-        {
-            _viewModel.StopAudioCommand.Execute(null);
-            return;
-        }
-
-        if (action == "Xem chi tiết")
-        {
-            // Hiện thông tin chi tiết của gian hàng trong dialog
-            await DisplayAlertAsync("Chi tiết gian hàng",
-                $"Tên: {stall.StallName}\nID: {stall.StallId}\nBán kính: {stall.RadiusMeters}m\nAudio: {stall.AudioUrl}",
-                "OK");
-        }
+        var popup = ServiceHelper.GetService<StallPopup>();
+        popup.Init(stall);
+        await this.ShowPopupAsync(popup);
     }
 
     /// <summary>

@@ -27,7 +27,7 @@ public partial class ScanPage : ContentPage
 
         if (status != PermissionStatus.Granted)
         {
-            await DisplayAlert("Lỗi", "Bạn cần cấp quyền camera để quét QR.", "OK");
+            await DisplayAlertAsync("Lỗi", "Bạn cần cấp quyền camera để quét QR.", "OK");
             return;
         }
 
@@ -69,7 +69,7 @@ public partial class ScanPage : ContentPage
                 return;
             }
 
-            await DisplayAlert("QR", $"Scanned: {result}", "OK");
+            await DisplayAlertAsync("QR", $"Scanned: {result}", "OK");
             await Shell.Current.GoToAsync(nameof(MapPage));
         });
     }

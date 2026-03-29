@@ -1,4 +1,5 @@
-﻿// API của Microsoft để đăng ký và resolve service (AddSingleton, AddTransient...)
+﻿using CommunityToolkit.Maui;
+// API của Microsoft để đăng ký và resolve service (AddSingleton, AddTransient...)
 using Microsoft.Extensions.DependencyInjection;
 // Hỗ trợ logging trong ứng dụng .NET
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ public static class MauiProgram
 
         builder
             .UseMauiApp<App>()      // Chỉ định lớp App là root của ứng dụng
+            .UseMauiCommunityToolkit() // Đăng ký CommunityToolkit.Maui (Popup, Toast...)
             .UseSkiaSharp()         // Khởi tạo SkiaSharp để có thể vẽ đồ họa (dùng bởi Mapsui)
             .UseBarcodeReader()     // Đăng ký plugin ZXing để quét mã QR/barcode trên ScanPage
             .ConfigureFonts(fonts =>
@@ -98,6 +100,7 @@ public static class MauiProgram
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<VoicePage>();
         builder.Services.AddTransient<StartPage>();
+        builder.Services.AddTransient<StallPopup>();
 
 #if DEBUG
         // Chỉ bật logging ra cửa sổ Debug khi build ở chế độ DEBUG

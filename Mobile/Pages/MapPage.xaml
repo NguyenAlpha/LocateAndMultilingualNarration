@@ -29,19 +29,26 @@
 
         <!-- ===== ROW 0: HEADER ===== -->
         <!-- Thanh tiêu đề tùy chỉnh với nền xanh đậm, gồm tiêu đề bên trái và nút Làm mới bên phải -->
-        <Grid Grid.Row="0" Padding="8" BackgroundColor="#1E3A8A" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="0" Padding="8" BackgroundColor="#FAFAFA" ColumnDefinitions="*,Auto">
 
             <!-- Tiêu đề trang -->
-            <Label Text="🗺 Bản đồ gian hàng (OSM)"
-                   TextColor="White"
+            <Label Text="Bản đồ gian hàng"
+                   TextColor="black"
                    FontAttributes="Bold"
                    FontSize="18"
                    VerticalOptions="Center" />
 
             <!-- Nút gọi RefreshCommand trong ViewModel để tải lại dữ liệu gian hàng và vẽ lại bản đồ -->
             <Button Grid.Column="1"
-                    Text="Làm mới"
-                    Command="{Binding RefreshCommand}" />
+                    Text="↺"
+                    FontSize="32"
+                    Command="{Binding RefreshCommand}"
+                    BackgroundColor="#FAFAFA"
+                    TextColor="Black"
+                    CornerRadius="12"
+                    HeightRequest="44"
+                    WidthRequest="44"
+                    Padding="0" />
         </Grid>
 
         <!-- ===== ROW 1: BẢN ĐỒ + DANH SÁCH GIAN HÀNG ===== -->

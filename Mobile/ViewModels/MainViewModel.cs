@@ -54,17 +54,17 @@ public class MainViewModel : INotifyPropertyChanged
 
     async Task ShowAudioHintAsync()
     {
-        if (Application.Current?.MainPage != null)
+        if (Application.Current?.Windows[0].Page != null)
         {
-            await Application.Current.MainPage.DisplayAlert("Audio", "Chọn gian hàng trên bản đồ để phát thuyết minh.", "OK");
+            await Application.Current.Windows[0].Page!.DisplayAlertAsync("Audio", "Chọn gian hàng trên bản đồ để phát thuyết minh.", "OK");
         }
     }
 
     async Task ShowProfileAsync()
     {
-        if (Application.Current?.MainPage != null)
+        if (Application.Current?.Windows[0].Page != null)
         {
-            await Application.Current.MainPage.DisplayAlert("Profile", "Trang cá nhân", "OK");
+            await Application.Current.Windows[0].Page!.DisplayAlertAsync("Profile", "Trang cá nhân", "OK");
         }
     }
 

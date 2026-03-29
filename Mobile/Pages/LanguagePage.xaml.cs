@@ -42,7 +42,7 @@ public partial class LanguagePage : ContentPage
         catch (Exception ex)
         {
             LoadingIndicator.IsVisible = false;
-            await DisplayAlert("Lỗi", ex.Message, "OK");
+            await DisplayAlertAsync("Lỗi", ex.Message, "OK");
         }
     }
 

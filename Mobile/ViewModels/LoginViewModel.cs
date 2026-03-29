@@ -80,7 +80,7 @@ namespace Mobile.ViewModels
 
         async Task GoToRegisterAsync()
         {
-            await Shell.Current.DisplayAlert("Info", "Register chưa được triển khai.", "OK");
+            await Shell.Current.DisplayAlertAsync("Info", "Register chưa được triển khai.", "OK");
         }
 
         void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
