@@ -46,6 +46,8 @@ public class MapViewModel : INotifyPropertyChanged
     // (khi tải xong dữ liệu mới hoặc khi đổi gian hàng đang chọn)
     public event Action? PinsRefreshRequested;
 
+    // Sự kiện thông báo vị trí GPS mới nhất của người dùng — MapPage dùng để cập nhật pin vị trí
+    public event Action<double, double>? LocationUpdated;
     // ---- DỮ LIỆU HIỂN THỊ ----
 
     // Danh sách gian hàng bind với CollectionView trong XAML
@@ -251,7 +253,7 @@ public class MapViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Vòng lặp polling GPS mỗi 5 giây, kiểm tra geofence của từng stall.
+    /// Vòng lặp polling GPS mỗi 1 giây, kiểm tra geofence của từng stall.
     /// </summary>
     private async Task StartLocationPollingAsync(CancellationToken ct)
     {
@@ -264,13 +266,14 @@ public class MapViewModel : INotifyPropertyChanged
             try
             {
                 var location = await Geolocation.Default.GetLocationAsync(
-                    new GeolocationRequest(GeolocationAccuracy.Medium), ct);
+                    new GeolocationRequest(GeolocationAccuracy.Low), ct);
 
                 if (location is not null)
                 {
                     if (_logger.IsEnabled(LogLevel.Debug))
                         _logger.LogDebug("[Polling] Tick #{Tick} — lat={Lat:F6}, lng={Lng:F6}",
                             tickCount, location.Latitude, location.Longitude);
+                    LocationUpdated?.Invoke(location.Latitude, location.Longitude);
                     await CheckGeofencesAsync(location.Latitude, location.Longitude);
                 }
                 else
@@ -289,7 +292,7 @@ public class MapViewModel : INotifyPropertyChanged
                 _logger.LogWarning("[Polling] Tick #{Tick} lỗi GPS: {Message}", tickCount, ex.Message);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(5), ct).ContinueWith(_ => { }); // không throw khi bị cancel
+            await Task.Delay(TimeSpan.FromSeconds(1), ct).ContinueWith(_ => { }); // không throw khi bị cancel
         }
 
         _logger.LogInformation("[Polling] Dừng polling GPS sau {Tick} tick", tickCount);

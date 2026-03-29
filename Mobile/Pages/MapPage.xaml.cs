@@ -79,6 +79,8 @@ public partial class MapPage : ContentPage
         // (ViewModel không được giữ reference đến View, nên dùng event)
         _viewModel.FocusStallRequested += OnFocusStallRequested; // Di chuyển camera bản đồ
         _viewModel.PinsRefreshRequested += RenderPins;           // Vẽ lại toàn bộ pin
+        _viewModel.LocationUpdated += OnLocationUpdated;         // Cập nhật pin vị trí người dùng
+
 
         // Thêm tile layer OSM (hình ảnh bản đồ nền từ OpenStreetMap)
         mapView.Map?.Layers.Add(OpenStreetMap.CreateTileLayer());
@@ -343,6 +345,31 @@ public partial class MapPage : ContentPage
                 $"Tên: {stall.StallName}\nID: {stall.StallId}\nBán kính: {stall.RadiusMeters}m\nAudio: {stall.AudioUrl}",
                 "OK");
         }
+    }
+
+    /// <summary>
+    /// Cập nhật vị trí pin "Bạn đang ở đây" mỗi khi polling GPS nhận được tọa độ mới.
+    /// Chạy trên main thread vì thao tác với UI collection (mapView.Pins).
+    /// </summary>
+    private void OnLocationUpdated(double lat, double lng)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var pin = mapView.Pins.FirstOrDefault(p => p.Label == MyLocationLabel);
+            if (pin is not null)
+            {
+                pin.Position = new MauiPosition(lat, lng);
+            }
+            else
+            {
+                mapView.Pins.Add(new Pin
+                {
+                    Label = MyLocationLabel,
+                    Position = new MauiPosition(lat, lng),
+                    Color = Colors.Green
+                });
+            }
+        });
     }
 
     /// <summary>

@@ -103,6 +103,9 @@ public static class MauiProgram
         // Chỉ bật logging ra cửa sổ Debug khi build ở chế độ DEBUG
         // Giúp theo dõi log trong quá trình phát triển mà không ảnh hưởng bản Release
         builder.Logging.AddDebug();
+
+        // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
+        builder.Logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
 #endif
 
         // Hoàn tất cấu hình — đóng băng DI container và trả về MauiApp để framework khởi chạy
