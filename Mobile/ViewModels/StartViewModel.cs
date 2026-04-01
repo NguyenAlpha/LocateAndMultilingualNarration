@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
 using Mobile.Pages;
 using Mobile.Services;
@@ -11,16 +12,23 @@ public class StartViewModel : INotifyPropertyChanged
 {
     private readonly IDeviceService _deviceService;
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
+    private readonly ILogger<StartViewModel> _logger;
+    private bool _isInitializing;
+    private bool _hasNavigatedFromStart;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ICommand ScanCommand { get; }
     public ICommand LoginCommand { get; }
 
-    public StartViewModel(IDeviceService deviceService, IDevicePreferenceApiService devicePreferenceApiService)
+    public StartViewModel(
+        IDeviceService deviceService,
+        IDevicePreferenceApiService devicePreferenceApiService,
+        ILogger<StartViewModel> logger)
     {
         _deviceService = deviceService;
         _devicePreferenceApiService = devicePreferenceApiService;
+        _logger = logger;
 
         ScanCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(ScanPage)));
         LoginCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(LoginPage)));
@@ -28,19 +36,40 @@ public class StartViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync()
     {
-        var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
-        var preference = await _devicePreferenceApiService.GetAsync(deviceId);
+        // Tránh chạy Initialize đồng thời gây điều hướng lặp và crash khi profile dữ liệu lớn khởi tạo chậm.
+        if (_isInitializing || _hasNavigatedFromStart)
+            return;
 
-        if (preference is null)
+        try
         {
-            // Lần đầu: chưa có preference → chọn ngôn ngữ
-            await Shell.Current.GoToAsync(nameof(LanguagePage));
+            _isInitializing = true;
+
+            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+
+            var preference = await _devicePreferenceApiService.GetAsync(deviceId);
+
+            if (preference is null)
+            {
+                // Lần đầu: chưa có preference → chọn ngôn ngữ
+                _hasNavigatedFromStart = true;
+                await Shell.Current.GoToAsync(nameof(LanguagePage));
+            }
+            else
+            {
+                // Đã có preference → restore ngôn ngữ và vào thẳng MapPage
+                LanguageHelper.SetLanguage(preference.LanguageCode);
+                _hasNavigatedFromStart = true;
+                await Shell.Current.GoToAsync(nameof(MapPage));
+            }
         }
-        else
+        catch (Exception ex)
         {
-            // Đã có preference → restore ngôn ngữ và vào thẳng MapPage
-            LanguageHelper.SetLanguage(preference.LanguageCode);
-            await Shell.Current.GoToAsync(nameof(MapPage));
+            _logger.LogError(ex, "Khởi tạo StartViewModel thất bại");
+            await Shell.Current.DisplayAlertAsync("Lỗi", "Không thể tải cấu hình ban đầu. Vui lòng thử lại.", "OK");
+        }
+        finally
+        {
+            _isInitializing = false;
         }
     }
 

@@ -30,17 +30,21 @@ namespace Mobile
             // Trang đăng nhập — hiển thị khi người dùng chưa xác thực
             Routing.RegisterRoute(nameof(LoginPage), typeof(LoginPage));
 
-            // Trang quét mã QR / barcode — cho phép người dùng quét để định vị gian hàng
-            Routing.RegisterRoute(nameof(ScanPage), typeof(ScanPage));
-
             // Trang chọn ngôn ngữ thuyết minh — hiển thị sau khi quét thành công
             Routing.RegisterRoute(nameof(LanguagePage), typeof(LanguagePage));
 
+            // Trang chọn ngôn ngữ + giọng đọc mới cho flow scan QR hoàn chỉnh
+            Routing.RegisterRoute(nameof(LanguageSelectionPage), typeof(LanguageSelectionPage));
+
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
             Routing.RegisterRoute(nameof(VoicePage), typeof(VoicePage));
+            // OLD CODE (kept for reference): chỉ route VoicePage.
+            // Alias AudioPage để tái sử dụng đúng trang hiện có theo yêu cầu flow mới.
+            Routing.RegisterRoute("AudioPage", typeof(VoicePage));
 
             // Trang bản đồ — hiển thị vị trí gian hàng và hành trình của người dùng
-            Routing.RegisterRoute(nameof(MapPage), typeof(MapPage));
+            // OLD CODE (kept for reference): Routing.RegisterRoute(nameof(MapPage), typeof(MapPage));
+            // MapPage đã là ShellContent route gốc trong AppShell.xaml.
         }
     }
 }

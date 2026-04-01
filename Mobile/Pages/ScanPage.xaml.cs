@@ -1,24 +1,38 @@
-﻿using System.Text.RegularExpressions;
-using Microsoft.Maui.ApplicationModel;
+﻿using Microsoft.Maui.ApplicationModel;
+using Mobile.Helpers;
 using Mobile.Services;
+using Mobile.ViewModels;
 using ZXing.Net.Maui;
 
 namespace Mobile.Pages;
 
 public partial class ScanPage : ContentPage
 {
-    readonly SessionService sessionService = new();
-    bool isScanning;
+    // OLD CODE (kept for reference): readonly SessionService sessionService = new();
+    readonly ScanViewModel _viewModel;
+    // OLD CODE (kept for reference): bool isScanning;
 
     public ScanPage()
     {
         InitializeComponent();
+        _viewModel = ServiceHelper.GetService<ScanViewModel>();
+        BindingContext = _viewModel;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await EnsureCameraPermissionAsync();
+
+        try
+        {
+            _viewModel.ResetScanner();
+            await EnsureCameraPermissionAsync();
+        }
+        catch (Exception ex)
+        {
+            // OLD CODE (kept for reference): await DisplayAlert("Lỗi", $"Không thể khởi tạo trang quét QR: {ex.Message}", "OK");
+            await DisplayAlertAsync("Lỗi", $"Không thể khởi tạo trang quét QR: {ex.Message}", "OK");
+        }
     }
 
     async Task EnsureCameraPermissionAsync()
@@ -27,71 +41,41 @@ public partial class ScanPage : ContentPage
 
         if (status != PermissionStatus.Granted)
         {
-            await DisplayAlert("Lỗi", "Bạn cần cấp quyền camera để quét QR.", "OK");
+            // OLD CODE (kept for reference): await DisplayAlert("Lỗi", "Bạn cần cấp quyền camera để quét QR.", "OK");
+            await DisplayAlertAsync("Lỗi", "Bạn cần cấp quyền camera để quét QR.", "OK");
             return;
         }
 
-        isScanning = true;
-        cameraView.Options = new BarcodeReaderOptions
-        {
-            Formats = BarcodeFormats.TwoDimensional,
-            AutoRotate = true,
-            Multiple = false
-        };
-        cameraView.IsDetecting = true;
+        // OLD CODE (kept for reference): isScanning = true;
+        // OLD CODE (kept for reference): cameraView.Options = new BarcodeReaderOptions { ... };
+        // OLD CODE (kept for reference): cameraView.IsDetecting = true;
     }
 
-    void OnBarcodesDetected(object sender, BarcodeDetectionEventArgs e)
+    // OLD CODE (kept for reference): async void OnManualSubmitClicked(object? sender, EventArgs e)
+    void OnBarcodesDetected(object? sender, BarcodeDetectionEventArgs e)
     {
-        if (!isScanning)
+        try
         {
-            return;
-        }
-
-        var result = e.Results.FirstOrDefault()?.Value;
-
-        if (string.IsNullOrWhiteSpace(result))
-        {
-            return;
-        }
-
-        isScanning = false;
-        cameraView.IsDetecting = false;
-
-        MainThread.BeginInvokeOnMainThread(async () =>
-        {
-            sessionService.SetGuestMode(true);
-
-            var boothId = ExtractBoothId(result);
-            if (!string.IsNullOrWhiteSpace(boothId))
+            if (!_viewModel.IsDetecting)
             {
-                await Shell.Current.GoToAsync($"{nameof(MapPage)}?boothId={Uri.EscapeDataString(boothId)}");
                 return;
             }
 
-            await DisplayAlert("QR", $"Scanned: {result}", "OK");
-            await Shell.Current.GoToAsync(nameof(MapPage));
-        });
-    }
+            var rawValue = e.Results?.FirstOrDefault()?.Value;
+            if (string.IsNullOrWhiteSpace(rawValue))
+            {
+                return;
+            }
 
-    static string? ExtractBoothId(string result)
-    {
-        if (int.TryParse(result, out _))
-        {
-            return result;
+            // Đưa xử lý vào ViewModel để giữ đúng MVVM.
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _viewModel.ScanResultCommand.Execute(rawValue);
+            });
         }
-
-        var q = Regex.Match(result, @"boothId=(?<id>[^&\s]+)", RegexOptions.IgnoreCase);
-        if (q.Success)
+        catch
         {
-            return q.Groups["id"].Value;
+            // Nuốt lỗi callback để tránh crash thread camera; ViewModel sẽ xử lý trạng thái lỗi nếu có.
         }
-
-        if (result.StartsWith("stall:", StringComparison.OrdinalIgnoreCase))
-        {
-            return result.Split(':', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-        }
-
-        return null;
     }
 }

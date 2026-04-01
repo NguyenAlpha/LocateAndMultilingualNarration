@@ -1,5 +1,6 @@
 ﻿// Thư viện hỗ trợ Dependency Injection của Microsoft Extensions
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Maui.ApplicationModel;
 using Mobile.Services;
 
@@ -14,6 +15,7 @@ namespace Mobile
     {
         private readonly SessionService _sessionService;
         private readonly ISyncBackgroundService _syncBackgroundService;
+        private readonly ILogger<App> _logger;
 
         /// <summary>
         /// Constructor khởi tạo ứng dụng.
@@ -21,11 +23,12 @@ namespace Mobile
         /// có nhiệm vụ nạp toàn bộ tài nguyên khai báo trong App.xaml
         /// (ResourceDictionary, styles, màu sắc, v.v.) vào bộ nhớ.
         /// </summary>
-        public App(SessionService sessionService, ISyncBackgroundService syncBackgroundService)
+        public App(SessionService sessionService, ISyncBackgroundService syncBackgroundService, ILogger<App> logger)
         {
             InitializeComponent();
             _sessionService = sessionService;
             _syncBackgroundService = syncBackgroundService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -43,8 +46,16 @@ namespace Mobile
         /// </returns>
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            // Khởi động background sync sau khi app sẵn sàng
-            _syncBackgroundService.Start();
+            try
+            {
+                // Khởi động background sync sau khi app sẵn sàng
+                _syncBackgroundService.Start();
+            }
+            catch (Exception ex)
+            {
+                // Bảo vệ startup để tránh crash toàn app nếu có lỗi runtime ngoài dự kiến.
+                _logger.LogError(ex, "CreateWindow: khởi động SyncBackgroundService thất bại");
+            }
 
             // Tạo cửa sổ chính với AppShell là root page
             // AppShell quản lý toàn bộ luồng điều hướng (tab bar, flyout menu, routes...)

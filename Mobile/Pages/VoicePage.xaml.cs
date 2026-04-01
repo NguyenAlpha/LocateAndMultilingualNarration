@@ -7,14 +7,19 @@ namespace Mobile.Pages;
 
 [QueryProperty(nameof(LanguageId), "languageId")]
 [QueryProperty(nameof(LanguageCode), "languageCode")]
+[QueryProperty(nameof(StallId), "stallId")]
+[QueryProperty(nameof(Token), "token")]
 public partial class VoicePage : ContentPage
 {
     private readonly IVoiceService _voiceService;
     private readonly IDeviceService _deviceService;
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
+    private bool _isNavigating;
 
     public string LanguageId { get; set; } = string.Empty;
     public string LanguageCode { get; set; } = string.Empty;
+    public string? StallId { get; set; }
+    public string? Token { get; set; }
 
     public VoicePage(IVoiceService voiceService, IDeviceService deviceService, IDevicePreferenceApiService devicePreferenceApiService)
     {
@@ -58,31 +63,49 @@ public partial class VoicePage : ContentPage
         catch (Exception ex)
         {
             LoadingIndicator.IsVisible = false;
-            await DisplayAlert("Lỗi", ex.Message, "OK");
+            await DisplayAlertAsync("Lỗi", ex.Message, "OK");
         }
     }
 
     async void OnVoiceTapped(object sender, TappedEventArgs e)
     {
         if (e.Parameter is not TtsVoiceProfileListItemDto voice) return;
+        if (_isNavigating) return;
 
-        var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
-        var deviceInfo = _deviceService.GetDeviceInfo();
-
-        // Fire-and-forget: lưu voice vào DevicePreference, không block user
-        _ = _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
+        try
         {
-            DeviceId     = deviceId,
-            LanguageCode = LanguageCode,
-            Voice        = voice.Id.ToString(),
-            AutoPlay     = true,
-            Platform     = deviceInfo.Platform,
-            DeviceModel  = deviceInfo.DeviceModel,
-            Manufacturer = deviceInfo.Manufacturer,
-            OsVersion    = deviceInfo.OsVersion
-        });
+            _isNavigating = true;
 
-        LanguageHelper.SetLanguage(LanguageCode);
-        await Shell.Current.GoToAsync($"//{nameof(MapPage)}");
+            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceInfo = _deviceService.GetDeviceInfo();
+
+            await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
+            {
+                DeviceId = deviceId,
+                LanguageCode = LanguageCode,
+                Voice = voice.Id.ToString(),
+                AutoPlay = true,
+                Platform = deviceInfo.Platform,
+                DeviceModel = deviceInfo.DeviceModel,
+                Manufacturer = deviceInfo.Manufacturer,
+                OsVersion = deviceInfo.OsVersion
+            });
+
+            LanguageHelper.SetLanguage(LanguageCode);
+
+            var route = $"//{nameof(MapPage)}";
+            if (!string.IsNullOrWhiteSpace(StallId))
+                route += $"?boothId={Uri.EscapeDataString(StallId)}";
+
+            await Shell.Current.GoToAsync(route);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Lỗi", $"Không thể lưu giọng đọc: {ex.Message}", "OK");
+        }
+        finally
+        {
+            _isNavigating = false;
+        }
     }
 }

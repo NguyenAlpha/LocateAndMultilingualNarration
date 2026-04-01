@@ -29,7 +29,9 @@ public class StallService : IStallService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDeviceService _deviceService;
     private readonly ILocalStallRepository _localRepo;
-    private readonly ISyncService _syncService;
+    // OLD CODE (kept for reference): private readonly ISyncService _syncService;
+    private readonly IServiceProvider _serviceProvider;
+    private ISyncService? _resolvedSyncService;
     private readonly ILogger<StallService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -41,13 +43,15 @@ public class StallService : IStallService
         IHttpClientFactory httpClientFactory,
         IDeviceService deviceService,
         ILocalStallRepository localRepo,
-        ISyncService syncService,
+        // OLD CODE (kept for reference): ISyncService syncService,
+        IServiceProvider serviceProvider,
         ILogger<StallService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _deviceService = deviceService;
         _localRepo = localRepo;
-        _syncService = syncService;
+        // OLD CODE (kept for reference): _syncService = syncService;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -63,7 +67,10 @@ public class StallService : IStallService
 
                 // Trigger sync ngầm nếu data quá cũ — không await, không block UI
                 if (ShouldSync())
-                    _ = _syncService.SyncAsync(CancellationToken.None);
+                {
+                    // OLD CODE (kept for reference): _ = _syncService.SyncAsync(CancellationToken.None);
+                    _ = TriggerBackgroundSyncSafelyAsync();
+                }
 
                 return cached.Select(ToDto).ToList();
             }
@@ -113,8 +120,36 @@ public class StallService : IStallService
 
     // Sync nếu chưa sync lần nào hoặc đã quá 3 phút
     private bool ShouldSync()
-        => _syncService.LastSyncedAt is null
-        || DateTime.UtcNow - _syncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
+    {
+        // OLD CODE (kept for reference): return _syncService.LastSyncedAt is null
+        // OLD CODE (kept for reference):     || DateTime.UtcNow - _syncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
+
+        // Resolve muộn để phá vòng phụ thuộc DI: SyncService -> StallService -> ISyncService.
+        _resolvedSyncService ??= _serviceProvider.GetService<ISyncService>();
+
+        if (_resolvedSyncService is null)
+            return false;
+
+        return _resolvedSyncService.LastSyncedAt is null
+            || DateTime.UtcNow - _resolvedSyncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
+    }
+
+    // Fire-and-forget có bắt lỗi để không crash process nếu sync ném exception ngoài dự kiến.
+    private async Task TriggerBackgroundSyncSafelyAsync()
+    {
+        try
+        {
+            _resolvedSyncService ??= _serviceProvider.GetService<ISyncService>();
+            if (_resolvedSyncService is null)
+                return;
+
+            await _resolvedSyncService.SyncAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "TriggerBackgroundSyncSafelyAsync: lỗi khi sync ngầm");
+        }
+    }
 
     // Ưu tiên LocalAudioPath (phát offline), fallback AudioUrl (stream từ mạng)
     private static GeoStallDto ToDto(LocalStall s) => new()

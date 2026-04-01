@@ -92,12 +92,16 @@ public static class MauiProgram
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<MapViewModel>();
         builder.Services.AddTransient<LanguageViewModel>();
+        builder.Services.AddTransient<ScanViewModel>();
+        builder.Services.AddTransient<LanguageSelectionViewModel>();
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<VoicePage>();
         builder.Services.AddTransient<StartPage>();
+        builder.Services.AddTransient<ScanPage>();
+        builder.Services.AddTransient<LanguageSelectionPage>();
 
 #if DEBUG
         // Chỉ bật logging ra cửa sổ Debug khi build ở chế độ DEBUG
