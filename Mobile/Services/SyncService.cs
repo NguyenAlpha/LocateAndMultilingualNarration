@@ -79,16 +79,26 @@ public class SyncService : ISyncService
             // Bước 3: Map sang LocalStall và upsert SQLite
             var localStalls = apiStalls.Select(s => new LocalStall
             {
-                StallId      = s.StallId.ToString(),
-                StallName    = s.StallName,
-                Latitude     = s.Latitude,
-                Longitude    = s.Longitude,
-                RadiusMeters = s.RadiusMeters,
-                AudioUrl     = s.AudioUrl,
-                LanguageCode = languageCode,
-                VoiceId      = voiceId,
-                LastUpdated  = DateTimeOffset.UtcNow
+                StallId               = s.StallId.ToString(),
+                StallName             = s.StallName,
+                Latitude              = s.Latitude,
+                Longitude             = s.Longitude,
+                RadiusMeters          = s.RadiusMeters,
+                AudioUrl              = s.AudioUrl,
+                LanguageCode          = languageCode,
+                VoiceId               = voiceId,
+                LastUpdated           = DateTimeOffset.UtcNow,
+                NarrationContentId    = s.NarrationContent?.Id.ToString(),
+                NarrationTitle        = s.NarrationContent?.Title,
+                NarrationDescription  = s.NarrationContent?.Description,
+                NarrationScriptText   = s.NarrationContent?.ScriptText
             }).ToList();
+
+            foreach (var s in localStalls)
+                _logger.LogInformation("SyncAsync: [{Name}] NarrationContent={HasNarration} | ScriptText={ScriptPreview}",
+                    s.StallName,
+                    s.NarrationContentId != null,
+                    s.NarrationScriptText?[..Math.Min(40, s.NarrationScriptText?.Length ?? 0)] ?? "(null)");
 
             await _localRepo.UpsertBatchAsync(localStalls);
             _logger.LogInformation("SyncAsync: upsert {Count} stall vào SQLite", localStalls.Count);

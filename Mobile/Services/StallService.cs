@@ -124,7 +124,14 @@ public class StallService : IStallService
         Latitude     = s.Latitude,
         Longitude    = s.Longitude,
         RadiusMeters = s.RadiusMeters,
-        AudioUrl     = s.LocalAudioPath ?? s.AudioUrl
+        AudioUrl     = s.LocalAudioPath ?? s.AudioUrl,
+        NarrationContent = s.NarrationContentId is null ? null : new GeoStallNarrationContentDto
+        {
+            Id          = Guid.Parse(s.NarrationContentId),
+            Title       = s.NarrationTitle ?? string.Empty,
+            Description = s.NarrationDescription,
+            ScriptText  = s.NarrationScriptText ?? string.Empty
+        }
     };
 
     private static List<GeoStallDto> GetMockStalls() =>

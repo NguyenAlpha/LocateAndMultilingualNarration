@@ -318,16 +318,31 @@ public partial class MapPage : ContentPage
 
     /// <summary>
     /// Xử lý khi người dùng tap vào một pin gian hàng trên bản đồ.
-    /// Chọn gian hàng đó trong ViewModel, rồi hiện action sheet với 3 tuỳ chọn.
     /// </summary>
     private async Task OnPinClickedAsync(GeoStallDto stall)
     {
-        _logger.LogInformation("OnPinClickedAsync - StallId: {StallId}", stall.StallId);
+        _logger.LogInformation("[Popup] OnPinClickedAsync - StallId: {StallId}, NarrationContent={HasNarration}",
+            stall.StallId, stall.NarrationContent != null);
         _viewModel.SelectStall(stall);
 
-        var popup = ServiceHelper.GetService<StallPopup>();
-        popup.Init(stall);
-        await this.ShowPopupAsync(popup);
+        try
+        {
+            var popup = ServiceHelper.GetService<StallPopup>();
+            if (popup is null)
+            {
+                _logger.LogError("[Popup] GetService<StallPopup> trả về NULL");
+                return;
+            }
+            _logger.LogInformation("[Popup] GetService OK, gọi Init...");
+            popup.Init(stall);
+            _logger.LogInformation("[Popup] Gọi ShowPopupAsync trên MainThread...");
+            await MainThread.InvokeOnMainThreadAsync(() => this.ShowPopupAsync(popup));
+            _logger.LogInformation("[Popup] ShowPopupAsync hoàn tất");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Popup] Lỗi khi hiện popup");
+        }
     }
 
     /// <summary>
