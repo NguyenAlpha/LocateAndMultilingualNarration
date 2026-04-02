@@ -20,14 +20,9 @@ namespace Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10, Guid? stallId = null, bool? isActive = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? stallName = null, bool? isActive = null, CancellationToken cancellationToken = default)
         {
-            var stallsResult = await _stallApiClient.GetStallsAsync(1, 500, null, null, cancellationToken);
-            var stalls = stallsResult?.Success == true && stallsResult.Data != null
-                ? stallsResult.Data.Items
-                : Array.Empty<Shared.DTOs.Stalls.StallDetailDto>();
-
-            var locationsResult = await _stallLocationApiClient.GetLocationsAsync(page, pageSize, stallId, isActive, cancellationToken);
+            var locationsResult = await _stallLocationApiClient.GetLocationsAsync(page, pageSize, null, isActive, cancellationToken, stallName);
 
             var viewModel = new StallLocationManagementViewModel();
 
@@ -40,9 +35,8 @@ namespace Web.Controllers
                     Page = data.Page,
                     PageSize = data.PageSize,
                     TotalCount = data.TotalCount,
-                    StallId = stallId,
+                    StallName = stallName,
                     IsActive = isActive,
-                    Stalls = stalls
                 };
             }
             else
@@ -53,10 +47,9 @@ namespace Web.Controllers
                     Page = page,
                     PageSize = pageSize,
                     TotalCount = 0,
-                    StallId = stallId,
+                    StallName = stallName,
                     IsActive = isActive,
-                    Stalls = stalls,
-                    ErrorMessage = locationsResult?.Error?.Message ?? "Không lấy được danh sách vị trí." 
+                    ErrorMessage = locationsResult?.Error?.Message ?? "Không lấy được danh sách vị trí."
                 };
             }
 

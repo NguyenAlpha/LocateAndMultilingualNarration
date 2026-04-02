@@ -181,7 +181,7 @@ namespace Api.Controllers
         /// Lấy danh sách vị trí gian hàng theo phân trang và bộ lọc.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetList([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? stallId = null, [FromQuery] bool? isActive = null)
+        public async Task<IActionResult> GetList([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? stallId = null, [FromQuery] bool? isActive = null, [FromQuery] string? stallName = null)
         {
             // Lấy danh sách vị trí gian hàng theo phân trang và bộ lọc.
             _logger.LogInformation("<<BEGIN>> Bắt đầu lấy danh sách stall location - Page: {Page}, PageSize: {PageSize}<<END>>", page, pageSize);
@@ -217,6 +217,12 @@ namespace Api.Controllers
             if (stallId.HasValue)
             {
                 query = query.Where(l => l.StallId == stallId.Value);
+            }
+
+            // Lọc theo tên stall nếu có.
+            if (!string.IsNullOrWhiteSpace(stallName))
+            {
+                query = query.Where(l => l.Stall.Name.Contains(stallName));
             }
 
             // Lọc theo trạng thái kích hoạt nếu có.

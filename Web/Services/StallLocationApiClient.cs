@@ -13,11 +13,12 @@ namespace Web.Services
             _httpClient = httpClient;
         }
 
-        public async Task<ApiResult<PagedResult<StallLocationDetailDto>>?> GetLocationsAsync(int page, int pageSize, Guid? stallId, bool? isActive, CancellationToken cancellationToken = default)
+        public async Task<ApiResult<PagedResult<StallLocationDetailDto>>?> GetLocationsAsync(int page, int pageSize, Guid? stallId, bool? isActive, CancellationToken cancellationToken = default, string? stallName = null)
         {
             var url = $"api/stall-location?page={page}&pageSize={pageSize}";
             if (stallId.HasValue) url += $"&stallId={stallId.Value}";
             if (isActive.HasValue) url += $"&isActive={isActive.Value}";
+            if (!string.IsNullOrWhiteSpace(stallName)) url += $"&stallName={Uri.EscapeDataString(stallName)}";
             return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<StallLocationDetailDto>>>(url, cancellationToken);
         }
 

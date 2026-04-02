@@ -233,10 +233,15 @@ namespace Api.Application.Services
                 _logger.LogInformation("GetAllStallsAsync: truy vấn được {Total} vị trí gian hàng", locations.Count);
 
             // Bước 3: Map từng StallLocation sang GeoStallDto
-            // FirstOrDefault(): lấy narration content đầu tiên (đã được lọc đúng ngôn ngữ từ bước 2)
             var result = locations.Select(l =>
             {
-                var content = l.Stall.StallNarrationContents.FirstOrDefault();
+                var contents = l.Stall.StallNarrationContents; // đã được lọc IsActive = true từ query
+
+                // Narration content theo ngôn ngữ ưu tiên — dùng để chọn AudioUrl chính
+                var preferredContent = languageId != Guid.Empty
+                    ? contents.FirstOrDefault(c => c.LanguageId == languageId)
+                    : contents.FirstOrDefault();
+
                 return new GeoStallDto
                 {
                     StallId = l.StallId,
@@ -245,7 +250,18 @@ namespace Api.Application.Services
                     Longitude = (double)l.Longitude,
                     RadiusMeters = (double)l.RadiusMeters,
                     // Chọn AudioUrl theo thứ tự ưu tiên: voice preference → TTS → bất kỳ
-                    AudioUrl = PickAudioUrl(content?.NarrationAudios, preferredVoice)
+                    AudioUrl = PickAudioUrl(preferredContent?.NarrationAudios, preferredVoice),
+                    // Narration content đầu tiên active của gian hàng
+                    NarrationContent = contents.Select(c => new GeoStallNarrationContentDto
+                    {
+                        Id          = c.Id,
+                        LanguageId  = c.LanguageId,
+                        Title       = c.Title,
+                        Description = c.Description,
+                        ScriptText  = c.ScriptText,
+                        UpdatedAt   = c.UpdatedAt,
+                        AudioUrl    = PickAudioUrl(c.NarrationAudios, preferredVoice)
+                    }).FirstOrDefault()
                 };
             }).ToList();
 
