@@ -335,8 +335,8 @@ public partial class MapPage : ContentPage
             }
             _logger.LogInformation("[Popup] GetService OK, gọi Init...");
             popup.Init(stall);
-            _logger.LogInformation("[Popup] Gọi ShowPopupAsync trên MainThread...");
-            await MainThread.InvokeOnMainThreadAsync(() => this.ShowPopupAsync(popup));
+            _logger.LogInformation("[Popup] Gọi ShowPopupAsync...");
+            await this.ShowPopupAsync(popup);
             _logger.LogInformation("[Popup] ShowPopupAsync hoàn tất");
         }
         catch (Exception ex)

@@ -233,6 +233,19 @@ public class MapViewModel : INotifyPropertyChanged
         await _audioGuideService.PlayAsync(SelectedStall.AudioUrl);
     }
 
+    public async void PlayStall(GeoStallDto stall)
+    {
+        if (string.IsNullOrWhiteSpace(stall.AudioUrl))
+        {
+            ErrorMessage = "Gian hàng này chưa có audio.";
+            return;
+        }
+
+        _logger.LogInformation("PlayStall - StallId: {StallId}, AudioUrl: {AudioUrl}", stall.StallId, stall.AudioUrl);
+        ErrorMessage = string.Empty;
+        await _audioGuideService.PlayAsync(stall.AudioUrl);
+    }
+
     // ---- GEOFENCING ----
 
     /// <summary>

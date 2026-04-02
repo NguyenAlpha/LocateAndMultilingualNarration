@@ -18,7 +18,7 @@
             <Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.12" />
         </Border.Shadow>
 
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Grid RowDefinitions="Auto,Auto,*">
 
             <!-- Drag handle -->
             <BoxView Grid.Row="0"
@@ -73,8 +73,6 @@
                 </VerticalStackLayout>
             </ScrollView>
 
-            <!-- Bottom safe area padding -->
-            <BoxView Grid.Row="3" HeightRequest="24" Color="Transparent" />
 
         </Grid>
     </Border>
