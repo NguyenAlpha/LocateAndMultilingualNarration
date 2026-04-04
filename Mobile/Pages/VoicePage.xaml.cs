@@ -44,6 +44,14 @@ public partial class VoicePage : ContentPage
     // Tải danh sách voice theo LanguageId
     private async Task LoadVoicesAsync()
     {
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            LoadingIndicator.IsVisible = false;
+            await DisplayAlertAsync("Không có mạng", "Vui lòng kết nối mạng để tiếp tục.", "OK");
+            await Shell.Current.GoToAsync("//MainPage");
+            return;
+        }
+
         // Nếu LanguageId không hợp lệ thì không thể tải dữ liệu
         if (!Guid.TryParse(LanguageId, out var languageGuid))
         {

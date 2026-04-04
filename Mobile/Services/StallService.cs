@@ -81,7 +81,7 @@ public class StallService : IStallService
             var cached = await _localRepo.GetAllAsync();
             if (cached.Count > 0)
             {
-                _logger.LogDebug("GetStallsAsync: {Count} stall từ SQLite", cached.Count);
+                _logger.LogDebug("[StallService][GetStallsAsync]: {Count} stall từ SQLite", cached.Count);
 
                 // Trigger sync ngầm nếu data quá cũ — không await, không block UI
                 if (ShouldSync())
@@ -99,11 +99,11 @@ public class StallService : IStallService
             var offline = await _localRepo.GetAllAsync();
             if (offline.Count > 0)
             {
-                _logger.LogWarning("GetStallsAsync: offline, fallback {Count} stall từ SQLite", offline.Count);
+                _logger.LogWarning("[StallService][GetStallsAsync]: offline, fallback {Count} stall từ SQLite", offline.Count);
                 return [..offline.Select(ToDto)];
             }
 
-            _logger.LogWarning("GetStallsAsync: offline và SQLite trống, trả về danh sách rỗng");
+            _logger.LogWarning("[StallService][GetStallsAsync]: offline và SQLite trống, trả về danh sách rỗng");
             return [];
         }
 
@@ -115,12 +115,12 @@ public class StallService : IStallService
             var client = _httpClientFactory.CreateClient();
             var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
 
-            _logger.LogInformation("GetStallsAsync: gọi API {Url}", url);
+            _logger.LogInformation("[StallService][GetStallsAsync]: gọi API {Url}", url);
             using var response = await client.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("GetStallsAsync: API trả về {StatusCode}, fallback SQLite", (int)response.StatusCode);
+                _logger.LogWarning("[StallService][GetStallsAsync]: API trả về {StatusCode}, fallback SQLite", (int)response.StatusCode);
                 var fallback = await _localRepo.GetAllAsync();
                 return [..fallback.Select(ToDto)];
             }
@@ -129,13 +129,13 @@ public class StallService : IStallService
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             var dtos = (await JsonSerializer.DeserializeAsync<ApiResult<List<GeoStallDto>>>(stream, JsonOptions, cancellationToken))?.Data ?? [];
 
-            _logger.LogInformation("GetStallsAsync: tải thành công {Count} gian hàng từ API", dtos.Count);
+            _logger.LogInformation("[StallService][GetStallsAsync]: tải thành công {Count} gian hàng từ API", dtos.Count);
             return dtos;
         }
         catch (Exception ex)
         {
             // Nếu lỗi bất ngờ thì trả về rỗng để tránh làm sập UI.
-            _logger.LogError(ex, "GetStallsAsync: exception");
+            _logger.LogError(ex, "[StallService][GetStallsAsync]: exception");
             return [];
         }
     }

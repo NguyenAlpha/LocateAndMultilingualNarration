@@ -29,6 +29,27 @@ public class StartViewModel : INotifyPropertyChanged
     public async Task InitializeAsync()
     {
         var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+
+        // Offline: không gọi API, dùng cache local (Preferences)
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            var cachedLang = LanguageHelper.GetLanguage();
+            if (!string.IsNullOrEmpty(cachedLang))
+            {
+                // Đã từng chọn ngôn ngữ → vào thẳng MapPage
+                await Shell.Current.GoToAsync("//MapPage");
+            }
+            else
+            {
+                // Chưa thiết lập lần đầu, cần mạng
+                await Application.Current!.MainPage!.DisplayAlert(
+                    "Không có mạng",
+                    "Vui lòng kết nối mạng để thiết lập lần đầu.",
+                    "OK");
+            }
+            return;
+        }
+
         var preference = await _devicePreferenceApiService.GetAsync(deviceId);
 
         if (preference is null)

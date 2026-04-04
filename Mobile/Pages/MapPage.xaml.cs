@@ -157,16 +157,16 @@ public partial class MapPage : ContentPage
             // 1. Xin quyền GPS nếu chưa có
             await EnsureLocationPermissionAsync();
 
-            // 2. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
+            // 2. Tải danh sách gian hàng từ API
+            await _viewModel.InitializeAsync();
+
+            // 3. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
             var located = await MoveToCurrentLocationAsync();
             if (!located)
             {
                 var (x, y) = SphericalMercator.FromLonLat(106.710669, 10.777534);
                 mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 0.7, 0);
             }
-
-            // 4. Tải danh sách gian hàng từ API
-            await _viewModel.InitializeAsync();
         }
         catch (Exception ex)
         {

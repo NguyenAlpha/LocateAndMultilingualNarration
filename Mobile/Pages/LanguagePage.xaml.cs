@@ -36,6 +36,14 @@ public partial class LanguagePage : ContentPage
     /// <returns>Task bất đồng bộ của quá trình tải dữ liệu.</returns>
     private async Task LoadLanguagesAsync()
     {
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            LoadingIndicator.IsVisible = false;
+            await DisplayAlertAsync("Không có mạng", "Vui lòng kết nối mạng để tiếp tục.", "OK");
+            await Shell.Current.GoToAsync("//MainPage");
+            return;
+        }
+
         try
         {
             // Lấy danh sách ngôn ngữ từ API/cache.

@@ -40,8 +40,11 @@ public static class MauiProgram
             });
 
         // ---- HTTPCLIENT ----
-        // Đăng ký HttpClient mặc định vào DI (dùng cho các service tự inject IHttpClientFactory)
-        builder.Services.AddHttpClient();
+        // Đăng ký HttpClient mặc định với timeout 10 giây — tránh treo UI khi server chậm hoặc không phản hồi
+        builder.Services.AddHttpClient(string.Empty, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
 
         // ---- SERVICES (Singleton — tạo 1 lần, dùng xuyên suốt app) ----
         // Singleton phù hợp cho service cần giữ state lâu dài hoặc dùng chung toàn app

@@ -169,6 +169,12 @@ public class SyncService : ISyncService
                             Interlocked.Increment(ref audioDownloaded);
                         }
                     }
+                    catch (OperationCanceledException) { throw; }
+                    catch (Exception ex)
+                    {
+                        // Lỗi một file không làm hỏng toàn bộ batch.
+                        _logger.LogWarning(ex, "[SyncAsync]: lỗi tải audio stall {StallId}", s.StallId);
+                    }
                     finally { semaphore.Release(); }
                 });
 

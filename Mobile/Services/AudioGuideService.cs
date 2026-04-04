@@ -147,17 +147,22 @@ public class AudioGuideService : IAudioGuideService
     }
 
     /// <summary>
-    /// Tải stream từ URL mạng.
+    /// Tải audio từ URL mạng về bộ nhớ. Trả về <c>null</c> nếu không có mạng hoặc lỗi.
     /// </summary>
     /// <param name="url">Địa chỉ audio từ internet.</param>
-    /// <returns>Stream nếu tải thành công; ngược lại <c>null</c>.</returns>
+    /// <returns>MemoryStream chứa toàn bộ audio nếu thành công; ngược lại <c>null</c>.</returns>
     private static async Task<Stream?> GetStreamFromUrlAsync(string url)
     {
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            return null;
+
         try
         {
-            // Tạo HttpClient tạm để lấy stream audio từ mạng.
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             using var client = new HttpClient();
-            return await client.GetStreamAsync(url);
+            // GetByteArrayAsync tải toàn bộ rồi trả MemoryStream — tránh CopyToAsync treo UI.
+            var bytes = await client.GetByteArrayAsync(url, cts.Token);
+            return new MemoryStream(bytes);
         }
         catch { return null; }
     }
