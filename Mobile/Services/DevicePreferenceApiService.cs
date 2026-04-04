@@ -8,6 +8,7 @@ public interface IDevicePreferenceApiService
 {
     Task<DevicePreferenceDetailDto?> GetAsync(string deviceId, CancellationToken ct = default);
     Task<DevicePreferenceDetailDto?> UpsertAsync(DevicePreferenceUpsertDto dto, CancellationToken ct = default);
+    Task SavePreferencesAsync(DevicePreferencesRequest request, CancellationToken ct = default);
 }
 
 public class DevicePreferenceApiService : IDevicePreferenceApiService
@@ -24,6 +25,7 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
         {
             var client = _httpClientFactory.CreateClient();
             var response = await client.GetAsync($"{BaseUrl}/api/device-preference/{Uri.EscapeDataString(deviceId)}", ct);
+            Console.WriteLine($"[DEBUG] GET /api/device-preference/{{deviceId}} => {(int)response.StatusCode} {response.StatusCode}");
             if (!response.IsSuccessStatusCode) return null;
             var result = await response.Content.ReadFromJsonAsync<ApiResult<DevicePreferenceDetailDto>>(cancellationToken: ct);
             return result?.Data;
@@ -42,5 +44,14 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
             return result?.Data;
         }
         catch { return null; }
+    }
+
+    public async Task SavePreferencesAsync(DevicePreferencesRequest request, CancellationToken ct = default)
+    {
+        var client = _httpClientFactory.CreateClient();
+        Console.WriteLine($"[DEBUG] POST /api/device-preferences DeviceId={request.DeviceId}, LanguageId={request.LanguageId}, Voice={request.Voice}");
+        var response = await client.PostAsJsonAsync($"{BaseUrl}/api/device-preferences", request, ct);
+        Console.WriteLine($"[DEBUG] POST /api/device-preferences => {(int)response.StatusCode} {response.StatusCode}");
+        response.EnsureSuccessStatusCode();
     }
 }

@@ -14,6 +14,7 @@ using Mapsui.Styles;
 using Mapsui.Tiling;
 // MapView control và Pin cho MAUI
 using Mapsui.UI.Maui;
+using CommunityToolkit.Maui.Extensions;
 using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
 using Mobile.ViewModels;
@@ -79,6 +80,8 @@ public partial class MapPage : ContentPage
         // (ViewModel không được giữ reference đến View, nên dùng event)
         _viewModel.FocusStallRequested += OnFocusStallRequested; // Di chuyển camera bản đồ
         _viewModel.PinsRefreshRequested += RenderPins;           // Vẽ lại toàn bộ pin
+        _viewModel.LocationUpdated += OnLocationUpdated;         // Cập nhật pin vị trí người dùng
+
 
         // Thêm tile layer OSM (hình ảnh bản đồ nền từ OpenStreetMap)
         mapView.Map?.Layers.Add(OpenStreetMap.CreateTileLayer());
@@ -107,15 +110,9 @@ public partial class MapPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-
-        try
-        {
-            _viewModel.StartPolling();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "StartPolling thất bại trong OnAppearing");
-        }
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("[MapPage] OnAppearing — _isInitialized={IsInitialized}", _isInitialized);
+        _viewModel.StartPolling();
 
         if (_isInitialized) return;
         _isInitialized = true;
@@ -345,31 +342,36 @@ public partial class MapPage : ContentPage
     private async Task OnPinClickedAsync(GeoStallDto stall)
     {
         _logger.LogInformation("OnPinClickedAsync - StallId: {StallId}", stall.StallId);
-        // Thông báo ViewModel gian hàng nào đang được chọn
         _viewModel.SelectStall(stall);
 
-        // Hiện menu tuỳ chọn dạng bottom sheet
-        var action = await DisplayActionSheetAsync(stall.StallName, "Đóng", null, "Phát audio", "Xem chi tiết", "Dừng audio");
+        var popup = ServiceHelper.GetService<StallPopup>();
+        popup.Init(stall);
+        await this.ShowPopupAsync(popup);
+    }
 
-        if (action == "Phát audio")
+    /// <summary>
+    /// Cập nhật vị trí pin "Bạn đang ở đây" mỗi khi polling GPS nhận được tọa độ mới.
+    /// Chạy trên main thread vì thao tác với UI collection (mapView.Pins).
+    /// </summary>
+    private void OnLocationUpdated(double lat, double lng)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            _viewModel.PlayAudioCommand.Execute(null);
-            return;
-        }
-
-        if (action == "Dừng audio")
-        {
-            _viewModel.StopAudioCommand.Execute(null);
-            return;
-        }
-
-        if (action == "Xem chi tiết")
-        {
-            // Hiện thông tin chi tiết của gian hàng trong dialog
-            await DisplayAlertAsync("Chi tiết gian hàng",
-                $"Tên: {stall.StallName}\nID: {stall.StallId}\nBán kính: {stall.RadiusMeters}m\nAudio: {stall.AudioUrl}",
-                "OK");
-        }
+            var pin = mapView.Pins.FirstOrDefault(p => p.Label == MyLocationLabel);
+            if (pin is not null)
+            {
+                pin.Position = new MauiPosition(lat, lng);
+            }
+            else
+            {
+                mapView.Pins.Add(new Pin
+                {
+                    Label = MyLocationLabel,
+                    Position = new MauiPosition(lat, lng),
+                    Color = Colors.Green
+                });
+            }
+        });
     }
 
     /// <summary>

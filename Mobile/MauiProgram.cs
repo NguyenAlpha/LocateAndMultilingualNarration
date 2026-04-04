@@ -1,4 +1,5 @@
-﻿// API của Microsoft để đăng ký và resolve service (AddSingleton, AddTransient...)
+﻿using CommunityToolkit.Maui;
+// API của Microsoft để đăng ký và resolve service (AddSingleton, AddTransient...)
 using Microsoft.Extensions.DependencyInjection;
 // Hỗ trợ logging trong ứng dụng .NET
 using Microsoft.Extensions.Logging;
@@ -28,6 +29,7 @@ public static class MauiProgram
 
         builder
             .UseMauiApp<App>()      // Chỉ định lớp App là root của ứng dụng
+            .UseMauiCommunityToolkit() // Đăng ký CommunityToolkit.Maui (Popup, Toast...)
             .UseSkiaSharp()         // Khởi tạo SkiaSharp để có thể vẽ đồ họa (dùng bởi Mapsui)
             .UseBarcodeReader()     // Đăng ký plugin ZXing để quét mã QR/barcode trên ScanPage
             .ConfigureFonts(fonts =>
@@ -93,20 +95,22 @@ public static class MauiProgram
         builder.Services.AddTransient<MapViewModel>();
         builder.Services.AddTransient<LanguageViewModel>();
         builder.Services.AddTransient<ScanViewModel>();
-        builder.Services.AddTransient<LanguageSelectionViewModel>();
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<VoicePage>();
         builder.Services.AddTransient<StartPage>();
+        builder.Services.AddTransient<StallPopup>();
         builder.Services.AddTransient<ScanPage>();
-        builder.Services.AddTransient<LanguageSelectionPage>();
 
 #if DEBUG
         // Chỉ bật logging ra cửa sổ Debug khi build ở chế độ DEBUG
         // Giúp theo dõi log trong quá trình phát triển mà không ảnh hưởng bản Release
         builder.Logging.AddDebug();
+
+        // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
+        builder.Logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
 #endif
 
         // Hoàn tất cấu hình — đóng băng DI container và trả về MauiApp để framework khởi chạy

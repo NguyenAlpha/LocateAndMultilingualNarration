@@ -82,7 +82,7 @@
                             <Label Text="Âm thanh" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Grid.Column="3" Spacing="8" HorizontalOptions="Center">
+                        <VerticalStackLayout Grid.Column="3" Spacing="8" HorizontalOptions="Center" IsVisible="False">
                             <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
                                 <Frame.Shadow>
                                     <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>

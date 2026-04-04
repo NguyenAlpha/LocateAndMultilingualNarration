@@ -77,12 +77,33 @@ public partial class VoicePage : ContentPage
             _isNavigating = true;
 
             var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            Console.WriteLine($"[DEBUG] VoicePage DeviceId: {deviceId}");
             var deviceInfo = _deviceService.GetDeviceInfo();
 
-            await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
+            // OLD CODE (kept for reference): lưu preference bằng LanguageCode qua endpoint cũ.
+            // await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
+            // {
+            //     DeviceId = deviceId,
+            //     LanguageCode = LanguageCode,
+            //     Voice = voice.Id.ToString(),
+            //     AutoPlay = true,
+            //     Platform = deviceInfo.Platform,
+            //     DeviceModel = deviceInfo.DeviceModel,
+            //     Manufacturer = deviceInfo.Manufacturer,
+            //     OsVersion = deviceInfo.OsVersion
+            // });
+
+            if (!Guid.TryParse(LanguageId, out var languageGuid))
+            {
+                await DisplayAlertAsync("Lỗi", "LanguageId không hợp lệ.", "OK");
+                return;
+            }
+
+            // Lưu device preferences ngay sau khi user chọn xong language + voice.
+            await _devicePreferenceApiService.SavePreferencesAsync(new DevicePreferencesRequest
             {
                 DeviceId = deviceId,
-                LanguageCode = LanguageCode,
+                LanguageId = languageGuid,
                 Voice = voice.Id.ToString(),
                 AutoPlay = true,
                 Platform = deviceInfo.Platform,
@@ -90,12 +111,15 @@ public partial class VoicePage : ContentPage
                 Manufacturer = deviceInfo.Manufacturer,
                 OsVersion = deviceInfo.OsVersion
             });
+            Console.WriteLine("[DEBUG] VoicePage saved DevicePreferences thành công");
 
             LanguageHelper.SetLanguage(LanguageCode);
 
             var route = $"//{nameof(MapPage)}";
             if (!string.IsNullOrWhiteSpace(StallId))
                 route += $"?boothId={Uri.EscapeDataString(StallId)}";
+
+            Console.WriteLine($"[DEBUG] VoicePage navigate: {route}");
 
             await Shell.Current.GoToAsync(route);
         }

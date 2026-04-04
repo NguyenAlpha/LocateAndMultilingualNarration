@@ -34,25 +34,35 @@ public interface IDeviceService
 /// </summary>
 public class DeviceService : IDeviceService
 {
-    // Key dùng để đọc/ghi DeviceId trong SecureStorage
+    // Key dùng để đọc/ghi DeviceId local trong Preferences
     private const string DeviceIdKey = "device_id";
 
     /// <summary>
-    /// Lấy DeviceId từ SecureStorage nếu đã tồn tại.
+    /// Lấy DeviceId từ Preferences nếu đã tồn tại.
     /// Nếu chưa có (lần đầu cài app), tạo GUID mới, lưu lại rồi trả về.
-    /// SecureStorage đảm bảo giá trị được mã hóa, không bị đọc bởi app khác.
+    /// Cách này đồng bộ với startup flow đang đọc trực tiếp từ Preferences.
     /// </summary>
     public async Task<string> GetOrCreateDeviceIdAsync()
     {
-        // Thử lấy DeviceId đã lưu từ lần trước
-        var existing = await SecureStorage.Default.GetAsync(DeviceIdKey);
-        if (!string.IsNullOrEmpty(existing))
-            return existing;
+        // OLD CODE (kept for reference): đọc/ghi DeviceId bằng SecureStorage.
+        // var existing = await SecureStorage.Default.GetAsync(DeviceIdKey);
+        // if (!string.IsNullOrEmpty(existing))
+        //     return existing;
+        // var newId = Guid.NewGuid().ToString();
+        // await SecureStorage.Default.SetAsync(DeviceIdKey, newId);
+        // return newId;
 
-        // Chưa có → tạo GUID mới làm DeviceId, lưu vào SecureStorage
+        var existing = Preferences.Get(DeviceIdKey, null);
+        if (!string.IsNullOrEmpty(existing))
+        {
+            Console.WriteLine($"[DEBUG] DeviceId existing: {existing}");
+            return await Task.FromResult(existing);
+        }
+
         var newId = Guid.NewGuid().ToString();
-        await SecureStorage.Default.SetAsync(DeviceIdKey, newId);
-        return newId;
+        Preferences.Set(DeviceIdKey, newId);
+        Console.WriteLine($"[DEBUG] DeviceId generated and saved: {newId}");
+        return await Task.FromResult(newId);
     }
 
     /// <summary>

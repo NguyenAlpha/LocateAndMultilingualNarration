@@ -1,5 +1,8 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Mobile.LocalDb;
+using Shared.DTOs.Common;
+using Shared.DTOs.Geo;
 
 namespace Mobile.Services;
 
@@ -12,25 +15,29 @@ public interface ISyncService
 
 public class SyncService : ISyncService
 {
-    private readonly IStallService _stallService;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILocalStallRepository _localRepo;
     private readonly IAudioCacheService _audioCacheService;
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
     private readonly IDeviceService _deviceService;
     private readonly ILogger<SyncService> _logger;
 
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private const string BaseUrl = "http://10.0.2.2:5299";
+    private const string StallsEndpoint = "/api/geo/stalls";
+
     public DateTime? LastSyncedAt { get; private set; }
     public bool IsSyncing { get; private set; }
 
     public SyncService(
-        IStallService stallService,
+        IHttpClientFactory httpClientFactory,
         ILocalStallRepository localRepo,
         IAudioCacheService audioCacheService,
         IDevicePreferenceApiService devicePreferenceApiService,
         IDeviceService deviceService,
         ILogger<SyncService> logger)
     {
-        _stallService = stallService;
+        _httpClientFactory = httpClientFactory;
         _localRepo = localRepo;
         _audioCacheService = audioCacheService;
         _devicePreferenceApiService = devicePreferenceApiService;
@@ -51,8 +58,18 @@ public class SyncService : ISyncService
             var languageCode = pref?.LanguageCode ?? "vi";
             var voiceId = pref?.Voice ?? string.Empty;
 
-            // Bước 2: Gọi API lấy stall mới nhất (bỏ qua in-memory cache)
-            var apiStalls = await _stallService.GetStallsAsync(forceRefresh: true, ct);
+            // Bước 2: Gọi API trực tiếp (không qua StallService để tránh circular dependency)
+            var client = _httpClientFactory.CreateClient();
+            var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
+            using var response = await client.GetAsync(url, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("SyncAsync: API trả về {StatusCode}", (int)response.StatusCode);
+                return;
+            }
+            var stream = await response.Content.ReadAsStreamAsync(ct);
+            var result = await JsonSerializer.DeserializeAsync<ApiResult<List<GeoStallDto>>>(stream, JsonOptions, ct);
+            var apiStalls = result?.Data ?? [];
             if (apiStalls.Count == 0)
             {
                 _logger.LogWarning("SyncAsync: API trả về 0 stall, bỏ qua");

@@ -37,6 +37,59 @@ namespace Api.Controllers
             return this.OkResult(MapToDetail(preference));
         }
 
+        [HttpPost("/api/device-preferences")]
+        public async Task<IActionResult> Save([FromBody] DevicePreferencesRequest request)
+        {
+            _logger.LogInformation("Lưu device preferences cho deviceId: {DeviceId}", request.DeviceId);
+
+            var language = await _context.Languages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(l => l.Id == request.LanguageId && l.IsActive);
+
+            if (language is null)
+                return this.BadRequestResult($"Không tìm thấy ngôn ngữ với id '{request.LanguageId}'", "LanguageId");
+
+            var now = DateTimeOffset.UtcNow;
+
+            var existing = await _context.DevicePreferences
+                .FirstOrDefaultAsync(x => x.DeviceId == request.DeviceId);
+
+            if (existing != null)
+            {
+                existing.LanguageId = request.LanguageId;
+                existing.Voice = request.Voice;
+                existing.SpeechRate = request.SpeechRate;
+                existing.AutoPlay = request.AutoPlay;
+                existing.Platform = request.Platform;
+                existing.DeviceModel = request.DeviceModel;
+                existing.Manufacturer = request.Manufacturer;
+                existing.OsVersion = request.OsVersion;
+                existing.LastSeenAt = now;
+            }
+            else
+            {
+                var entity = new Api.Domain.Entities.DevicePreference
+                {
+                    DeviceId = request.DeviceId,
+                    LanguageId = request.LanguageId,
+                    Voice = request.Voice,
+                    SpeechRate = request.SpeechRate,
+                    AutoPlay = request.AutoPlay,
+                    Platform = request.Platform,
+                    DeviceModel = request.DeviceModel,
+                    Manufacturer = request.Manufacturer,
+                    OsVersion = request.OsVersion,
+                    FirstSeenAt = now,
+                    LastSeenAt = now
+                };
+
+                _context.DevicePreferences.Add(entity);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         [HttpPost]
         public async Task<IActionResult> Upsert([FromBody] DevicePreferenceUpsertDto request)
         {
