@@ -1,0 +1,371 @@
+@model Web.Models.StallMediaManagementViewModel
+@{
+    ViewData["Title"] = "Stall Media Management";
+    var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
+    var stallLookup = Model.Stalls.ToDictionary(s => s.Id, s => s.Name);
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Stall" asp-action="Index">Stall Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Stall Media</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="bi bi-images me-2"></i>Stall Media Management</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMediaModal">
+            <i class="bi bi-plus-lg me-1"></i>Thêm ảnh
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Filter -->
+<div class="search-filter-bar">
+    <form method="get" asp-action="Index" class="row g-3">
+        <div class="col-md-4">
+            <label for="stallFilter" class="form-label visually-hidden">Stall</label>
+            <select class="form-select" id="stallFilter" name="stallId" aria-label="Lọc theo stall">
+                <option value="">Tất cả stall</option>
+                @foreach (var stall in Model.Stalls)
+                {
+                    <option value="@stall.Id" selected="@(Model.FilterStallId == stall.Id)">@stall.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="isActiveFilter" class="form-label visually-hidden">Trạng thái</label>
+            <select class="form-select" id="isActiveFilter" name="isActive" aria-label="Lọc theo trạng thái">
+                <option value="">Tất cả trạng thái</option>
+                <option value="true" selected="@(Model.IsActive == true)">Kích hoạt</option>
+                <option value="false" selected="@(Model.IsActive == false)">Tắt</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" type="submit">
+                <i class="bi bi-funnel me-1"></i>Lọc
+            </button>
+        </div>
+        <div class="col-md-2">
+            <a class="btn btn-outline-secondary w-100" asp-action="Index">
+                <i class="bi bi-x-circle me-1"></i>Xóa lọc
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Media Grid -->
+<div class="table-container">
+    @if (!Model.Items.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-image fs-1 d-block mb-3"></i>
+            <p>Chưa có ảnh nào. Nhấn <strong>Thêm ảnh</strong> để bắt đầu.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 mb-4">
+            @foreach (var item in Model.Items)
+            {
+                var stallName = stallLookup.TryGetValue(item.StallId, out var sn) ? sn : item.StallId.ToString();
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <a href="@item.MediaUrl" target="_blank" title="Xem ảnh đầy đủ">
+                            <img src="@item.MediaUrl"
+                                 class="card-img-top"
+                                 alt="@(item.Caption ?? "Stall media")"
+                                 style="height:180px;object-fit:cover;"
+                                 onerror="this.src='/img/image-broken.svg'; this.onerror=null;">
+                        </a>
+                        <div class="card-body p-2">
+                            <p class="card-text small text-muted mb-1">
+                                <i class="bi bi-shop me-1"></i>@stallName
+                            </p>
+                            <p class="card-text small text-truncate mb-1" title="@item.Caption">
+                                @(string.IsNullOrWhiteSpace(item.Caption) ? "-" : item.Caption)
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-@(item.IsActive ? "success" : "secondary")">
+                                    @(item.IsActive ? "Active" : "Inactive")
+                                </span>
+                                <small class="text-muted">Order: @item.SortOrder</small>
+                            </div>
+                        </div>
+                        <div class="card-footer p-2 bg-transparent d-flex gap-2">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary flex-fill"
+                                    data-bs-toggle="tooltip" title="Chỉnh sửa"
+                                    data-id="@item.Id"
+                                    data-stallid="@item.StallId"
+                                    data-caption="@item.Caption"
+                                    data-sortorder="@item.SortOrder"
+                                    data-isactive="@item.IsActive.ToString().ToLower()"
+                                    data-imageurl="@item.MediaUrl"
+                                    onclick="openEditModal(this)">
+                                <i class="bi bi-pencil me-1"></i>Sửa
+                            </button>
+                            <form asp-action="Delete" method="post" class="flex-fill">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="hidden" name="page" value="@Model.Page" />
+                                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                <input type="hidden" name="stallId" value="@Model.FilterStallId" />
+                                <input type="hidden" name="isActive" value="@Model.IsActive" />
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger w-100"
+                                        data-bs-toggle="tooltip" title="Xóa"
+                                        onclick="return confirm('Bạn chắc chắn muốn xóa ảnh này?');">
+                                    <i class="bi bi-trash me-1"></i>Xóa
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted">
+                Hiển thị @startIndex–@endIndex / @Model.TotalCount ảnh
+            </div>
+            <nav aria-label="Phân trang media">
+                <ul class="pagination mb-0">
+                    <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-page="@(Model.Page - 1)"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-stallId="@Model.FilterStallId"
+                           asp-route-isActive="@Model.IsActive"
+                           aria-label="Previous">&laquo;</a>
+                    </li>
+                    @for (var i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Page ? "active" : "")">
+                            <a class="page-link"
+                               asp-action="Index"
+                               asp-route-page="@i"
+                               asp-route-pageSize="@Model.PageSize"
+                               asp-route-stallId="@Model.FilterStallId"
+                               asp-route-isActive="@Model.IsActive">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-page="@(Model.Page + 1)"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-stallId="@Model.FilterStallId"
+                           asp-route-isActive="@Model.IsActive"
+                           aria-label="Next">&raquo;</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+<!-- Add Media Modal -->
+<div class="modal fade" id="addMediaModal" tabindex="-1" aria-labelledby="addMediaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMediaModalLabel">
+                    <i class="bi bi-image me-2"></i>Thêm ảnh
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="UploadCreate" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="stallId" value="@Model.FilterStallId" />
+                <input type="hidden" name="isActive" value="@Model.IsActive" />
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.StallId" class="form-label">Stall <span class="text-danger">*</span></label>
+                            <select asp-for="Create.StallId" class="form-select" id="createStallId">
+                                <option value="">Chọn stall</option>
+                                @foreach (var stall in Model.Stalls)
+                                {
+                                    <option value="@stall.Id" selected="@(Model.Create.StallId == stall.Id)">@stall.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Create.StallId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Create.IsActive" class="form-label">Trạng thái</label>
+                            <select asp-for="Create.IsActive" class="form-select">
+                                <option value="true">Kích hoạt</option>
+                                <option value="false">Tắt</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Create.ImageFile" class="form-label">Ảnh <span class="text-danger">*</span></label>
+                        <input asp-for="Create.ImageFile" type="file" class="form-control" accept="image/*"
+                               id="createImageFile" onchange="previewImage(this, 'createPreview')">
+                        <span asp-validation-for="Create.ImageFile" class="text-danger"></span>
+                        <div class="mt-2" id="createPreviewWrap" style="display:none;">
+                            <img id="createPreview" src="" alt="Preview" class="img-thumbnail" style="max-height:200px;">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label asp-for="Create.Caption" class="form-label">Caption</label>
+                            <input asp-for="Create.Caption" class="form-control" placeholder="Mô tả ảnh...">
+                            <span asp-validation-for="Create.Caption" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Create.SortOrder" class="form-label">Thứ tự</label>
+                            <input asp-for="Create.SortOrder" type="number" class="form-control" min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload me-1"></i>Upload &amp; Lưu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Media Modal -->
+<div class="modal fade" id="editMediaModal" tabindex="-1" aria-labelledby="editMediaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMediaModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa ảnh
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="UploadUpdate" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="stallId" value="@Model.FilterStallId" />
+                <input type="hidden" name="isActive" value="@Model.IsActive" />
+                <div class="modal-body">
+                    <input asp-for="Edit.Id" type="hidden" />
+                    <input asp-for="Edit.StallId" type="hidden" id="editStallIdHidden" />
+                    <!-- Ảnh hiện tại -->
+                    <div class="mb-3">
+                        <label class="form-label">Ảnh hiện tại</label>
+                        <div>
+                            <img id="editCurrentImage" src="" alt="Ảnh hiện tại"
+                                 class="img-thumbnail" style="max-height:200px;">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Edit.ImageFile" class="form-label">Ảnh mới <span class="text-danger">*</span></label>
+                        <input asp-for="Edit.ImageFile" type="file" class="form-control" accept="image/*"
+                               id="editImageFile" onchange="previewImage(this, 'editPreview')">
+                        <span asp-validation-for="Edit.ImageFile" class="text-danger"></span>
+                        <div class="mt-2" id="editPreviewWrap" style="display:none;">
+                            <img id="editPreview" src="" alt="Preview mới" class="img-thumbnail" style="max-height:200px;">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label asp-for="Edit.Caption" class="form-label">Caption</label>
+                            <input asp-for="Edit.Caption" class="form-control" id="editCaption" placeholder="Mô tả ảnh...">
+                            <span asp-validation-for="Edit.Caption" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Edit.SortOrder" class="form-label">Thứ tự</label>
+                            <input asp-for="Edit.SortOrder" type="number" class="form-control" id="editSortOrder" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Edit.IsActive" class="form-label">Trạng thái</label>
+                        <select asp-for="Edit.IsActive" class="form-select" id="editIsActive">
+                            <option value="true">Kích hoạt</option>
+                            <option value="false">Tắt</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            const wrap = document.getElementById(previewId + 'Wrap');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    preview.src = e.target.result;
+                    wrap.style.display = '';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                wrap.style.display = 'none';
+            }
+        }
+
+        function openEditModal(btn) {
+            const $btn = $(btn);
+            $('input[name="Edit.Id"]').val($btn.data('id'));
+            $('#editStallIdHidden').val($btn.data('stallid'));
+            $('#editCaption').val($btn.data('caption') || '');
+            $('#editSortOrder').val($btn.data('sortorder'));
+            $('#editIsActive').val($btn.data('isactive'));
+            $('#editCurrentImage').attr('src', $btn.data('imageurl'));
+            // reset file input & preview
+            $('#editImageFile').val('');
+            $('#editPreviewWrap').hide();
+
+            new bootstrap.Modal(document.getElementById('editMediaModal')).show();
+        }
+
+        $(document).ready(function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+
+            @if (Model.ShowCreateModal)
+            {
+                <text>new bootstrap.Modal(document.getElementById('addMediaModal')).show();</text>
+            }
+            @if (Model.ShowEditModal)
+            {
+                <text>new bootstrap.Modal(document.getElementById('editMediaModal')).show();</text>
+            }
+        });
+    </script>
+}
