@@ -39,8 +39,8 @@ namespace Mobile
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
             Routing.RegisterRoute(nameof(VoicePage), typeof(VoicePage));
 
-            // Trang bản đồ — hiển thị vị trí gian hàng và hành trình của người dùng
-            Routing.RegisterRoute(nameof(MapPage), typeof(MapPage));
+            // MapPage không đăng ký ở đây vì đã là ShellContent trong AppShell.xaml.
+            // Đăng ký lại sẽ xung đột và tạo instance mới thay vì dùng instance ShellContent sẵn có.
         }
     }
 }

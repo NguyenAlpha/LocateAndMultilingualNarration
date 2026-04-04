@@ -142,24 +142,20 @@ public class MapViewModel : INotifyPropertyChanged
     /// <summary>
     /// Khởi tạo dữ liệu trang — được MapPage gọi trong OnAppearing().
     /// Chỉ tải dữ liệu lần đầu (lazy load), các lần sau không gọi lại API.
-    /// Nếu có boothId (từ QR code), tự động chọn và focus vào gian hàng đó.
     /// </summary>
-    /// <param name="boothId">ID gian hàng cần focus ngay khi vào trang (có thể null)</param>
-    public async Task InitializeAsync(string? boothId = null)
+    public async Task InitializeAsync()
     {
         if (!_isLoaded)
         {
-            await LoadStallsAsync(false); // false = dùng cache nếu có
+            await LoadStallsAsync(false);
             _isLoaded = true;
         }
-
-        // Nếu có boothId được truyền vào (ví dụ từ kết quả quét QR), tự động chọn gian hàng đó
-        if (!string.IsNullOrWhiteSpace(boothId))
-        {
-            // OrdinalIgnoreCase: so sánh không phân biệt hoa thường
-            SelectedStall = Stalls.FirstOrDefault(x => x.StallId.ToString().Equals(boothId, StringComparison.OrdinalIgnoreCase));
-        }
     }
+
+    /// <summary>
+    /// Tải lại dữ liệu gian hàng từ API — dùng khi người dùng quay lại MapPage sau khi đổi ngôn ngữ/giọng đọc.
+    /// </summary>
+    public Task ReloadAsync() => LoadStallsAsync(true);
 
     /// <summary>
     /// Cho phép code-behind MapPage chọn gian hàng theo chương trình
@@ -222,7 +218,8 @@ public class MapViewModel : INotifyPropertyChanged
     /// </summary>
     async Task PlayAudioAsync()
     {
-        if (SelectedStall is null || string.IsNullOrWhiteSpace(SelectedStall.AudioUrl))
+        var audioUrl = SelectedStall?.NarrationContent?.AudioUrl;
+        if (SelectedStall is null || string.IsNullOrWhiteSpace(audioUrl))
         {
             ErrorMessage = "Gian hàng này chưa có audio.";
             return;
@@ -230,20 +227,22 @@ public class MapViewModel : INotifyPropertyChanged
 
         _logger.LogInformation("Phát audio cho stall - StallId: {StallId}", SelectedStall.StallId);
         ErrorMessage = string.Empty;
-        await _audioGuideService.PlayAsync(SelectedStall.AudioUrl);
+        await _audioGuideService.PlayAsync(audioUrl);
     }
 
     public async void PlayStall(GeoStallDto stall)
     {
-        if (string.IsNullOrWhiteSpace(stall.AudioUrl))
+        var audioUrl = stall.NarrationContent?.AudioUrl;
+        if (string.IsNullOrWhiteSpace(audioUrl))
         {
             ErrorMessage = "Gian hàng này chưa có audio.";
             return;
         }
 
-        _logger.LogInformation("PlayStall - StallId: {StallId}, AudioUrl: {AudioUrl}", stall.StallId, stall.AudioUrl);
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("PlayStall - StallId: {StallId}, AudioUrl: {AudioUrl}", stall.StallId, audioUrl);
         ErrorMessage = string.Empty;
-        await _audioGuideService.PlayAsync(stall.AudioUrl);
+        await _audioGuideService.PlayAsync(audioUrl);
     }
 
     // ---- GEOFENCING ----
@@ -334,8 +333,9 @@ public class MapViewModel : INotifyPropertyChanged
                 _geofenceTriggeredStallId = stall.StallId;
                 SelectedStall = stall;
 
-                if (!string.IsNullOrWhiteSpace(stall.AudioUrl))
-                    await _audioGuideService.PlayAsync(stall.AudioUrl);
+                var audioUrl = stall.NarrationContent?.AudioUrl;
+                if (!string.IsNullOrWhiteSpace(audioUrl))
+                    await _audioGuideService.PlayAsync(audioUrl);
 
                 return; // chỉ kích hoạt 1 stall gần nhất
             }

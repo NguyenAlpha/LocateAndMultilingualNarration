@@ -7,13 +7,25 @@ using Shared.DTOs.Geo;
 
 namespace Mobile.Services;
 
+/// <summary>
+/// Cung cấp dữ liệu gian hàng cho UI theo chiến lược cache-first: ưu tiên đọc local trước, sau đó mới gọi API khi cần.
+/// </summary>
 public interface IStallService
 {
-    /// <summary>Lấy toàn bộ danh sách gian hàng, có hỗ trợ cache.</summary>
-    /// <param name="forceRefresh">true = bỏ qua cache, gọi API mới (mặc định false)</param>
+    /// <summary>
+    /// Lấy toàn bộ danh sách gian hàng, có hỗ trợ cache.
+    /// </summary>
+    /// <param name="forceRefresh">Giá trị <c>true</c> để bỏ qua cache và gọi API mới.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Danh sách gian hàng đã được tải từ cache hoặc từ API.</returns>
     Task<List<GeoStallDto>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
 
-    /// <summary>Lấy một gian hàng cụ thể theo ID.</summary>
+    /// <summary>
+    /// Lấy một gian hàng cụ thể theo ID.
+    /// </summary>
+    /// <param name="stallId">Mã gian hàng cần tìm.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Gian hàng tương ứng nếu tìm thấy; ngược lại trả về <c>null</c>.</returns>
     Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default);
 }
 
@@ -23,6 +35,9 @@ public interface IStallService
 ///   2. Trigger sync ngầm nếu data quá cũ (> 3 phút)
 ///   3. Nếu SQLite trống và có mạng → gọi API trực tiếp
 ///   4. Offline + SQLite trống → fallback mock
+/// </summary>
+/// <summary>
+/// Dịch vụ lấy dữ liệu gian hàng cho bản đồ và danh sách hiển thị.
 /// </summary>
 public class StallService : IStallService
 {
@@ -51,11 +66,18 @@ public class StallService : IStallService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Lấy danh sách gian hàng theo chiến lược cache-first, có thể ép làm mới nếu cần.
+    /// </summary>
+    /// <param name="forceRefresh">Giá trị <c>true</c> để bỏ qua cache và lấy dữ liệu mới.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Danh sách gian hàng.</returns>
     public async Task<List<GeoStallDto>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
     {
         // Cache-First: đọc SQLite trước (nhanh, không cần mạng)
         if (!forceRefresh)
         {
+            // Lấy dữ liệu đã lưu sẵn trong máy.
             var cached = await _localRepo.GetAllAsync();
             if (cached.Count > 0)
             {
@@ -65,6 +87,7 @@ public class StallService : IStallService
                 if (ShouldSync())
                     _ = _syncService.SyncAsync(CancellationToken.None);
 
+                // Chuyển dữ liệu local sang DTO để UI dùng trực tiếp.
                 return cached.Select(ToDto).ToList();
             }
         }
@@ -72,13 +95,23 @@ public class StallService : IStallService
         // SQLite trống hoặc forceRefresh: kiểm tra mạng
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
         {
-            _logger.LogWarning("GetStallsAsync: offline và SQLite trống, dùng mock");
-            return GetMockStalls();
+            // Không có mạng → fallback SQLite (dù forceRefresh = true)
+            var offline = await _localRepo.GetAllAsync();
+            if (offline.Count > 0)
+            {
+                _logger.LogWarning("GetStallsAsync: offline, fallback {Count} stall từ SQLite", offline.Count);
+                return [..offline.Select(ToDto)];
+            }
+
+            _logger.LogWarning("GetStallsAsync: offline và SQLite trống, trả về danh sách rỗng");
+            return [];
         }
 
         try
         {
+            // Lấy deviceId để API trả về dữ liệu đúng theo thiết bị/ngữ cảnh người dùng.
             var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            // Tạo URL gọi API danh sách gian hàng.
             var client = _httpClientFactory.CreateClient();
             var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
 
@@ -87,36 +120,52 @@ public class StallService : IStallService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("GetStallsAsync: API trả về {StatusCode}, dùng mock", (int)response.StatusCode);
-                return GetMockStalls();
+                _logger.LogWarning("GetStallsAsync: API trả về {StatusCode}, fallback SQLite", (int)response.StatusCode);
+                var fallback = await _localRepo.GetAllAsync();
+                return [..fallback.Select(ToDto)];
             }
 
-            var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            var result = await JsonSerializer.DeserializeAsync<ApiResult<List<GeoStallDto>>>(stream, JsonOptions, cancellationToken);
-            var dtos = result?.Data ?? [];
+            // Giải mã dữ liệu JSON từ API.
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var dtos = (await JsonSerializer.DeserializeAsync<ApiResult<List<GeoStallDto>>>(stream, JsonOptions, cancellationToken))?.Data ?? [];
 
             _logger.LogInformation("GetStallsAsync: tải thành công {Count} gian hàng từ API", dtos.Count);
-            return dtos.Count == 0 ? GetMockStalls() : dtos;
+            return dtos;
         }
         catch (Exception ex)
         {
+            // Nếu lỗi bất ngờ thì trả về rỗng để tránh làm sập UI.
             _logger.LogError(ex, "GetStallsAsync: exception");
-            return GetMockStalls();
+            return [];
         }
     }
 
+    /// <summary>
+    /// Lấy một gian hàng theo ID bằng cách tra trong danh sách hiện có.
+    /// </summary>
+    /// <param name="stallId">Mã gian hàng cần tìm.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Gian hàng tương ứng nếu tìm thấy; ngược lại trả về <c>null</c>.</returns>
     public async Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default)
     {
+        // Tái sử dụng GetStallsAsync để lấy danh sách rồi tìm theo ID.
         var stalls = await GetStallsAsync(false, cancellationToken);
         return stalls.FirstOrDefault(x => x.StallId.ToString().Equals(stallId, StringComparison.OrdinalIgnoreCase));
     }
 
-    // Sync nếu chưa sync lần nào hoặc đã quá 3 phút
+    /// <summary>
+    /// Kiểm tra xem dữ liệu local đã đủ cũ để cần đồng bộ lại hay chưa.
+    /// </summary>
+    /// <returns><c>true</c> nếu cần đồng bộ lại; ngược lại <c>false</c>.</returns>
     private bool ShouldSync()
         => _syncService.LastSyncedAt is null
         || DateTime.UtcNow - _syncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
 
-    // Ưu tiên LocalAudioPath (phát offline), fallback AudioUrl (stream từ mạng)
+    /// <summary>
+    /// Chuyển <see cref="LocalStall"/> sang <see cref="GeoStallDto"/>, ưu tiên audio cục bộ nếu đã tải sẵn.
+    /// </summary>
+    /// <param name="s">Dữ liệu local của gian hàng.</param>
+    /// <returns>DTO gian hàng để UI sử dụng.</returns>
     private static GeoStallDto ToDto(LocalStall s) => new()
     {
         StallId      = Guid.Parse(s.StallId),
@@ -124,20 +173,14 @@ public class StallService : IStallService
         Latitude     = s.Latitude,
         Longitude    = s.Longitude,
         RadiusMeters = s.RadiusMeters,
-        AudioUrl     = s.LocalAudioPath ?? s.AudioUrl,
         NarrationContent = s.NarrationContentId is null ? null : new GeoStallNarrationContentDto
         {
             Id          = Guid.Parse(s.NarrationContentId),
             Title       = s.NarrationTitle ?? string.Empty,
             Description = s.NarrationDescription,
-            ScriptText  = s.NarrationScriptText ?? string.Empty
+            ScriptText  = s.NarrationScriptText ?? string.Empty,
+            // Ưu tiên file local đã tải, fallback về URL remote
+            AudioUrl    = s.LocalAudioPath ?? s.AudioUrl
         }
     };
-
-    private static List<GeoStallDto> GetMockStalls() =>
-    [
-        new GeoStallDto { StallId = Guid.Parse("00000000-0000-0000-0000-000000000001"), StallName = "Bánh Mì Ông 3",   Latitude = 10.777534, Longitude = 106.710669, RadiusMeters = 50, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-        new GeoStallDto { StallId = Guid.Parse("00000000-0000-0000-0000-000000000002"), StallName = "Phở Bò Bình Dân", Latitude = 10.7782,   Longitude = 106.7115,   RadiusMeters = 40, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-        new GeoStallDto { StallId = Guid.Parse("00000000-0000-0000-0000-000000000003"), StallName = "Kem Trái Cây",     Latitude = 10.7769,   Longitude = 106.7098,   RadiusMeters = 30, AudioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" }
-    ];
 }

@@ -40,7 +40,7 @@ public class MainViewModel : INotifyPropertyChanged
         LoadUserName();
 
         StartCommand = new Command(async () => await Shell.Current.GoToAsync("LanguagePage"));
-        MapCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(MapPage)));
+        MapCommand = new Command(async () => await Shell.Current.GoToAsync("//MapPage"));
         LanguageCommand = new Command(async () => await Shell.Current.GoToAsync("LanguagePage"));
         AudioCommand = new Command(async () => await ShowAudioHintAsync());
         ProfileCommand = new Command(async () => await ShowProfileAsync());

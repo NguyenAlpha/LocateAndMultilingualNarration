@@ -6,13 +6,32 @@ using Shared.DTOs.Geo;
 
 namespace Mobile.Services;
 
+/// <summary>
+/// Đồng bộ dữ liệu từ API về máy, lưu vào SQLite cục bộ và tải sẵn file âm thanh.
+/// </summary>
 public interface ISyncService
 {
+    /// <summary>
+    /// Thời điểm đồng bộ thành công gần nhất.
+    /// </summary>
     DateTime? LastSyncedAt { get; }
+
+    /// <summary>
+    /// Cho biết hiện tại service có đang đồng bộ hay không.
+    /// </summary>
     bool IsSyncing { get; }
+
+    /// <summary>
+    /// Thực hiện đồng bộ dữ liệu từ API về local cache.
+    /// </summary>
+    /// <param name="ct">Token hủy tác vụ.</param>
+    /// <returns>Task đại diện cho quá trình đồng bộ.</returns>
     Task SyncAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// Triển khai đồng bộ dữ liệu Stall, cache âm thanh và cập nhật trạng thái đồng bộ.
+/// </summary>
 public class SyncService : ISyncService
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -45,26 +64,33 @@ public class SyncService : ISyncService
         _logger = logger;
     }
 
+    /// <summary>
+    /// Đồng bộ dữ liệu theo các bước: lấy preference, gọi API, lưu local và tải audio.
+    /// </summary>
+    /// <param name="ct">Token hủy tác vụ.</param>
+    /// <returns>Task đại diện cho quá trình đồng bộ.</returns>
     public async Task SyncAsync(CancellationToken ct = default)
     {
+        // Tránh chạy đồng bộ song song nhiều lần cùng lúc.
         if (IsSyncing) return; // tránh chạy song song
         IsSyncing = true;
 
         try
         {
-            // Bước 1: Lấy preference để biết languageCode + voiceId
+            // Bước 1: Lấy preference để biết ngôn ngữ và giọng đọc đang được chọn.
             var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
             var pref = await _devicePreferenceApiService.GetAsync(deviceId, ct);
+            _logger.LogInformation("[SyncService][SyncAsync]Language name: {LanguageName} | voice: {Voice}", pref?.LanguageName, pref?.Voice);
             var languageCode = pref?.LanguageCode ?? "vi";
             var voiceId = pref?.Voice ?? string.Empty;
 
-            // Bước 2: Gọi API trực tiếp (không qua StallService để tránh circular dependency)
+            // Bước 2: Gọi API trực tiếp để lấy danh sách Stall của thiết bị hiện tại.
             var client = _httpClientFactory.CreateClient();
             var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
             using var response = await client.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("SyncAsync: API trả về {StatusCode}", (int)response.StatusCode);
+                _logger.LogWarning("[SyncAsync]: API trả về {StatusCode}", (int)response.StatusCode);
                 return;
             }
             var stream = await response.Content.ReadAsStreamAsync(ct);
@@ -72,11 +98,13 @@ public class SyncService : ISyncService
             var apiStalls = result?.Data ?? [];
             if (apiStalls.Count == 0)
             {
-                _logger.LogWarning("SyncAsync: API trả về 0 stall, bỏ qua");
+                _logger.LogWarning("[SyncAsync]: API trả về 0 stall, bỏ qua");
                 return;
             }
 
-            // Bước 3: Map sang LocalStall và upsert SQLite
+            // Bước 3: Load bản ghi cũ trước khi upsert để lấy AudioUrl và LocalAudioPath cũ so sánh ở bước 4.
+            var existingMap = (await _localRepo.GetAllAsync()).ToDictionary(s => s.StallId);
+
             var localStalls = apiStalls.Select(s => new LocalStall
             {
                 StallId               = s.StallId.ToString(),
@@ -84,7 +112,7 @@ public class SyncService : ISyncService
                 Latitude              = s.Latitude,
                 Longitude             = s.Longitude,
                 RadiusMeters          = s.RadiusMeters,
-                AudioUrl              = s.AudioUrl,
+                AudioUrl              = s.NarrationContent?.AudioUrl,
                 LanguageCode          = languageCode,
                 VoiceId               = voiceId,
                 LastUpdated           = DateTimeOffset.UtcNow,
@@ -94,17 +122,24 @@ public class SyncService : ISyncService
                 NarrationScriptText   = s.NarrationContent?.ScriptText
             }).ToList();
 
-            foreach (var s in localStalls)
-                _logger.LogInformation("SyncAsync: [{Name}] NarrationContent={HasNarration} | ScriptText={ScriptPreview}",
-                    s.StallName,
-                    s.NarrationContentId != null,
-                    s.NarrationScriptText?[..Math.Min(40, s.NarrationScriptText?.Length ?? 0)] ?? "(null)");
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                var withNarration = localStalls.Count(s => s.NarrationContentId != null);
+                _logger.LogInformation("[SyncAsync]: {WithNarration}/{Total} stall có NarrationContent", withNarration, localStalls.Count);
+            }
 
+            // Ghi toàn bộ danh sách vào cơ sở dữ liệu cục bộ.
+            // UpsertBatchAsync chỉ ghi những stall thực sự thay đổi — log ở đây chỉ biết tổng từ API.
             await _localRepo.UpsertBatchAsync(localStalls);
-            _logger.LogInformation("SyncAsync: upsert {Count} stall vào SQLite", localStalls.Count);
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("[SyncAsync]: API trả về {Total} stall, đã upsert vào SQLite (chỉ ghi stall thay đổi)", localStalls.Count);
 
-            // Bước 4: Download audio song song, tối đa 3 concurrent
-            var semaphore = new SemaphoreSlim(3);
+            // Bước 4: Tải file âm thanh song song nhưng giới hạn số luồng để tránh quá tải.
+            var semaphore   = new SemaphoreSlim(3);
+            var audioTotal  = localStalls.Count(s => !string.IsNullOrWhiteSpace(s.AudioUrl));
+            var audioSkipped = 0;
+            var audioDownloaded = 0;
+
             var downloadTasks = localStalls
                 .Where(s => !string.IsNullOrWhiteSpace(s.AudioUrl))
                 .Select(async s =>
@@ -112,23 +147,43 @@ public class SyncService : ISyncService
                     await semaphore.WaitAsync(ct);
                     try
                     {
+                        // Bỏ qua nếu URL không đổi và file vẫn còn trên máy — không cần tải lại.
+                        var old = existingMap.GetValueOrDefault(s.StallId);
+                        if (old is not null
+                            && old.AudioUrl == s.AudioUrl
+                            && old.LocalAudioPath is not null
+                            && File.Exists(old.LocalAudioPath))
+                        {
+                            Interlocked.Increment(ref audioSkipped);
+                            return;
+                        }
+
+                        // Tải audio về cache cục bộ theo StallId và ngôn ngữ.
                         var localPath = await _audioCacheService.EnsureDownloadedAsync(
                             s.AudioUrl!, s.StallId, languageCode, ct);
 
+                        // Nếu đã tải thành công thì cập nhật lại đường dẫn local trong SQLite.
                         if (localPath is not null)
+                        {
                             await _localRepo.UpdateLocalAudioPathAsync(s.StallId, localPath);
+                            Interlocked.Increment(ref audioDownloaded);
+                        }
                     }
                     finally { semaphore.Release(); }
                 });
 
+            // Chờ tất cả tác vụ download hoàn tất.
             await Task.WhenAll(downloadTasks);
             LastSyncedAt = DateTime.UtcNow;
-            _logger.LogInformation("SyncAsync: hoàn tất lúc {Time}", LastSyncedAt);
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation(
+                    "[SyncAsync]: audio {Downloaded} tải mới / {Skipped} bỏ qua (đã có) / {Total} tổng — hoàn tất lúc {Time}",
+                    audioDownloaded, audioSkipped, audioTotal, LastSyncedAt);
         }
         catch (OperationCanceledException) { /* bị huỷ bình thường */ }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "SyncAsync: lỗi không mong muốn");
+            _logger.LogError(ex, "[SyncAsync]: lỗi không mong muốn");
         }
         finally { IsSyncing = false; }
     }

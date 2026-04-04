@@ -7,7 +7,6 @@ namespace Shared.DTOs.Geo
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public double RadiusMeters { get; set; }
-        public string? AudioUrl { get; set; }
         public GeoStallNarrationContentDto? NarrationContent { get; set; }
     }
 }

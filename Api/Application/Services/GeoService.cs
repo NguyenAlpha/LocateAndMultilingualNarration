@@ -249,9 +249,6 @@ namespace Api.Application.Services
                     Latitude = (double)l.Latitude,
                     Longitude = (double)l.Longitude,
                     RadiusMeters = (double)l.RadiusMeters,
-                    // Chọn AudioUrl theo thứ tự ưu tiên: voice preference → TTS → bất kỳ
-                    AudioUrl = PickAudioUrl(preferredContent?.NarrationAudios, preferredVoice),
-                    // Narration content đầu tiên active của gian hàng
                     NarrationContent = contents.Select(c => new GeoStallNarrationContentDto
                     {
                         Id          = c.Id,

@@ -40,7 +40,9 @@ public class StartViewModel : INotifyPropertyChanged
         {
             // Đã có preference → restore ngôn ngữ và vào thẳng MapPage
             LanguageHelper.SetLanguage(preference.LanguageCode);
-            await Shell.Current.GoToAsync(nameof(MapPage));
+            if (preference.Voice is not null)
+                LanguageHelper.SetVoice(preference.Voice);
+            await Shell.Current.GoToAsync("//MapPage");
         }
     }
 

@@ -44,9 +44,10 @@ public partial class StallPopup : Popup
 
     private async void OnPlayClicked(object? sender, EventArgs e)
     {
-        _logger.LogInformation("[Popup] Ấn Phát — StallName={StallName}, AudioUrl={AudioUrl}",
-            _stall?.StallName ?? "(null)",
-            _stall?.AudioUrl ?? "(null)");
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("[Popup] Ấn Phát — StallName={StallName}, AudioUrl={AudioUrl}",
+                _stall?.StallName ?? "(null)",
+                _stall?.NarrationContent?.AudioUrl ?? "(null)");
 
         if (_stall is not null)
             _viewModel.PlayStall(_stall);
