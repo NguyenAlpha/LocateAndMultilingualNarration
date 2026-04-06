@@ -1,3 +1,4 @@
+using Api.Application.Services;
 using Api.Infrastructure.Persistence;  // Tham chiếu đến namespace chứa AppDbContext (Entity Framework DbContext)
 using Microsoft.AspNetCore.Hosting;     // Cung cấp IWebHostBuilder để cấu hình web host
 using Microsoft.AspNetCore.Mvc.Testing; // Cung cấp WebApplicationFactory để test API
@@ -40,6 +41,9 @@ namespace TestAPI
                 {
                     options.UseInMemoryDatabase(_databaseName);
                 });
+
+                // Thay NarrationAudioService thật (dùng Azure TTS) bằng fake để test không cần Azure
+                services.AddScoped<INarrationAudioService, FakeNarrationAudioService>();
             });
         }
     }
