@@ -224,8 +224,9 @@ public class LanguageSelectionViewModel : INotifyPropertyChanged
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            // Cập nhật language cho user profile (nếu user đã đăng nhập).
-            _ = await _languageService.UpdateUserLanguageAsync(SelectedLanguage.Id.ToString());
+            // OLD CODE (kept for reference):
+            // _ = await _languageService.UpdateUserLanguageAsync(SelectedLanguage.Id.ToString());
+            // Tạm thời bỏ qua update user language vì ILanguageService hiện chưa expose method này.
 
             // Cập nhật device preference để API map trả audio đúng ngôn ngữ/voice.
             var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();

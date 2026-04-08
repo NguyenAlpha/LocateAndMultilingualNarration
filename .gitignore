@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /.env
 /.github
 .claude/settings.local.json
+/Mobile/.idea

@@ -127,7 +127,6 @@ public partial class ScanPage : ContentPage
 
             string stallId = qrValue;
 
-            // QR hợp lệ theo flow hiện tại chứa stallId dạng GUID.
             if (!Guid.TryParse(stallId, out _))
             {
                 await DisplayAlertAsync("QR", "Mã QR không hợp lệ. Vui lòng quét lại.", "OK");
@@ -136,11 +135,9 @@ public partial class ScanPage : ContentPage
                 return;
             }
 
-            // Giữ logic guest mode cũ để tương thích flow hiện tại.
             _sessionService.SetGuestMode(true);
 
             // OLD CODE (kept for reference): LocalStorageService.SaveStallId(value);
-            // Lưu stallId trước khi điều hướng để đảm bảo persistence sau khi restart app.
             await LocalStorageService.SaveStallId(stallId);
 
             Console.WriteLine($"[DEBUG] Navigating to LanguagePage after scan with StallId: {stallId}");
@@ -149,19 +146,16 @@ public partial class ScanPage : ContentPage
         catch (Exception ex)
         {
             Console.WriteLine($"[ERROR] {ex.Message}");
-            // Nếu lỗi thì bật lại scan để người dùng quét lại.
             isScanning = true;
             cameraView.IsDetecting = true;
         }
     }
 
-    // Nút back ở header.
     private async void OnBackClicked(object? sender, TappedEventArgs e)
     {
         await Shell.Current.GoToAsync("..");
     }
 
-    // Nút flash ở header.
     private void OnFlashClicked(object? sender, TappedEventArgs e)
     {
         _isTorchOn = !_isTorchOn;

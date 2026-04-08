@@ -1,21 +1,29 @@
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
-using Mobile.Helpers;
 using Shared.DTOs.Languages;
 
 namespace Mobile.Services;
 
+/// <summary>
+/// Cung cấp dữ liệu ngôn ngữ và đồng bộ lựa chọn ngôn ngữ của người dùng lên API.
+/// </summary>
 public interface ILanguageService
 {
+    /// <summary>
+    /// Lấy danh sách ngôn ngữ đang hoạt động.
+    /// </summary>
+    /// <param name="forceRefresh">Giá trị <c>true</c> để bỏ qua cache và tải lại từ API.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Danh sách ngôn ngữ.</returns>
     Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
-    Task<bool> UpdateUserLanguageAsync(string languageId, CancellationToken cancellationToken = default);
+
 }
 
+/// <summary>
+/// Triển khai logic lấy danh sách ngôn ngữ và cập nhật lựa chọn ngôn ngữ của người dùng.
+/// </summary>
 public class LanguageService : ILanguageService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly SessionService _sessionService;
 
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
     private List<LanguageDetailDto>? _cachedLanguages;
@@ -23,98 +31,87 @@ public class LanguageService : ILanguageService
 
     private const string BaseUrl = "http://10.0.2.2:5299";
 
-    public LanguageService(IHttpClientFactory httpClientFactory, SessionService sessionService)
+    public LanguageService(IHttpClientFactory httpClientFactory)
     {
         _httpClientFactory = httpClientFactory;
-        _sessionService = sessionService;
     }
 
+    /// <summary>
+    /// Lấy danh sách ngôn ngữ đang hoạt động, ưu tiên dùng cache trong bộ nhớ nếu còn hạn.
+    /// </summary>
+    /// <param name="forceRefresh">Giá trị <c>true</c> để bỏ qua cache và tải lại từ API.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Danh sách ngôn ngữ đang hoạt động.</returns>
     public async Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
     {
         // Cache để tránh gọi API lặp lại gây lag UI.
+        // Nếu cache còn hiệu lực thì trả về ngay, không cần gọi mạng.
         if (!forceRefresh && _cachedLanguages is { Count: > 0 } && DateTime.UtcNow - _lastFetchUtc < CacheDuration)
         {
             return _cachedLanguages;
         }
 
+        // Không có mạng và không có cache → báo cho UI biết để hiển thị thông báo.
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+            throw new InvalidOperationException("no_network");
+
         try
         {
+            // Tạo HttpClient từ factory để gọi API ngôn ngữ.
             var client = _httpClientFactory.CreateClient();
+            // Gọi endpoint lấy danh sách ngôn ngữ đang active.
             var response = await client.GetAsync($"{BaseUrl}/api/languages/active", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                // Nếu API lỗi thì trả lại dữ liệu cache hiện có, hoặc danh sách rỗng.
                 return _cachedLanguages ?? [];
             }
 
+            // Đọc dữ liệu JSON trả về từ API.
             var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+            // Chuyển JSON thành danh sách DTO ngôn ngữ.
             var languages = ParseLanguages(raw);
 
+            // Lưu lại cache trong bộ nhớ để dùng cho lần gọi tiếp theo.
             _cachedLanguages = languages;
             _lastFetchUtc = DateTime.UtcNow;
             return languages;
         }
         catch
         {
+            // Nếu có lỗi bất kỳ thì ưu tiên trả cache hiện có để UI vẫn hoạt động.
             return _cachedLanguages ?? [];
         }
     }
 
-    public async Task<bool> UpdateUserLanguageAsync(string languageId, CancellationToken cancellationToken = default)
-    {
-        // OLD CODE: trước đây chỉ lưu local preference, không đồng bộ API.
-        if (string.IsNullOrWhiteSpace(languageId))
-        {
-            return false;
-        }
-
-        var token = _sessionService.GetToken();
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            return false;
-        }
-
-        try
-        {
-            var client = _httpClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var payload = JsonSerializer.Serialize(new { languageId = Guid.Parse(languageId) });
-            using var content = new StringContent(payload, Encoding.UTF8, "application/json");
-
-            var putResponse = await client.PutAsync($"{BaseUrl}/api/visitor-profile", content, cancellationToken);
-            if (putResponse.IsSuccessStatusCode)
-            {
-                return true;
-            }
-
-            // Nếu profile chưa tồn tại, thử tạo mới.
-            var postResponse = await client.PostAsync($"{BaseUrl}/api/visitor-profile", content, cancellationToken);
-            return postResponse.IsSuccessStatusCode;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
+    /// <summary>
+    /// Phân tích JSON trả về từ API thành danh sách <see cref="LanguageDetailDto"/>.
+    /// </summary>
+    /// <param name="json">Chuỗi JSON cần phân tích.</param>
+    /// <returns>Danh sách DTO ngôn ngữ đã parse.</returns>
     private static List<LanguageDetailDto> ParseLanguages(string json)
     {
+        // Khởi tạo danh sách kết quả rỗng.
         var result = new List<LanguageDetailDto>();
+        // Phân tích chuỗi JSON thành cây tài liệu để đọc linh hoạt cả object lẫn array.
         using var doc = JsonDocument.Parse(json);
 
         var root = doc.RootElement;
         var list = root;
 
+        // Nếu API bọc dữ liệu trong thuộc tính data thì lấy node data.
         if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var dataNode))
         {
             list = dataNode;
         }
 
+        // Nếu không phải mảng thì không có dữ liệu hợp lệ để đọc.
         if (list.ValueKind != JsonValueKind.Array)
         {
             return result;
         }
 
+        // Duyệt từng phần tử JSON và map sang DTO.
         foreach (var item in list.EnumerateArray())
         {
             result.Add(new LanguageDetailDto

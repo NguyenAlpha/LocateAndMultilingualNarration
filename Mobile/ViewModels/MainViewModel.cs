@@ -1,7 +1,9 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows.Input;
+using Mobile.Models;
 using Mobile.Pages;
 using Mobile.Services;
 
@@ -10,6 +12,7 @@ namespace Mobile.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     readonly SessionService sessionService;
+    readonly IStallService stallService;
     private int _quickActionNavigationGuard;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -20,6 +23,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand AudioCommand { get; }
     public ICommand ProfileCommand { get; }
     public ICommand LogoutCommand { get; }
+    public ICommand LoadDataCommand { get; }
 
     string userName = "Guest";
     public string UserName
@@ -36,9 +40,36 @@ public class MainViewModel : INotifyPropertyChanged
 
     public string HelloText => $"Hello, {UserName}";
 
-    public MainViewModel(SessionService sessionService)
+    public ObservableCollection<StallItem> FeaturedStalls { get; } = new();
+
+    bool isLoadingStalls;
+    public bool IsLoadingStalls
+    {
+        get => isLoadingStalls;
+        set
+        {
+            if (isLoadingStalls == value) return;
+            isLoadingStalls = value;
+            OnPropertyChanged();
+        }
+    }
+
+    bool hasStalls;
+    public bool HasStalls
+    {
+        get => hasStalls;
+        set
+        {
+            if (hasStalls == value) return;
+            hasStalls = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public MainViewModel(SessionService sessionService, IStallService stallService)
     {
         this.sessionService = sessionService;
+        this.stallService = stallService;
         LoadUserName();
 
         StartCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
@@ -47,11 +78,41 @@ public class MainViewModel : INotifyPropertyChanged
         AudioCommand = new Command(async () => await NavigateQuickActionAsync("AudioPage"));
         ProfileCommand = new Command(async () => await ShowProfileAsync());
         LogoutCommand = new Command(async () => await LogoutAsync());
+        LoadDataCommand = new Command(async () => await LoadFeaturedStallsAsync());
+
+        _ = LoadFeaturedStallsAsync();
     }
 
     public void LoadUserName()
     {
         UserName = sessionService.GetUserName();
+    }
+
+    async Task LoadFeaturedStallsAsync()
+    {
+        if (IsLoadingStalls) return;
+
+        try
+        {
+            IsLoadingStalls = true;
+            var stalls = await stallService.GetFeaturedStallsAsync();
+            
+            FeaturedStalls.Clear();
+            foreach (var stall in stalls)
+            {
+                FeaturedStalls.Add(stall);
+            }
+
+            HasStalls = FeaturedStalls.Count > 0;
+        }
+        catch
+        {
+            HasStalls = false;
+        }
+        finally
+        {
+            IsLoadingStalls = false;
+        }
     }
 
     async Task ShowAudioHintAsync()
@@ -62,11 +123,27 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    // OLD CODE (kept for reference): ShowProfileAsync cũ chỉ hiển thị alert.
+    // async Task ShowProfileAsync()
+    // {
+    //     if (Application.Current?.Windows[0].Page != null)
+    //     {
+    //         await Application.Current.Windows[0].Page!.DisplayAlertAsync("Profile", "Trang cá nhân", "OK");
+    //     }
+    // }
     async Task ShowProfileAsync()
     {
-        if (Application.Current?.Windows[0].Page != null)
+        try
         {
-            await Application.Current.Windows[0].Page!.DisplayAlertAsync("Profile", "Trang cá nhân", "OK");
+            // OLD CODE (kept for reference): await Shell.Current.GoToAsync(nameof(ProfilePage));
+            await Shell.Current.GoToAsync("//profile");
+        }
+        catch (Exception ex)
+        {
+            if (Application.Current?.Windows[0].Page != null)
+            {
+                await Application.Current.Windows[0].Page!.DisplayAlertAsync("Lỗi", $"Không thể mở trang Hồ sơ: {ex.Message}", "OK");
+            }
         }
     }
 
@@ -76,9 +153,6 @@ public class MainViewModel : INotifyPropertyChanged
         await Shell.Current.GoToAsync("//StartPage");
     }
 
-    /// <summary>
-    /// Điều hướng quick action có guard để tránh nhấn liên tục gây điều hướng trùng.
-    /// </summary>
     private async Task NavigateQuickActionAsync(string route)
     {
         if (string.IsNullOrWhiteSpace(route)) return;

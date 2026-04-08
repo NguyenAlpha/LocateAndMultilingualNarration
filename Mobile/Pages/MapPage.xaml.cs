@@ -1,5 +1,3 @@
-// Quyền vị trí và Geolocation API của MAUI
-using Microsoft.Maui.ApplicationModel;
 // Thư viện bản đồ Mapsui — các kiểu dữ liệu cốt lõi (Map, MPoint...)
 using Mapsui;
 // Layer có thể ghi dữ liệu động lên bản đồ (dùng cho vòng tròn geofence)
@@ -38,11 +36,7 @@ namespace Mobile.Pages;
 ///   - Xử lý sự kiện tap vào Pin → hiện action sheet
 ///   - Yêu cầu quyền GPS và lấy vị trí hiện tại
 ///
-/// [QueryProperty] cho phép nhận tham số điều hướng từ Shell:
-///   await Shell.Current.GoToAsync($"MapPage?boothId=B01")
-///   → property BoothId sẽ được gán = "B01" trước khi OnAppearing chạy
 /// </summary>
-[QueryProperty(nameof(BoothId), "boothId")]
 public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _viewModel;
@@ -51,9 +45,16 @@ public partial class MapPage : ContentPage
     // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
     private bool _isInitialized;
 
+    // Cờ báo hiệu đang hiển thị popup — tránh StopPolling/StartPolling không cần thiết khi popup mở/đóng.
+    private bool _isPopupOpen;
+
+    // Lưu ngôn ngữ/voice lần trước để so sánh — chỉ reload khi thực sự thay đổi.
+    private string? _lastLanguageCode;
+    private string? _lastVoiceId;
+
     // Layer riêng để vẽ vòng tròn geofence (bán kính phủ sóng) của từng gian hàng
     // Style = null để mỗi feature tự mang style riêng (màu khác nhau khi selected/unselected)
-    private WritableLayer _circlesLayer = new WritableLayer { Name = "StallCircles", Style = null };
+    private readonly WritableLayer _circlesLayer = new() { Name = "StallCircles", Style = null };
 
     // Tái sử dụng factory thay vì new mỗi lần gọi BuildCirclePolygon
     private static readonly GeometryFactory GeomFactory = new();
@@ -61,8 +62,6 @@ public partial class MapPage : ContentPage
     // Label của pin vị trí người dùng — dùng để nhận dạng khi RenderPins cần giữ lại pin này
     private const string MyLocationLabel = "Bạn đang ở đây";
 
-    // Nhận boothId từ query string khi điều hướng đến trang này (có thể null)
-    public string? BoothId { get; set; }
 
     /// <summary>
     /// Constructor: khởi tạo UI, lấy ViewModel từ DI, đăng ký event, cấu hình bản đồ.
@@ -111,12 +110,39 @@ public partial class MapPage : ContentPage
     {
         base.OnAppearing();
         if (_logger.IsEnabled(LogLevel.Information))
-            _logger.LogInformation("[MapPage] OnAppearing — _isInitialized={IsInitialized}", _isInitialized);
+            _logger.LogInformation("[MapPage][OnAppearing] — _isInitialized={IsInitialized}", _isInitialized);
+
+        // Popup mở/đóng cũng trigger OnAppearing/OnDisappearing — bỏ qua để không restart polling thừa.
+        if (_isPopupOpen)
+        {
+            _isPopupOpen = false;
+            return;
+        }
+
         _viewModel.StartPolling();
+        _viewModel.SelectedStall = null;
 
-        if (_isInitialized) return;
+        if (_isInitialized)
+        {
+            // Đọc ngôn ngữ/voice hiện tại từ LanguageHelper (được VoicePage ghi trước khi navigate).
+            var currentLanguage = LanguageHelper.GetLanguage();
+            var currentVoice    = LanguageHelper.GetVoice();
+
+            // Chỉ reload khi ngôn ngữ hoặc voice thực sự thay đổi so với lần trước.
+            var languageChanged = currentLanguage is not null && currentLanguage != _lastLanguageCode;
+            var voiceChanged    = currentVoice is not null && currentVoice != _lastVoiceId;
+
+            if (languageChanged || voiceChanged)
+            {
+                _lastLanguageCode = currentLanguage;
+                _lastVoiceId      = currentVoice;
+                _ = _viewModel.ReloadAsync();
+            }
+
+            return;
+        }
+
         _isInitialized = true;
-
         _ = InitializePageAsync(); // fire-and-forget rõ ràng, exception được bắt bên trong
     }
 
@@ -131,16 +157,16 @@ public partial class MapPage : ContentPage
             // 1. Xin quyền GPS nếu chưa có
             await EnsureLocationPermissionAsync();
 
-            // 2. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
+            // 2. Tải danh sách gian hàng từ API
+            await _viewModel.InitializeAsync();
+
+            // 3. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
             var located = await MoveToCurrentLocationAsync();
             if (!located)
             {
                 var (x, y) = SphericalMercator.FromLonLat(106.710669, 10.777534);
                 mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 0.7, 0);
             }
-
-            // 4. Tải danh sách gian hàng từ API (và tự động chọn booth nếu có BoothId)
-            await _viewModel.InitializeAsync(BoothId);
         }
         catch (Exception ex)
         {
@@ -152,13 +178,16 @@ public partial class MapPage : ContentPage
     {
         base.OnDisappearing();
 
+        if (_isPopupOpen)
+            return; // popup đang mở — không stop polling
+
         try
         {
             _viewModel.StopPolling();
 
-            // Khi rời trang map thì dừng audio để tránh giữ tài nguyên player gây crash vòng đời.
-            if (_viewModel.StopAudioCommand.CanExecute(null))
-                _viewModel.StopAudioCommand.Execute(null);
+            // OLD CODE (kept for reference): khi rời map có thể dừng audio để tránh giữ tài nguyên.
+            // if (_viewModel.StopAudioCommand.CanExecute(null))
+            //     _viewModel.StopAudioCommand.Execute(null);
         }
         catch (Exception ex)
         {
@@ -337,16 +366,34 @@ public partial class MapPage : ContentPage
 
     /// <summary>
     /// Xử lý khi người dùng tap vào một pin gian hàng trên bản đồ.
-    /// Chọn gian hàng đó trong ViewModel, rồi hiện action sheet với 3 tuỳ chọn.
     /// </summary>
     private async Task OnPinClickedAsync(GeoStallDto stall)
     {
-        _logger.LogInformation("OnPinClickedAsync - StallId: {StallId}", stall.StallId);
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("[Popup] OnPinClickedAsync - StallId: {StallId}, NarrationContent={HasNarration}",
+                stall.StallId, stall.NarrationContent != null);
         _viewModel.SelectStall(stall);
 
-        var popup = ServiceHelper.GetService<StallPopup>();
-        popup.Init(stall);
-        await this.ShowPopupAsync(popup);
+        try
+        {
+            var popup = ServiceHelper.GetService<StallPopup>();
+            if (popup is null)
+            {
+                _logger.LogError("[Popup] GetService<StallPopup> trả về NULL");
+                return;
+            }
+            _logger.LogInformation("[Popup] GetService OK, gọi Init...");
+            popup.Init(stall);
+            _logger.LogInformation("[Popup] Gọi ShowPopupAsync...");
+            _isPopupOpen = true;
+            await this.ShowPopupAsync(popup);
+            _isPopupOpen = false;
+            _logger.LogInformation("[Popup] ShowPopupAsync hoàn tất");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Popup] Lỗi khi hiện popup");
+        }
     }
 
     /// <summary>
@@ -380,8 +427,8 @@ public partial class MapPage : ContentPage
     /// </summary>
     private void OnFocusStallRequested(GeoStallDto stall)
     {
-        var location = SphericalMercator.FromLonLat(stall.Longitude, stall.Latitude);
-        var centerPoint = new MPoint(location.x, location.y);
+        var (x, y) = SphericalMercator.FromLonLat(stall.Longitude, stall.Latitude);
+        var centerPoint = new MPoint(x, y);
 
         // Đọc resolution hiện tại của viewport — giữ nguyên zoom người dùng đang ở
         // Fallback về 0.7 nếu chưa có viewport (trường hợp hiếm khi map chưa render xong)
@@ -392,5 +439,11 @@ public partial class MapPage : ContentPage
 
         // Vẽ lại pin để cập nhật màu pin đang chọn (đỏ) vs các pin còn lại (xanh)
         RenderPins();
+    }
+
+    private async void OnBackClicked(object sender, EventArgs e)
+    {
+        _viewModel.StopPolling();
+        await Shell.Current.GoToAsync("//MainPage");
     }
 }

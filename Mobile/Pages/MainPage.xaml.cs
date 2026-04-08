@@ -17,7 +17,9 @@ namespace Mobile
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            _viewModel.LoadUserName();
+            _viewModel.LoadUserName();   // giữ nguyên
+            // Nếu có LoadFeaturedStalls thì gọi thêm
+            // _viewModel.LoadFeaturedStalls();
         }
     }
 }

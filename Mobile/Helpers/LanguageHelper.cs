@@ -6,6 +6,10 @@ namespace Mobile.Helpers
     public static class LanguageHelper
     {
         const string LanguageKey = "app_selected_language";
+        const string VoiceKey    = "app_selected_voice";
+
+        public static void SetVoice(string voiceId) => Preferences.Set(VoiceKey, voiceId);
+        public static string? GetVoice() => Preferences.ContainsKey(VoiceKey) ? Preferences.Get(VoiceKey, string.Empty) : null;
 
         static readonly Dictionary<string, string> LanguageNames = new()
         {

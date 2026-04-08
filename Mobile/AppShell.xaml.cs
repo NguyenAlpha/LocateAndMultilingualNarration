@@ -42,9 +42,8 @@ namespace Mobile
             // Alias AudioPage để tái sử dụng đúng trang hiện có theo yêu cầu flow mới.
             Routing.RegisterRoute("AudioPage", typeof(VoicePage));
 
-            // Trang bản đồ — hiển thị vị trí gian hàng và hành trình của người dùng
-            // OLD CODE (kept for reference): Routing.RegisterRoute(nameof(MapPage), typeof(MapPage));
-            // MapPage đã là ShellContent route gốc trong AppShell.xaml.
+            // MapPage không đăng ký ở đây vì đã là ShellContent trong AppShell.xaml.
+            // Đăng ký lại sẽ xung đột và tạo instance mới thay vì dùng instance ShellContent sẵn có.
         }
     }
 }

@@ -45,19 +45,19 @@ public class StartViewModel : INotifyPropertyChanged
             _isInitializing = true;
 
             var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
-
             var preference = await _devicePreferenceApiService.GetAsync(deviceId);
 
             if (preference is null)
             {
-                // Lần đầu: chưa có preference → chọn ngôn ngữ
                 _hasNavigatedFromStart = true;
                 await Shell.Current.GoToAsync(nameof(LanguagePage));
             }
             else
             {
-                // Đã có preference → restore ngôn ngữ và vào thẳng MapPage
                 LanguageHelper.SetLanguage(preference.LanguageCode);
+                if (!string.IsNullOrWhiteSpace(preference.Voice))
+                    LanguageHelper.SetVoice(preference.Voice);
+
                 _hasNavigatedFromStart = true;
                 await Shell.Current.GoToAsync(nameof(MapPage));
             }

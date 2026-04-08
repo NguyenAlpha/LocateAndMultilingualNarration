@@ -28,14 +28,8 @@
     <div class="card-body">
         <form method="get" class="row g-3 mb-4">
             <div class="col-md-4">
-                <label for="stallId" class="form-label">Chọn Stall</label>
-                <select name="stallId" id="stallId" class="form-select">
-                    <option value="">-- Tất cả stall --</option>
-                    @foreach (var s in Model.Stalls)
-                    {
-                        <option value="@s.Id" selected="@(Model.StallId == s.Id)">@s.Name</option>
-                    }
-                </select>
+                <label for="stallName" class="form-label">Tên Stall</label>
+                <input type="text" name="stallName" id="stallName" class="form-control" placeholder="Tìm theo tên stall..." value="@Model.StallName" />
             </div>
             <div class="col-md-3">
                 <label for="isActive" class="form-label">Trạng thái</label>
@@ -45,10 +39,13 @@
                     <option value="false" selected="@(Model.IsActive == false)">Tắt</option>
                 </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end gap-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-funnel me-1"></i>Lọc
                 </button>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-x-lg me-1"></i>Xóa lọc
+                </a>
             </div>
             <div class="col-md-3 d-flex align-items-end">
                 <a href="@Url.Action("CreateMap")" class="btn btn-success w-100">
@@ -115,7 +112,7 @@
                             {
                                 { "page", i },
                                 { "pageSize", Model.PageSize },
-                                { "stallId", Model.StallId },
+                                { "stallName", Model.StallName ?? "" },
                                 { "isActive", Model.IsActive }
                             };
                             <li class="page-item @(i == Model.Page ? "active" : "")">

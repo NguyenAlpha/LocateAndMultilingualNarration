@@ -41,5 +41,6 @@
         Title="Map"
         ContentTemplate="{DataTemplate pages:MapPage}"
         Route="MapPage" />
-
+    <!-- OLD CODE (kept for reference): <ShellContent Route="profile" ContentTemplate="{DataTemplate views:ProfilePage}" /> -->
+    <ShellContent Route="profile" ContentTemplate="{DataTemplate pages:ProfilePage}" />
 </Shell>
