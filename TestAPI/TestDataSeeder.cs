@@ -128,5 +128,40 @@ namespace TestAPI
 
             return business;
         }
+
+        public static Stall SeedStall(AppDbContext context, Guid businessId, string name, string slug)
+        {
+            var stall = new Stall
+            {
+                Id = Guid.NewGuid(),
+                BusinessId = businessId,
+                Name = name,
+                Slug = slug,
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+
+            context.Stalls.Add(stall);
+            context.SaveChanges();
+
+            return stall;
+        }
+
+        public static TtsVoiceProfile SeedTtsVoiceProfile(AppDbContext context, Guid languageId, string displayName)
+        {
+            var profile = new TtsVoiceProfile
+            {
+                Id = Guid.NewGuid(),
+                LanguageId = languageId,
+                DisplayName = displayName,
+                IsActive = true,
+                Priority = 1
+            };
+
+            context.TtsVoiceProfiles.Add(profile);
+            context.SaveChanges();
+
+            return profile;
+        }
     }
 }
