@@ -3,7 +3,7 @@
     var token = Context.Session.GetString("AuthToken");
     var isLoggedIn = !string.IsNullOrWhiteSpace(token);
     var userRole = Context.Session.GetString("UserRole") ?? "";
-    var userName = Context.Session.GetString("UserName") ?? "User";
+    var userName = Context.Session.GetString("UserName") ?? "";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
 }
@@ -56,7 +56,7 @@
                                 <div class="dropdown-divider"></div>
                                 <form method="post" asp-controller="Auth" asp-action="Logout">
                                     <button type="submit" class="dropdown-item text-danger">
-                                        <i class="ti ti-logout me-2"></i>Logout
+                                        <i class="ti ti-logout me-2"></i>
                                     </button>
                                 </form>
                             </div>
@@ -127,7 +127,7 @@
                                     }
                                     <a class="dropdown-item @(currentController == "Stall" ? "active" : "")"
                                        asp-controller="Stall" asp-action="Index">
-                                        <i class="ti ti-store me-2"></i>Stall
+                                            <i class="ti ti-building-store me-2"></i>Stall Management
                                     </a>
                                     <a class="dropdown-item @(currentController == "Narration" ? "active" : "")"
                                        asp-controller="Narration" asp-action="StallNarrationContents">

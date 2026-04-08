@@ -1,362 +1,512 @@
-﻿
+@model Web.Models.AdminDashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Admin Dashboard";
 }
-<!-- Page Header -->
-<div class="page-header">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/Pages/Home/Index.html">Home</a></li>
-            <li class="breadcrumb-item"><a href="#">Admin</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-        </ol>
-    </nav>
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h1>
-        <div class="btn-group">
-            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
-                <i class="bi bi-printer me-1"></i>Print
-            </button>
-            <button type="button" class="btn btn-outline-primary" onclick="exportTableToCSV('activityTable', 'dashboard-activity.csv')">
-                <i class="bi bi-download me-1"></i>Export
-            </button>
-        </div>
-    </div>
-</div>
 
-<!-- Stats Cards -->
-<div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stats-card h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted text-uppercase mb-2">Total Revenue</h6>
-                        <h2 class="stats-number mb-0">$142,580</h2>
-                        <small class="text-success"><i class="bi bi-arrow-up"></i> 12.5% from last month</small>
-                    </div>
-                    <i class="bi bi-currency-dollar stats-icon text-primary"></i>
-                </div>
+<!-- Page header -->
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Overview</div>
+                <h2 class="page-title">Admin Dashboard</h2>
             </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stats-card success h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted text-uppercase mb-2">Active Businesses</h6>
-                        <h2 class="stats-number mb-0">248</h2>
-                        <small class="text-success"><i class="bi bi-arrow-up"></i> 8 new this week</small>
-                    </div>
-                    <i class="bi bi-building stats-icon text-success"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stats-card warning h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted text-uppercase mb-2">Total Stalls</h6>
-                        <h2 class="stats-number mb-0">1,452</h2>
-                        <small class="text-warning"><i class="bi bi-dash"></i> 23 pending approval</small>
-                    </div>
-                    <i class="bi bi-shop stats-icon text-warning"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card stats-card info h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted text-uppercase mb-2">Registered Users</h6>
-                        <h2 class="stats-number mb-0">3,847</h2>
-                        <small class="text-success"><i class="bi bi-arrow-up"></i> 156 this month</small>
-                    </div>
-                    <i class="bi bi-people stats-icon text-info"></i>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="d-flex">
+                    <span class="text-muted me-2 d-flex align-items-center">
+                        <i class="ti ti-refresh me-1"></i>
+                        Last updated: @DateTime.Now.ToString("HH:mm, dd/MM/yyyy")
+                    </span>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <!-- Recent Activity -->
-    <div class="col-lg-8 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        Last 7 Days
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#">Today</a></li>
-                        <li><a class="dropdown-item active" href="#">Last 7 Days</a></li>
-                        <li><a class="dropdown-item" href="#">Last 30 Days</a></li>
-                        <li><a class="dropdown-item" href="#">This Year</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="activityTable" aria-label="Recent Activity">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="sortable">Date/Time</th>
-                                <th scope="col" class="sortable">User</th>
-                                <th scope="col">Action</th>
-                                <th scope="col" class="sortable">Module</th>
-                                <th scope="col">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Mar 16, 2026 14:32</td>
-                                <td>john.doe@example.com</td>
-                                <td>Created new business "Sunrise Enterprises"</td>
-                                <td>Business</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Mar 16, 2026 13:45</td>
-                                <td>admin@ems-system.com</td>
-                                <td>Updated user permissions for Marketing team</td>
-                                <td>Users</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Mar 16, 2026 11:20</td>
-                                <td>jane.smith@example.com</td>
-                                <td>Registered stall #A-142 at Zone B</td>
-                                <td>Stalls</td>
-                                <td><span class="badge bg-warning text-dark">Pending</span></td>
-                            </tr>
-                            <tr>
-                                <td>Mar 16, 2026 10:15</td>
-                                <td>system</td>
-                                <td>Automated backup completed</td>
-                                <td>System</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Mar 15, 2026 16:45</td>
-                                <td>mike.wilson@example.com</td>
-                                <td>Uploaded audio content "Welcome Message"</td>
-                                <td>Content</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Mar 15, 2026 14:30</td>
-                                <td>admin@ems-system.com</td>
-                                <td>Added new language "French"</td>
-                                <td>Languages</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                            <tr>
-                                <td>Mar 15, 2026 11:00</td>
-                                <td>sarah.jones@example.com</td>
-                                <td>Attempted login from new device</td>
-                                <td>Security</td>
-                                <td><span class="badge bg-info">Verified</span></td>
-                            </tr>
-                            <tr>
-                                <td>Mar 14, 2026 09:20</td>
-                                <td>system</td>
-                                <td>Monthly report generated</td>
-                                <td>Reports</td>
-                                <td><span class="badge bg-success">Completed</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="card-footer text-center">
-                <a href="#" class="text-decoration-none">View All Activity <i class="bi bi-arrow-right"></i></a>
-            </div>
-        </div>
-    </div>
+<div class="page-body">
+    <div class="container-xl">
 
-    <!-- Quick Actions & System Info -->
-    <div class="col-lg-4">
-        <!-- Quick Actions -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="/Pages/Management/BusinessManagement.html" class="btn btn-outline-primary text-start">
-                        <i class="bi bi-plus-circle me-2"></i>Add New Business
-                    </a>
-                    <a href="/Pages/Management/StallManagement.html" class="btn btn-outline-success text-start">
-                        <i class="bi bi-shop me-2"></i>Register Stall
-                    </a>
-                    <a href="/Pages/Admin/UserRoleManagement.html" class="btn btn-outline-info text-start">
-                        <i class="bi bi-person-plus me-2"></i>Create User Account
-                    </a>
-                    <a href="/Pages/Management/ContentAudioManagement.html" class="btn btn-outline-warning text-start">
-                        <i class="bi bi-upload me-2"></i>Upload Content
-                    </a>
+        <!-- ==================== STATS CARDS (thật) ==================== -->
+        <div class="row row-deck row-cards mb-4">
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Total Businesses</div>
+                        </div>
+                        <div class="h1 mb-3">@Model.TotalBusinesses</div>
+                        <div class="d-flex mb-2">
+                            <div>
+                                <a asp-controller="Business" asp-action="Index" class="text-primary text-decoration-none">
+                                    View all <i class="ti ti-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-primary" style="width: 100%" role="progressbar"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Total Stalls</div>
+                        <div class="h1 mb-3">@Model.TotalStalls</div>
+                        <div class="d-flex mb-2">
+                            <div>
+                                <a asp-controller="Stall" asp-action="Index" class="text-green text-decoration-none">
+                                    View all <i class="ti ti-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-green" style="width: 100%" role="progressbar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Active Languages</div>
+                        <div class="h1 mb-3">@Model.ActiveLanguages</div>
+                        <div class="d-flex mb-2">
+                            <div class="text-muted">
+                                <i class="ti ti-language me-1"></i>Supported narration languages
+                            </div>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-yellow" style="width: 100%" role="progressbar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Narration Contents</div>
+                        <div class="h1 mb-3">@Model.TotalNarrationContents</div>
+                        <div class="d-flex mb-2">
+                            <div>
+                                <a asp-controller="Narration" asp-action="StallNarrationContents" class="text-orange text-decoration-none">
+                                    View all <i class="ti ti-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-orange" style="width: 100%" role="progressbar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- System Status -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-hdd-stack me-2"></i>System Status</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>CPU Usage</span>
-                        <span>45%</span>
-                    </div>
-                    <div class="progress" role="progressbar" aria-label="CPU Usage" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
-                        <div class="progress-bar bg-success" style="width: 45%"></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>Memory Usage</span>
-                        <span>62%</span>
-                    </div>
-                    <div class="progress" role="progressbar" aria-label="Memory Usage" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100">
-                        <div class="progress-bar bg-warning" style="width: 62%"></div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>Storage</span>
-                        <span>78%</span>
-                    </div>
-                    <div class="progress" role="progressbar" aria-label="Storage" aria-valuenow="78" aria-valuemin="0" aria-valuemax="100">
-                        <div class="progress-bar bg-danger" style="width: 78%"></div>
-                    </div>
-                </div>
-                <hr>
-                <div class="row text-center">
-                    <div class="col-6">
-                        <small class="text-muted d-block">Uptime</small>
-                        <strong>99.9%</strong>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Response</small>
-                        <strong>42ms</strong>
+        <!-- ==================== STATS HARDCODE (chưa có data thật) ==================== -->
+        <div class="row row-deck row-cards mb-4">
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="subheader">Total Visitors</div>
+                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        </div>
+                        <div class="h1 mb-1">3,847</div>
+                        <div class="text-muted small">
+                            <i class="ti ti-arrow-up text-success me-1"></i>+156 this month
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="subheader">Audio Files Generated</div>
+                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        </div>
+                        <div class="h1 mb-1">1,204</div>
+                        <div class="text-muted small">
+                            <i class="ti ti-arrow-up text-success me-1"></i>+43 this week
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="subheader">Registered Users</div>
+                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        </div>
+                        <div class="h1 mb-1">248</div>
+                        <div class="text-muted small">
+                            <i class="ti ti-arrow-up text-success me-1"></i>+8 new this week
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="subheader">GeoFence Triggers</div>
+                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        </div>
+                        <div class="h1 mb-1">9,512</div>
+                        <div class="text-muted small">
+                            <i class="ti ti-arrow-up text-success me-1"></i>+321 today
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Pending Approvals -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Pending Approvals</h5>
-                <span class="badge bg-danger">5</span>
-            </div>
-            <div class="list-group list-group-flush">
-                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Stall #A-142</strong>
-                        <small class="d-block text-muted">Registration pending</small>
+        <!-- ==================== RECENT BUSINESSES (thật) + LANGUAGES (thật) ==================== -->
+        <div class="row row-deck row-cards mb-4">
+
+            <!-- Recent Businesses -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="ti ti-building-store me-2 text-primary"></i>Recent Businesses
+                        </h3>
+                        <div class="card-options">
+                            <a asp-controller="Business" asp-action="Index" class="btn btn-sm btn-outline-primary">
+                                View all
+                            </a>
+                        </div>
                     </div>
-                    <span class="badge bg-warning text-dark">Review</span>
-                </a>
-                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>New Business Request</strong>
-                        <small class="d-block text-muted">Metro Foods Inc.</small>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Tax Code</th>
+                                    <th>Contact</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.RecentBusinesses.Any())
+                                {
+                                    @foreach (var b in Model.RecentBusinesses)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="fw-medium">@b.Name</div>
+                                            </td>
+                                            <td class="text-muted">@(b.TaxCode ?? "—")</td>
+                                            <td class="text-muted">@(b.ContactEmail ?? b.ContactPhone ?? "—")</td>
+                                            <td>
+                                                @if (b.IsActive)
+                                                {
+                                                    <span class="badge bg-success-lt text-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-lt text-danger">Inactive</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted">@b.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <i class="ti ti-database-off me-2"></i>No businesses found
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
-                    <span class="badge bg-warning text-dark">Review</span>
-                </a>
-                <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>User Access Request</strong>
-                        <small class="d-block text-muted">sarah.jones@example.com</small>
+                </div>
+            </div>
+
+            <!-- Active Languages -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="ti ti-language me-2 text-yellow"></i>Active Languages
+                        </h3>
                     </div>
-                    <span class="badge bg-warning text-dark">Review</span>
-                </a>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            @if (Model.Languages.Any())
+                            {
+                                @foreach (var lang in Model.Languages)
+                                {
+                                    <li class="list-group-item d-flex align-items-center py-3">
+                                        @if (!string.IsNullOrEmpty(lang.FlagCode))
+                                        {
+                                            <span class="me-3 fs-3">@lang.FlagCode</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="avatar avatar-sm me-3 bg-primary-lt text-primary">
+                                                @lang.Code.Substring(0, 2).ToUpper()
+                                            </span>
+                                        }
+                                        <div>
+                                            <div class="fw-medium">@(lang.DisplayName ?? lang.Name)</div>
+                                            <div class="text-muted small">@lang.Code</div>
+                                        </div>
+                                        <span class="badge bg-success-lt text-success ms-auto">Active</span>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="list-group-item text-center text-muted py-4">
+                                    <i class="ti ti-language-off me-2"></i>No languages configured
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <div class="card-footer text-center">
-                <a href="#" class="text-decoration-none">View All Pending <i class="bi bi-arrow-right"></i></a>
-            </div>
+
         </div>
+
+        <!-- ==================== RECENT STALLS (thật) + SYSTEM STATUS (hardcode) ==================== -->
+        <div class="row row-deck row-cards mb-4">
+
+            <!-- Recent Stalls -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="ti ti-store me-2 text-green"></i>Recent Stalls
+                        </h3>
+                        <div class="card-options">
+                            <a asp-controller="Stall" asp-action="Index" class="btn btn-sm btn-outline-success">
+                                View all
+                            </a>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Slug</th>
+                                    <th>Contact</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.RecentStalls.Any())
+                                {
+                                    @foreach (var s in Model.RecentStalls)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="fw-medium">@s.Name</div>
+                                                <div class="text-muted small">@s.Description</div>
+                                            </td>
+                                            <td class="text-muted"><code>@s.Slug</code></td>
+                                            <td class="text-muted">@(s.ContactEmail ?? s.ContactPhone ?? "—")</td>
+                                            <td>
+                                                @if (s.IsActive)
+                                                {
+                                                    <span class="badge bg-success-lt text-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-lt text-danger">Inactive</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted">@s.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            <i class="ti ti-database-off me-2"></i>No stalls found
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status (hardcode) -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="ti ti-server me-2"></i>System Status
+                        </h3>
+                        <div class="card-options">
+                            <span class="badge bg-orange-lt">Hardcoded</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">API Server</span>
+                                <span class="badge bg-success-lt text-success">Online</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Database</span>
+                                <span class="badge bg-success-lt text-success">Connected</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Azure Speech</span>
+                                <span class="badge bg-success-lt text-success">Running</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Azure Blob</span>
+                                <span class="badge bg-success-lt text-success">Running</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Azure Translator</span>
+                                <span class="badge bg-success-lt text-success">Running</span>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted small">CPU Usage</span>
+                                <span class="small">45%</span>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-success" style="width: 45%" role="progressbar"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted small">Memory</span>
+                                <span class="small">62%</span>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-warning" style="width: 62%" role="progressbar"></div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted small">Storage</span>
+                                <span class="small">78%</span>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-danger" style="width: 78%" role="progressbar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ==================== CHARTS (hardcode) ==================== -->
+        <div class="row row-deck row-cards">
+
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="ti ti-chart-bar me-2"></i>Stall Registrations by Month
+                        </h3>
+                        <div class="card-options">
+                            <span class="badge bg-orange-lt">Hardcoded</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-stalls-monthly" style="height: 200px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="ti ti-chart-donut me-2"></i>Visitors by Language
+                        </h3>
+                        <div class="card-options">
+                            <span class="badge bg-orange-lt">Hardcoded</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="chart-visitors-language" style="height: 200px;"></div>
+                        <div class="mt-3">
+                            @foreach (var lang in Model.Languages.Take(4))
+                            {
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="me-2">@(lang.DisplayName ?? lang.Name)</span>
+                                    <div class="progress flex-grow-1 me-2 progress-sm">
+                                        <div class="progress-bar bg-primary" style="width: @(new Random().Next(20, 80))%"></div>
+                                    </div>
+                                    <span class="text-muted small">~@(new Random().Next(10, 40))%</span>
+                                </div>
+                            }
+                            @if (!Model.Languages.Any())
+                            {
+                                <div class="text-center text-muted">No language data</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
     </div>
 </div>
 
-<!-- Charts Row -->
-<div class="row">
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Business Registrations</h5>
-            </div>
-            <div class="card-body">
-                <div class="text-center py-5 text-muted">
-                    <i class="bi bi-bar-chart-fill" style="font-size: 4rem; opacity: 0.3;"></i>
-                    <p class="mt-3">Chart visualization would be rendered here using Chart.js or similar library</p>
-                    <div class="d-flex justify-content-around mt-4">
-                        <div>
-                            <small class="text-muted">Jan</small>
-                            <div class="bg-primary" style="height: 60px; width: 30px; margin: 0 auto;"></div>
-                        </div>
-                        <div>
-                            <small class="text-muted">Feb</small>
-                            <div class="bg-primary" style="height: 80px; width: 30px; margin: 0 auto;"></div>
-                        </div>
-                        <div>
-                            <small class="text-muted">Mar</small>
-                            <div class="bg-primary" style="height: 120px; width: 30px; margin: 0 auto;"></div>
-                        </div>
-                        <div>
-                            <small class="text-muted">Apr</small>
-                            <div class="bg-primary bg-opacity-50" style="height: 100px; width: 30px; margin: 0 auto;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Stall Distribution by Zone</h5>
-            </div>
-            <div class="card-body">
-                <div class="text-center py-4">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-primary rounded me-2" style="width: 16px; height: 16px;"></div>
-                                <span>Zone A - 35%</span>
-                            </div>
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-success rounded me-2" style="width: 16px; height: 16px;"></div>
-                                <span>Zone B - 28%</span>
-                            </div>
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-warning rounded me-2" style="width: 16px; height: 16px;"></div>
-                                <span>Zone C - 22%</span>
-                            </div>
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="bg-info rounded me-2" style="width: 16px; height: 16px;"></div>
-                                <span>Zone D - 15%</span>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="position-relative" style="width: 150px; height: 150px; margin: 0 auto;">
-                                <div class="rounded-circle bg-primary" style="width: 150px; height: 150px; clip-path: polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 50%);"></div>
-                                <div class="position-absolute rounded-circle bg-success" style="width: 150px; height: 150px; top: 0; left: 0; clip-path: polygon(50% 50%, 100% 0, 50% 0);"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+@section Scripts {
+<script>
+    // Chart: Stalls by month (hardcode)
+    document.addEventListener("DOMContentLoaded", function () {
+        if (typeof ApexCharts === 'undefined') return;
+
+        new ApexCharts(document.getElementById('chart-stalls-monthly'), {
+            chart: { type: 'bar', height: 200, toolbar: { show: false }, sparkline: { enabled: false } },
+            series: [{ name: 'Stalls', data: [12, 18, 25, 30, 22, 35, 40, 28, 45, 38, 50, 42] }],
+            xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
+            colors: ['#206bc4'],
+            plotOptions: { bar: { borderRadius: 4 } },
+            dataLabels: { enabled: false },
+            grid: { strokeDashArray: 4 },
+        }).render();
+
+        new ApexCharts(document.getElementById('chart-visitors-language'), {
+            chart: { type: 'donut', height: 200, toolbar: { show: false } },
+            series: [35, 28, 22, 15],
+            labels: ['Vietnamese', 'English', 'Japanese', 'Korean'],
+            colors: ['#206bc4', '#2fb344', '#f76707', '#ae3ec9'],
+            legend: { show: false },
+            dataLabels: { enabled: false },
+        }).render();
+    });
+</script>
+}
