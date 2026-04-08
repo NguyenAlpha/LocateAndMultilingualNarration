@@ -181,7 +181,18 @@ public partial class MapPage : ContentPage
         if (_isPopupOpen)
             return; // popup đang mở — không stop polling
 
-        _viewModel.StopPolling();
+        try
+        {
+            _viewModel.StopPolling();
+
+            // OLD CODE (kept for reference): khi rời map có thể dừng audio để tránh giữ tài nguyên.
+            // if (_viewModel.StopAudioCommand.CanExecute(null))
+            //     _viewModel.StopAudioCommand.Execute(null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Giải phóng tài nguyên MapPage thất bại trong OnDisappearing");
+        }
     }
 
     /// <summary>
@@ -253,27 +264,34 @@ public partial class MapPage : ContentPage
     /// </summary>
     private void RenderPins()
     {
-        // Lưu lại pin vị trí người dùng trước khi xóa toàn bộ
-        var myLocationPin = mapView.Pins.FirstOrDefault(p => p.Label == MyLocationLabel);
-        mapView.Pins.Clear();
-
-        if (myLocationPin != null)
-            mapView.Pins.Add(myLocationPin);
-
-        foreach (var stall in _viewModel.Stalls)
+        try
         {
-            var isSelected = _viewModel.SelectedStall?.StallId == stall.StallId;
-            mapView.Pins.Add(new Pin
-            {
-                Label = stall.StallName,
-                Address = isSelected ? "Đang chọn" : "Gian hàng",
-                Position = new MauiPosition(stall.Latitude, stall.Longitude),
-                Color = isSelected ? Colors.Red : Colors.Blue,
-                Tag = stall
-            });
-        }
+            // Lưu lại pin vị trí người dùng trước khi xóa toàn bộ
+            var myLocationPin = mapView.Pins.FirstOrDefault(p => p.Label == MyLocationLabel);
+            mapView.Pins.Clear();
 
-        RenderCircles();
+            if (myLocationPin != null)
+                mapView.Pins.Add(myLocationPin);
+
+            foreach (var stall in _viewModel.Stalls)
+            {
+                var isSelected = _viewModel.SelectedStall?.StallId == stall.StallId;
+                mapView.Pins.Add(new Pin
+                {
+                    Label = stall.StallName,
+                    Address = isSelected ? "Đang chọn" : "Gian hàng",
+                    Position = new MauiPosition(stall.Latitude, stall.Longitude),
+                    Color = isSelected ? Colors.Red : Colors.Blue,
+                    Tag = stall
+                });
+            }
+
+            RenderCircles();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RenderPins thất bại");
+        }
     }
 
     /// <summary>

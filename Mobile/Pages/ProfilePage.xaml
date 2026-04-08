@@ -1,0 +1,148 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Mobile.Pages.ProfilePage"
+             Title="Hồ sơ cá nhân"
+             BackgroundColor="#F8FAFC">
+
+    <ScrollView Padding="20">
+        <VerticalStackLayout Spacing="24">
+
+            <!-- Avatar lớn -->
+            <VerticalStackLayout HorizontalOptions="Center" Spacing="12">
+                <Frame WidthRequest="120" HeightRequest="120"
+                       CornerRadius="60"
+                       BackgroundColor="White"
+                       HasShadow="True"
+                       Padding="4"
+                       IsClippedToBounds="True">
+                    <Frame WidthRequest="112" HeightRequest="112"
+                           CornerRadius="56"
+                           Padding="0"
+                           HasShadow="False"
+                           IsClippedToBounds="True"
+                           BackgroundColor="Transparent">
+                        <Image Source="{Binding UserAvatar}"
+                               Aspect="AspectFill"
+                               WidthRequest="112"
+                               HeightRequest="112"/>
+                    </Frame>
+                </Frame>
+
+                <Label Text="{Binding UserName}"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       TextColor="#1E2937"
+                       HorizontalOptions="Center"/>
+
+                <Label Text="{Binding UserEmail}"
+                       FontSize="15"
+                       TextColor="#64748B"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Ngôn ngữ ưu tiên -->
+            <VerticalStackLayout Spacing="16">
+                <Label Text="Ngôn ngữ thuyết minh ưu tiên"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1E2937"/>
+
+                <CollectionView ItemsSource="{Binding AvailableLanguages}"
+                                SelectionMode="Single"
+                                SelectedItem="{Binding SelectedLanguage}"
+                                HeightRequest="300">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame CornerRadius="12"
+                                   Padding="16"
+                                   BackgroundColor="White"
+                                   HasShadow="True"
+                                   Margin="0,0,0,8">
+                                <HorizontalStackLayout Spacing="12">
+                                    <Label Text="{Binding Flag}" FontSize="26"/>
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="16"/>
+                                        <Label Text="{Binding NativeName}" TextColor="#64748B" FontSize="13"/>
+                                    </VerticalStackLayout>
+                                </HorizontalStackLayout>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
+            <!-- Cài đặt voice + tốc độ đọc + tự động phát (lưu theo DevicePreferences) -->
+            <VerticalStackLayout Spacing="14">
+                <Label Text="Cài đặt thuyết minh"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1E2937"/>
+
+                <Frame CornerRadius="16" BackgroundColor="White" Padding="16" HasShadow="True">
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="Giọng đọc"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#334155"/>
+
+                        <Picker ItemsSource="{Binding AvailableVoices}"
+                                SelectedItem="{Binding SelectedVoice}"
+                                ItemDisplayBinding="{Binding DisplayText}"
+                                Title="Chọn giọng đọc"/>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Label Grid.Column="0"
+                                   Text="Tốc độ đọc"
+                                   VerticalOptions="Center"
+                                   TextColor="#334155"/>
+                            <Label Grid.Column="1"
+                                   Text="{Binding SpeechRateText}"
+                                   HorizontalOptions="End"
+                                   VerticalOptions="Center"
+                                   TextColor="#475569"
+                                   FontAttributes="Bold"/>
+                        </Grid>
+
+                        <Slider Minimum="0.5"
+                                Maximum="2.0"
+                                Value="{Binding SpeechRate, Mode=TwoWay}" />
+
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <Label Grid.Column="0"
+                                   Text="Tự động phát khi mở thuyết minh"
+                                   VerticalOptions="Center"
+                                   TextColor="#334155"/>
+                            <Switch Grid.Column="1"
+                                    IsToggled="{Binding AutoPlay, Mode=TwoWay}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+            </VerticalStackLayout>
+
+            <ActivityIndicator IsVisible="{Binding IsBusy}"
+                               IsRunning="{Binding IsBusy}"
+                               Color="#4F46E5"
+                               HeightRequest="36"/>
+
+            <!-- Nút thao tác -->
+            <Button Text="Lưu thay đổi"
+                    BackgroundColor="#4F46E5"
+                    TextColor="White"
+                    CornerRadius="16"
+                    HeightRequest="52"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    Command="{Binding SaveProfileCommand}"/>
+
+			<!-- <Button Text="Đăng xuất"
+                    BackgroundColor="Transparent"
+                    TextColor="#EF4444"
+                    BorderColor="#EF4444"
+                    BorderWidth="1"
+                    CornerRadius="16"
+                    HeightRequest="52"
+                    Command="{Binding LogoutCommand}"/>-->
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

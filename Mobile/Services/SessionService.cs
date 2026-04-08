@@ -30,16 +30,4 @@ public class SessionService
     {
         Preferences.Clear();
     }
-
-    // OLD CODE (kept for reference)
-    // public void SetGuestMode(bool isGuest)
-    // {
-    //     Preferences.Set("guest_mode", isGuest);
-    // }
-    //
-    // public void ClearSession()
-    // {
-    //     Preferences.Remove("jwt_token");
-    //     Preferences.Remove("guest_mode");
-    // }
 }

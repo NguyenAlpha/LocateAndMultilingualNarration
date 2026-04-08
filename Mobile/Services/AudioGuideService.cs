@@ -47,6 +47,7 @@ public class AudioGuideService : IAudioGuideService
     private readonly IAudioManager _audioManager;
     private IAudioPlayer? _player;
     private MemoryStream? _buffer;
+    private readonly SemaphoreSlim _playerLock = new(1, 1);
 
     /// <summary>
     /// Cho biết player hiện tại có đang phát hay không.
@@ -74,36 +75,45 @@ public class AudioGuideService : IAudioGuideService
         // Bỏ qua nếu không có giá trị hợp lệ.
         if (string.IsNullOrWhiteSpace(url)) return;
 
-        // Dừng audio cũ trước khi phát nội dung mới.
-        await StopAsync(); // dừng audio cũ nếu có
-        CurrentUrl = url;
+        await _playerLock.WaitAsync();
 
-        Stream? stream;
-
-        // Local file path → đọc từ disk, không cần mạng
-        // Remote URL → stream từ network
-        // Chọn nguồn stream dựa vào việc url là file local hay URL mạng.
-        if (File.Exists(url))
-            stream = File.OpenRead(url);
-        else
-            stream = await GetStreamFromUrlAsync(url);
-
-        // Nếu không lấy được stream thì kết thúc và xóa trạng thái hiện tại.
-        if (stream is null)
+        try
         {
-            CurrentUrl = null;
-            return;
+            // Dừng audio cũ trước khi phát nội dung mới.
+            await StopAsync(); // dừng audio cũ nếu có
+            CurrentUrl = url;
+
+            Stream? stream;
+
+            // Local file path → đọc từ disk, không cần mạng
+            // Remote URL → stream từ network
+            // Chọn nguồn stream dựa vào việc url là file local hay URL mạng.
+            if (File.Exists(url))
+                stream = File.OpenRead(url);
+            else
+                stream = await GetStreamFromUrlAsync(url);
+
+            // Nếu không lấy được stream thì kết thúc và xóa trạng thái hiện tại.
+            if (stream is null)
+            {
+                CurrentUrl = null;
+                return;
+            }
+
+            // Copy toàn bộ stream vào bộ nhớ để player có thể phát ổn định.
+            _buffer = new MemoryStream();
+            await stream.CopyToAsync(_buffer);
+            await stream.DisposeAsync();
+            _buffer.Position = 0;
+
+            // Tạo player từ buffer trong bộ nhớ và phát ngay.
+            _player = _audioManager.CreatePlayer(_buffer);
+            _player.Play();
         }
-
-        // Copy toàn bộ stream vào bộ nhớ để player có thể phát ổn định.
-        _buffer = new MemoryStream();
-        await stream.CopyToAsync(_buffer);
-        await stream.DisposeAsync();
-        _buffer.Position = 0;
-
-        // Tạo player từ buffer trong bộ nhớ và phát ngay.
-        _player = _audioManager.CreatePlayer(_buffer);
-        _player.Play();
+        finally
+        {
+            _playerLock.Release();
+        }
     }
 
     /// <summary>
@@ -160,6 +170,8 @@ public class AudioGuideService : IAudioGuideService
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(30);
+
             // GetByteArrayAsync tải toàn bộ rồi trả MemoryStream — tránh CopyToAsync treo UI.
             var bytes = await client.GetByteArrayAsync(url, cts.Token);
             return new MemoryStream(bytes);

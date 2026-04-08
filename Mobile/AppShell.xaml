@@ -28,15 +28,10 @@
         ContentTemplate : chỉ định lớp Page sẽ được tạo khi route này được kích hoạt
     -->
     <ShellContent
-        Title="Start"
-        Route="StartPage"
-        ContentTemplate="{DataTemplate local:StartPage}" />
+        Title="Scan"
+        Route="ScanPage"
+        ContentTemplate="{DataTemplate pages:ScanPage}" />
 
-    <!--
-        Trang chính của ứng dụng (MainPage).
-        Sau khi người dùng hoàn thành luồng khởi động (login, scan, chọn ngôn ngữ...),
-        ứng dụng có thể điều hướng đến đây bằng: await Shell.Current.GoToAsync("//MainPage")
-    -->
     <ShellContent
         Title="Home"
         ContentTemplate="{DataTemplate local:MainPage}"
@@ -46,5 +41,6 @@
         Title="Map"
         ContentTemplate="{DataTemplate pages:MapPage}"
         Route="MapPage" />
-
+    <!-- OLD CODE (kept for reference): <ShellContent Route="profile" ContentTemplate="{DataTemplate views:ProfilePage}" /> -->
+    <ShellContent Route="profile" ContentTemplate="{DataTemplate pages:ProfilePage}" />
 </Shell>

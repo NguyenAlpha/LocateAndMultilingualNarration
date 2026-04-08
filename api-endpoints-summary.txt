@@ -1,0 +1,426 @@
+ASP.NET Core API Endpoints Summary
+Workspace: D:\University\Subject\C#\Exam\Api
+
+Response envelope (most endpoints):
+{
+  "success": true|false,
+  "data": { ... } | null,
+  "error": { "code": "...", "message": "...", "field": "..." } | null
+}
+
+==================================================
+AUTH CONTROLLER (Route: /api/Auth)
+==================================================
+1) POST /api/Auth/register/business-owner
+- Controller: AuthController
+- Method: RegisterBusinessOwner
+- Request params:
+  - Body: RegisterBusinessOwnerDto
+- Response:
+  - ApiResult<RegisterResponseDto>
+  - data: { userId, userName, email, message }
+
+2) POST /api/Auth/login
+- Controller: AuthController
+- Method: Login
+- Request params:
+  - Body: LoginRequestDto
+- Response:
+  - ApiResult<LoginResponseDto>
+  - data: { token, expiresAt, refreshToken, refreshTokenExpiresAt, userId, userName, email, roles[] }
+
+3) POST /api/Auth/refresh
+- Controller: AuthController
+- Method: RefreshToken
+- Request params:
+  - Body: RefreshTokenRequestDto
+- Response:
+  - ApiResult<RefreshResponseDto>
+  - data: { token, expiresAt, refreshToken, refreshTokenExpiresAt }
+
+4) POST /api/Auth/logout
+- Controller: AuthController
+- Method: Logout
+- Request params:
+  - Body: LogoutRequestDto
+- Response:
+  - ApiResult<LogoutResponseDto>
+  - data: { success, revokedAt }
+
+==================================================
+BUSINESS CONTROLLER (Route: /api/Business)
+==================================================
+5) POST /api/Business
+- Controller: BusinessController
+- Method: CreateBusiness
+- Body: BusinessCreateDto
+- Response: ApiResult<BusinessDetailDto>
+
+6) PUT /api/Business/{id}
+- Controller: BusinessController
+- Method: UpdateBusiness
+- Route: id (guid)
+- Body: BusinessUpdateDto
+- Response: ApiResult<BusinessDetailDto>
+
+7) GET /api/Business/{id}
+- Controller: BusinessController
+- Method: GetBusinessDetail
+- Route: id (guid)
+- Response: ApiResult<BusinessDetailDto>
+
+8) GET /api/Business?page=&pageSize=&search=
+- Controller: BusinessController
+- Method: GetBusinesses
+- Query: page, pageSize, search
+- Response: ApiResult<PagedResult<BusinessDetailDto>>
+
+==================================================
+DEVICE PREFERENCE CONTROLLER (Route: /api/device-preference)
+==================================================
+9) GET /api/device-preference/{deviceId}
+- Controller: DevicePreferenceController
+- Method: GetByDeviceId
+- Route: deviceId
+- Response: ApiResult<DevicePreferenceDetailDto>
+
+10) POST /api/device-preference
+- Controller: DevicePreferenceController
+- Method: Upsert
+- Body: DevicePreferenceUpsertDto
+- Response: ApiResult<DevicePreferenceDetailDto>
+
+==================================================
+GEO CONTROLLER (Route: /api/geo)
+==================================================
+11) GET /api/geo/stalls?deviceId=
+- Controller: GeoController
+- Method: GetAllStalls
+- Query: deviceId
+- Response: ApiResult<List<GeoStallDto>>
+
+12) GET /api/geo/nearest-stall?lat=&lng=&langCode=&radius=
+- Controller: GeoController
+- Method: GetNearestStall
+- Query: lat, lng, langCode, radius
+- Response: ApiResult<GeoNearestStallDto> OR 204 NoContent
+
+==================================================
+LANGUAGE CONTROLLER (Route: /api/languages)
+==================================================
+13) POST /api/languages
+- Controller: LanguageController
+- Method: CreateLanguage
+- Body: LanguageCreateDto
+- Response: ApiResult<LanguageDetailDto>
+
+14) PUT /api/languages/{id}
+- Controller: LanguageController
+- Method: UpdateLanguage
+- Route: id (guid)
+- Body: LanguageUpdateDto
+- Response: ApiResult<LanguageDetailDto>
+
+15) GET /api/languages?isActive=
+- Controller: LanguageController
+- Method: GetLanguages
+- Query: isActive
+- Response: ApiResult<List<LanguageDetailDto>>
+
+16) GET /api/languages/active
+- Controller: LanguageController
+- Method: GetActiveLanguages
+- Response: ApiResult<List<LanguageDetailDto>>
+
+17) DELETE /api/languages/{id}
+- Controller: LanguageController
+- Method: DeactivateLanguage
+- Route: id (guid)
+- Response: ApiResult<LanguageDetailDto>
+
+==================================================
+NARRATION AUDIO CONTROLLER (Route: /api/narration-audio)
+==================================================
+18) POST /api/narration-audio
+- Controller: NarrationAudioController
+- Method: Create
+- Body: NarrationAudioCreateDto
+- Response: ApiResult<NarrationAudioDetailDto>
+
+19) PUT /api/narration-audio/{id}
+- Controller: NarrationAudioController
+- Method: Update
+- Route: id (guid)
+- Body: NarrationAudioUpdateDto
+- Response: ApiResult<NarrationAudioDetailDto>
+
+20) GET /api/narration-audio/{id}
+- Controller: NarrationAudioController
+- Method: GetDetail
+- Route: id (guid)
+- Response: ApiResult<NarrationAudioDetailDto>
+
+21) GET /api/narration-audio?page=&pageSize=&narrationContentId=&stallId=
+- Controller: NarrationAudioController
+- Method: GetList
+- Query: page, pageSize, narrationContentId, stallId
+- Response: ApiResult<PagedResult<NarrationAudioDetailDto>>
+
+==================================================
+STALL CONTROLLER (Route: /api/Stall)
+==================================================
+22) POST /api/Stall
+- Controller: StallController
+- Method: CreateStall
+- Body: StallCreateDto
+- Response: ApiResult<StallDetailDto>
+
+23) PUT /api/Stall/{id}
+- Controller: StallController
+- Method: UpdateStall
+- Route: id (guid)
+- Body: StallUpdateDto
+- Response: ApiResult<StallDetailDto>
+
+24) GET /api/Stall/{id}
+- Controller: StallController
+- Method: GetStallDetail
+- Route: id (guid)
+- Response: ApiResult<StallDetailDto>
+
+25) GET /api/Stall?page=&pageSize=&search=&businessId=
+- Controller: StallController
+- Method: GetStalls
+- Query: page, pageSize, search, businessId
+- Response: ApiResult<PagedResult<StallDetailDto>>
+
+==================================================
+STALL GEOFENCE CONTROLLER (Route: /api/stall-geo-fence)
+==================================================
+26) POST /api/stall-geo-fence
+- Controller: StallGeoFenceController
+- Method: Create
+- Body: StallGeoFenceCreateDto
+- Response: ApiResult<StallGeoFenceDetailDto>
+
+27) PUT /api/stall-geo-fence/{id}
+- Controller: StallGeoFenceController
+- Method: Update
+- Route: id (guid)
+- Body: StallGeoFenceUpdateDto
+- Response: ApiResult<StallGeoFenceDetailDto>
+
+28) GET /api/stall-geo-fence/{id}
+- Controller: StallGeoFenceController
+- Method: GetDetail
+- Route: id (guid)
+- Response: ApiResult<StallGeoFenceDetailDto>
+
+29) GET /api/stall-geo-fence?page=&pageSize=&stallId=
+- Controller: StallGeoFenceController
+- Method: GetList
+- Query: page, pageSize, stallId
+- Response: ApiResult<PagedResult<StallGeoFenceDetailDto>>
+
+==================================================
+STALL LOCATION CONTROLLER (Route: /api/stall-location)
+==================================================
+30) POST /api/stall-location
+- Controller: StallLocationController
+- Method: Create
+- Body: StallLocationCreateDto
+- Response: ApiResult<StallLocationDetailDto>
+
+31) PUT /api/stall-location/{id}
+- Controller: StallLocationController
+- Method: Update
+- Route: id (guid)
+- Body: StallLocationUpdateDto
+- Response: ApiResult<StallLocationDetailDto>
+
+32) GET /api/stall-location/{id}
+- Controller: StallLocationController
+- Method: GetDetail
+- Route: id (guid)
+- Response: ApiResult<StallLocationDetailDto>
+
+33) GET /api/stall-location?page=&pageSize=&stallId=&isActive=
+- Controller: StallLocationController
+- Method: GetList
+- Query: page, pageSize, stallId, isActive
+- Response: ApiResult<PagedResult<StallLocationDetailDto>>
+
+==================================================
+STALL MEDIA CONTROLLER (Route: /api/stall-media)
+==================================================
+34) POST /api/stall-media
+- Controller: StallMediaController
+- Method: Create
+- Body: StallMediaCreateDto
+- Response: ApiResult<StallMediaDetailDto>
+
+35) PUT /api/stall-media/{id}
+- Controller: StallMediaController
+- Method: Update
+- Route: id (guid)
+- Body: StallMediaUpdateDto
+- Response: ApiResult<StallMediaDetailDto>
+
+36) GET /api/stall-media/{id}
+- Controller: StallMediaController
+- Method: GetDetail
+- Route: id (guid)
+- Response: ApiResult<StallMediaDetailDto>
+
+37) GET /api/stall-media?page=&pageSize=&stallId=&isActive=
+- Controller: StallMediaController
+- Method: GetList
+- Query: page, pageSize, stallId, isActive
+- Response: ApiResult<PagedResult<StallMediaDetailDto>>
+
+==================================================
+STALL NARRATION CONTENT CONTROLLER (Route: /api/stall-narration-content)
+==================================================
+38) POST /api/stall-narration-content
+- Controller: StallNarrationContentController
+- Method: Create
+- Body: StallNarrationContentCreateDto
+- Response: ApiResult<StallNarrationContentWithAudiosDto>
+
+39) PUT /api/stall-narration-content/{id}
+- Controller: StallNarrationContentController
+- Method: Update
+- Route: id (guid)
+- Body: StallNarrationContentUpdateDto
+- Response: ApiResult<StallNarrationContentDetailDto>
+
+40) PATCH /api/stall-narration-content/{id}/status
+- Controller: StallNarrationContentController
+- Method: ToggleStatus
+- Route: id (guid)
+- Body: bool isActive
+- Response: ApiResult<StallNarrationContentDetailDto>
+
+41) GET /api/stall-narration-content/{id}
+- Controller: StallNarrationContentController
+- Method: GetDetail
+- Route: id (guid)
+- Response: ApiResult<StallNarrationContentWithAudiosDto>
+
+42) GET /api/stall-narration-content?page=&pageSize=&stallId=&languageId=&search=&isActive=
+- Controller: StallNarrationContentController
+- Method: GetList
+- Query: page, pageSize, stallId, languageId, search, isActive
+- Response: ApiResult<PagedResult<StallNarrationContentDetailDto>>
+
+==================================================
+STALLS CONTROLLER (Route: /api/stalls)
+==================================================
+43) GET /api/stalls
+- Controller: StallsController
+- Method: GetStalls
+- Query: none
+- Response: List<StallMapDto> (raw, not ApiResult)
+
+44) GET /api/stalls/{id}
+- Controller: StallsController
+- Method: GetStallById
+- Route: id (guid)
+- Response: StallMapDto (raw, not ApiResult) or 404
+
+==================================================
+TTS VOICE PROFILE CONTROLLER (Route: /api/tts-voice-profiles)
+==================================================
+45) GET /api/tts-voice-profiles/active?languageId=
+- Controller: TtsVoiceProfileController
+- Method: GetActiveByLanguage
+- Query: languageId (required)
+- Response: ApiResult<List<TtsVoiceProfileListItemDto>>
+
+==================================================
+USER CONTROLLER (Route: /api/User)
+==================================================
+46) GET /api/User/{id}
+- Controller: UserController
+- Method: GetUserDetail
+- Route: id (guid)
+- Response: ApiResult<UserDetailDto>
+
+==================================================
+VISITOR LOCATION LOG CONTROLLER (Route: /api/visitor-location-log)
+==================================================
+47) POST /api/visitor-location-log
+- Controller: VisitorLocationLogController
+- Method: Create
+- Body: VisitorLocationLogCreateDto
+- Response: ApiResult<VisitorLocationLogDetailDto>
+
+48) GET /api/visitor-location-log?page=&pageSize=&userId=
+- Controller: VisitorLocationLogController
+- Method: GetList
+- Query: page, pageSize, userId
+- Response: ApiResult<PagedResult<VisitorLocationLogDetailDto>>
+
+==================================================
+VISITOR PREFERENCE CONTROLLER (Route: /api/visitor-preference)
+==================================================
+49) GET /api/visitor-preference
+- Controller: VisitorPreferenceController
+- Method: GetDetail
+- Query: none
+- Response: ApiResult<VisitorPreferenceDetailDto>
+
+50) POST /api/visitor-preference
+- Controller: VisitorPreferenceController
+- Method: Upsert
+- Body: VisitorPreferenceUpsertDto
+- Response: ApiResult<VisitorPreferenceDetailDto>
+
+==================================================
+VISITOR PROFILE CONTROLLER (Route: /api/visitor-profile)
+==================================================
+51) POST /api/visitor-profile
+- Controller: VisitorProfileController
+- Method: CreateVisitorProfile
+- Body: VisitorProfileUpdateDto
+- Response: ApiResult<VisitorProfileDto>
+
+52) PUT /api/visitor-profile
+- Controller: VisitorProfileController
+- Method: UpdateVisitorProfile
+- Body: VisitorProfileUpdateDto
+- Response: ApiResult<VisitorProfileDto>
+
+==================================================
+WEATHER FORECAST CONTROLLER (Route: /WeatherForecast)
+==================================================
+53) GET /WeatherForecast
+- Controller: WeatherForecastController
+- Method: Get
+- Query: none
+- Response: WeatherForecast[] (raw)
+
+==================================================
+LOCATION DATA ENDPOINTS
+==================================================
+- GET /api/geo/stalls
+- GET /api/geo/nearest-stall
+- GET /api/stalls
+- GET /api/stalls/{id}
+- GET /api/stall-location/{id}
+- GET /api/stall-location
+- POST /api/visitor-location-log
+- GET /api/visitor-location-log
+
+==================================================
+QR SCANNING FLOW - SUITABLE ENDPOINTS
+==================================================
+Primary:
+- GET /api/geo/stalls?deviceId=...
+- GET /api/stalls/{id} (if QR encodes stallId)
+
+Supporting (language/voice preference after scan):
+- GET /api/languages/active
+- GET /api/tts-voice-profiles/active?languageId=...
+- POST /api/device-preference
+- GET /api/device-preference/{deviceId}
