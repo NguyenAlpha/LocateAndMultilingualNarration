@@ -7,262 +7,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Enterprise Management System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="/assets/css/site.css" rel="stylesheet">
-    <style>
-        .register-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 2rem 1rem;
-        }
-        .register-card {
-            max-width: 480px;
-            width: 100%;
-        }
-        .register-card .card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
-        }
-        .register-card .card-header {
-            background-color: transparent;
-            border-bottom: none;
-            padding-top: 2rem;
-            text-align: center;
-        }
-        .register-card .card-body {
-            padding: 2rem;
-        }
-        .register-logo {
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-        .btn-register {
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-        }
-        .password-strength {
-            height: 4px;
-            margin-top: 0.5rem;
-            border-radius: 2px;
-            transition: all 0.3s ease;
-        }
-        .password-strength.weak { background-color: #dc3545; width: 33%; }
-        .password-strength.medium { background-color: #ffc107; width: 66%; }
-        .password-strength.strong { background-color: #198754; width: 100%; }
-        .error-message {
-            color: var(--danger-color);
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-            display: block;
-        }
-        .requirement-list {
-            font-size: 0.8rem;
-            color: #6c757d;
-            padding-left: 1.25rem;
-            margin-top: 0.5rem;
-        }
-        .requirement-list li.met {
-            color: #198754;
-        }
-        .requirement-list li.met::marker {
-            content: '\2713 ';
-        }
-    </style>
+    <title>Register - EMS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 </head>
-<body>
-    <div class="register-container">
-        <div class="register-card">
-            <div class="card">
-                <div class="card-header">
-                    <div class="register-logo">
-                        <i class="bi bi-building"></i>
-                    </div>
-                    <h4 class="mb-0">Create an Account</h4>
-                    <p class="text-muted mt-2 mb-0">Join the Enterprise Management System</p>
-                </div>
+<body class="d-flex flex-column">
+    <div class="page page-center">
+        <div class="container container-tight py-4">
+
+            <!-- Brand -->
+            <div class="text-center mb-4">
+                <a asp-controller="Home" asp-action="Index" class="navbar-brand navbar-brand-autodark">
+                    <span class="fs-2 fw-bold">
+                        <i class="ti ti-building me-2 text-primary"></i>EMS
+                    </span>
+                </a>
+            </div>
+
+            <div class="card card-md">
                 <div class="card-body">
-                    <form asp-action="Register" asp-controller="Auth" method="post" novalidate>
+                    <h2 class="h2 text-center mb-1">Create an account</h2>
+                    <p class="text-muted text-center mb-4">Join the Enterprise Management System</p>
+
+                    <form asp-action="Register" asp-controller="Auth" method="post" novalidate autocomplete="off">
                         @Html.AntiForgeryToken()
-                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
 
                         <div class="mb-3">
-                            <label asp-for="UserName" class="form-label">
-                                User name <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text" aria-hidden="true">
-                                    <i class="bi bi-person"></i>
-                                </span>
-                                <input asp-for="UserName" class="form-control" placeholder="Enter your user name" required>
-                            </div>
-                            <span asp-validation-for="UserName" class="error-message"></span>
+                            <label asp-for="UserName" class="form-label">Username</label>
+                            <input asp-for="UserName"
+                                   class="form-control"
+                                   placeholder="Enter your username"
+                                   autocomplete="username"
+                                   required>
+                            <span asp-validation-for="UserName" class="invalid-feedback d-block"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Email" class="form-label">
-                                Email Address <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text" aria-hidden="true">
-                                    <i class="bi bi-envelope"></i>
-                                </span>
-                                <input asp-for="Email" class="form-control" placeholder="Enter your email address" required>
-                            </div>
-                            <span asp-validation-for="Email" class="error-message"></span>
+                            <label asp-for="Email" class="form-label">Email address</label>
+                            <input asp-for="Email"
+                                   class="form-control"
+                                   placeholder="your@email.com"
+                                   autocomplete="email"
+                                   required>
+                            <span asp-validation-for="Email" class="invalid-feedback d-block"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="PhoneNumber" class="form-label">
-                                Phone Number <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text" aria-hidden="true">
-                                    <i class="bi bi-telephone"></i>
-                                </span>
-                                <input asp-for="PhoneNumber" class="form-control" placeholder="Enter your phone number" required>
-                            </div>
-                            <span asp-validation-for="PhoneNumber" class="error-message"></span>
+                            <label asp-for="PhoneNumber" class="form-label">Phone number</label>
+                            <input asp-for="PhoneNumber"
+                                   class="form-control"
+                                   placeholder="+84 xxx xxx xxx"
+                                   autocomplete="tel"
+                                   required>
+                            <span asp-validation-for="PhoneNumber" class="invalid-feedback d-block"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Password" class="form-label">
-                                Password <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text" aria-hidden="true">
-                                    <i class="bi bi-lock"></i>
+                            <label asp-for="Password" class="form-label">Password</label>
+                            <div class="input-group input-group-flat">
+                                <input asp-for="Password"
+                                       class="form-control"
+                                       placeholder="Create a password"
+                                       autocomplete="new-password"
+                                       id="passwordInput"
+                                       required>
+                                <span class="input-group-text">
+                                    <a href="#" class="link-secondary" id="togglePassword" title="Show password" tabindex="-1">
+                                        <i class="ti ti-eye" id="toggleIcon"></i>
+                                    </a>
                                 </span>
-                                <input asp-for="Password" id="password" class="form-control" placeholder="Create a password" required>
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Toggle password visibility">
-                                    <i class="bi bi-eye"></i>
-                                </button>
                             </div>
-                            <div class="password-strength" id="passwordStrength"></div>
-                            <span asp-validation-for="Password" class="error-message"></span>
-                            <ul class="requirement-list" id="passwordRequirements">
-                                <li id="req-length">At least 6 characters</li>
-                                <li id="req-uppercase">One uppercase letter</li>
-                                <li id="req-lowercase">One lowercase letter</li>
-                                <li id="req-number">One number</li>
-                            </ul>
+                            <!-- Password strength bar -->
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar" id="strengthBar" role="progressbar" style="width: 0; transition: all 0.3s;"></div>
+                            </div>
+                            <div id="strengthText" class="form-hint mt-1"></div>
+                            <span asp-validation-for="Password" class="invalid-feedback d-block"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="ConfirmPassword" class="form-label">
-                                Confirm Password <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text" aria-hidden="true">
-                                    <i class="bi bi-lock-fill"></i>
+                            <label asp-for="ConfirmPassword" class="form-label">Confirm password</label>
+                            <div class="input-group input-group-flat">
+                                <input asp-for="ConfirmPassword"
+                                       class="form-control"
+                                       placeholder="Confirm your password"
+                                       autocomplete="new-password"
+                                       id="confirmPasswordInput"
+                                       required>
+                                <span class="input-group-text">
+                                    <a href="#" class="link-secondary" id="toggleConfirm" title="Show password" tabindex="-1">
+                                        <i class="ti ti-eye" id="toggleConfirmIcon"></i>
+                                    </a>
                                 </span>
-                                <input asp-for="ConfirmPassword" id="confirmPassword" class="form-control" placeholder="Confirm your password" required>
-                                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Toggle confirm password visibility">
-                                    <i class="bi bi-eye"></i>
-                                </button>
                             </div>
-                            <span asp-validation-for="ConfirmPassword" class="error-message"></span>
+                            <span asp-validation-for="ConfirmPassword" class="invalid-feedback d-block"></span>
                         </div>
 
-                        @* <div class="mb-4">
-                            <div class="form-check">
-                                <input asp-for="AgreeTerms" class="form-check-input" required>
-                                <label asp-for="AgreeTerms" class="form-check-label">
-                                    I agree to the <a href="/Pages/Home/Privacy.html" class="text-decoration-none">Terms of Service</a> and <a href="/Pages/Home/Privacy.html" class="text-decoration-none">Privacy Policy</a>
-                                </label>
-                            </div>
-                            <span asp-validation-for="AgreeTerms" class="error-message"></span>
-                        </div> *@
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-register">
-                                <i class="bi bi-person-plus me-2"></i>Create Account
+                        <div class="form-footer">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="ti ti-user-plus me-2"></i>Create account
                             </button>
-                        </div>
-
-                        <div class="text-center mt-4">
-                            <span class="text-muted">Already have an account?</span>
-                            <a asp-controller="Auth" asp-action="Login" class="text-decoration-none ms-1">Sign in</a>
                         </div>
                     </form>
                 </div>
-                <div class="card-footer bg-transparent text-center py-3">
-                    <a href="/" class="text-muted text-decoration-none small">
-                        <i class="bi bi-arrow-left me-1"></i>Back to Home
-                    </a>
-                </div>
             </div>
+
+            <div class="text-center text-muted mt-3">
+                Already have an account?
+                <a asp-controller="Auth" asp-action="Login">Sign in</a>
+            </div>
+
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <partial name="_ValidationScriptsPartial" />
     <script>
-        $(document).ready(function() {
-            $('#password').on('input', function() {
-                const password = $(this).val();
-                const strengthBar = $('#passwordStrength');
-                let strength = 0;
-
-                const hasLength = password.length >= 6;
-                const hasUppercase = /[A-Z]/.test(password);
-                const hasLowercase = /[a-z]/.test(password);
-                const hasNumber = /[0-9]/.test(password);
-
-                $('#req-length').toggleClass('met', hasLength);
-                $('#req-uppercase').toggleClass('met', hasUppercase);
-                $('#req-lowercase').toggleClass('met', hasLowercase);
-                $('#req-number').toggleClass('met', hasNumber);
-
-                if (hasLength) strength++;
-                if (hasUppercase) strength++;
-                if (hasLowercase) strength++;
-                if (hasNumber) strength++;
-
-                strengthBar.removeClass('weak medium strong');
-                if (password.length === 0) {
-                    strengthBar.css('width', '0');
-                } else if (strength <= 2) {
-                    strengthBar.addClass('weak');
-                } else if (strength === 3) {
-                    strengthBar.addClass('medium');
+        // Toggle password visibility
+        function setupToggle(btnId, inputId, iconId) {
+            document.getElementById(btnId).addEventListener('click', function (e) {
+                e.preventDefault();
+                var input = document.getElementById(inputId);
+                var icon = document.getElementById(iconId);
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.className = 'ti ti-eye-off';
                 } else {
-                    strengthBar.addClass('strong');
+                    input.type = 'password';
+                    icon.className = 'ti ti-eye';
                 }
             });
+        }
+        setupToggle('togglePassword', 'passwordInput', 'toggleIcon');
+        setupToggle('toggleConfirm', 'confirmPasswordInput', 'toggleConfirmIcon');
 
-            $('#togglePassword').on('click', function() {
-                const passwordField = $('#password');
-                const icon = $(this).find('i');
+        // Password strength indicator
+        document.getElementById('passwordInput').addEventListener('input', function () {
+            var pw = this.value;
+            var bar = document.getElementById('strengthBar');
+            var text = document.getElementById('strengthText');
+            var strength = 0;
+            if (pw.length >= 6) strength++;
+            if (/[A-Z]/.test(pw)) strength++;
+            if (/[a-z]/.test(pw)) strength++;
+            if (/[0-9]/.test(pw)) strength++;
 
-                if (passwordField.attr('type') === 'password') {
-                    passwordField.attr('type', 'text');
-                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
-                } else {
-                    passwordField.attr('type', 'password');
-                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
-                }
-            });
-
-            $('#toggleConfirmPassword').on('click', function() {
-                const passwordField = $('#confirmPassword');
-                const icon = $(this).find('i');
-
-                if (passwordField.attr('type') === 'password') {
-                    passwordField.attr('type', 'text');
-                    icon.removeClass('bi-eye').addClass('bi-eye-slash');
-                } else {
-                    passwordField.attr('type', 'password');
-                    icon.removeClass('bi-eye-slash').addClass('bi-eye');
-                }
-            });
+            if (pw.length === 0) {
+                bar.style.width = '0';
+                bar.className = 'progress-bar';
+                text.textContent = '';
+            } else if (strength <= 2) {
+                bar.style.width = '33%';
+                bar.className = 'progress-bar bg-danger';
+                text.textContent = 'Weak password';
+                text.className = 'form-hint mt-1 text-danger';
+            } else if (strength === 3) {
+                bar.style.width = '66%';
+                bar.className = 'progress-bar bg-warning';
+                text.textContent = 'Medium password';
+                text.className = 'form-hint mt-1 text-warning';
+            } else {
+                bar.style.width = '100%';
+                bar.className = 'progress-bar bg-success';
+                text.textContent = 'Strong password';
+                text.className = 'form-hint mt-1 text-success';
+            }
         });
     </script>
 </body>
