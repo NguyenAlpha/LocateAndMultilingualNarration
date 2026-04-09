@@ -15,7 +15,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Mobile"
     xmlns:pages="clr-namespace:Mobile.Pages"
-    Title="Mobile">
+    Title="Mobile"
+    FlyoutBehavior="Disabled">
 
     <!--
         ShellContent đại diện cho một trang trong hệ thống điều hướng Shell.

@@ -49,16 +49,15 @@ public class SyncBackgroundService : ISyncBackgroundService
         Connectivity.ConnectivityChanged += OnConnectivityChanged;
 
         // Chạy timer định kỳ
-        // OLD CODE (kept for reference): _ = RunPeriodicAsync(_cts.Token);
-        _ = RunPeriodicSafelyAsync(_cts.Token);
+        // Vòng lặp nền này sẽ tự dừng khi CancellationToken bị hủy.
+        _ = RunPeriodicAsync(_cts.Token);
 
         // Sync lần đầu ngay khi start (nếu có mạng)
         // Nếu đang online thì chủ động đồng bộ ngay để dữ liệu sớm được cập nhật.
         if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
         {
-            _logger.LogInformation("SyncBackgroundService: Start — sync lần đầu");
-            // OLD CODE (kept for reference): _ = _syncService.SyncAsync(_cts.Token);
-            _ = SyncOnceSafelyAsync(_cts.Token);
+            _logger.LogInformation("[SyncBackgroundService][Start]: Start — sync lần đầu");
+            _ = _syncService.SyncAsync(_cts.Token);
         }
     }
 
@@ -116,33 +115,6 @@ public class SyncBackgroundService : ISyncBackgroundService
 
         // Khi có mạng trở lại, đồng bộ ngay để giảm độ trễ dữ liệu.
         _logger.LogInformation("SyncBackgroundService: mạng kết nối lại → sync ngay");
-        // OLD CODE (kept for reference): _ = _syncService.SyncAsync(_cts.Token);
-        _ = SyncOnceSafelyAsync(_cts.Token);
-    }
-
-    // Chạy timer nền với bắt lỗi tổng quát để tránh crash ngoài ý muốn.
-    private async Task RunPeriodicSafelyAsync(CancellationToken ct)
-    {
-        try
-        {
-            await RunPeriodicAsync(ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "RunPeriodicSafelyAsync: lỗi không mong muốn");
-        }
-    }
-
-    // Đồng bộ một lần có bắt lỗi để fire-and-forget an toàn.
-    private async Task SyncOnceSafelyAsync(CancellationToken ct)
-    {
-        try
-        {
-            await _syncService.SyncAsync(ct);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "SyncOnceSafelyAsync: lỗi sync nền");
-        }
+        _ = _syncService.SyncAsync(_cts.Token);
     }
 }

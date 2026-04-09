@@ -71,8 +71,6 @@ namespace Mobile
             // AppShell quản lý toàn bộ luồng điều hướng (tab bar, flyout menu, routes...)
             var window = new Window(new AppShell());
 
-            // OLD CODE (kept for reference): _ = TrySkipScanOnStartupAsync();
-
             return window;
         }
 
@@ -88,16 +86,7 @@ namespace Mobile
 
             try
             {
-                // OLD CODE (kept for reference): điều hướng startup phụ thuộc vào stallId local.
-                // var hasStall = await LocalStorageService.HasStall();
-                // if (!hasStall)
-                // {
-                //     Console.WriteLine("[DEBUG] Startup navigate: //ScanPage");
-                //     await Shell.Current.GoToAsync("//ScanPage");
-                //     return;
-                // }
-
-                // Luồng mới: dựa vào device_id + DevicePreferences để quyết định onboarding.
+                // dựa vào device_id + DevicePreferences để quyết định onboarding.
                 var deviceId = Preferences.Get("device_id", null);
                 Console.WriteLine($"[DEBUG] Startup DeviceId: {deviceId}");
 
@@ -113,11 +102,6 @@ namespace Mobile
 
                 if (!hasPreference)
                 {
-                    // OLD CODE (kept for reference): điều hướng LanguagePage khi chưa có preference.
-                    // var stallId = await LocalStorageService.GetStallId();
-                    // Console.WriteLine($"[DEBUG] Startup navigate: //LanguagePage?stallId={stallId}");
-                    // await Shell.Current.GoToAsync($"//LanguagePage?stallId={Uri.EscapeDataString(stallId)}");
-
                     Console.WriteLine("[DEBUG] Startup navigate: //ScanPage (DevicePreferences chưa có)");
                     await Shell.Current.GoToAsync("//ScanPage");
                     return;
@@ -149,33 +133,6 @@ namespace Mobile
             {
                 _logger.LogWarning(ex, "CheckDevicePreference thất bại");
                 return false;
-            }
-        }
-
-        /// <summary>
-        /// Tự động điều hướng sang trang ngôn ngữ khi đã có stallId local.
-        /// Giữ nguyên flow hiện tại, chỉ thêm bước skip scan cho lần mở app sau.
-        /// </summary>
-        private async Task TrySkipScanOnStartupAsync()
-        {
-            try
-            {
-                // OLD CODE (kept for reference): var stallId = LocalStorageService.GetStallId();
-                var stallId = await LocalStorageService.GetStallId();
-                if (string.IsNullOrWhiteSpace(stallId))
-                    return;
-
-                // Chờ nhẹ để đảm bảo Shell đã khởi tạo xong trước khi điều hướng.
-                await Task.Delay(200);
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    Console.WriteLine($"[DEBUG] Startup navigate to LanguagePage with StallId: {stallId}");
-                    await Shell.Current.GoToAsync($"//LanguagePage?stallId={Uri.EscapeDataString(stallId)}");
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Không thể tự động bỏ qua ScanPage khi khởi động");
             }
         }
 

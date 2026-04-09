@@ -184,10 +184,6 @@ public partial class MapPage : ContentPage
         try
         {
             _viewModel.StopPolling();
-
-            // OLD CODE (kept for reference): khi rời map có thể dừng audio để tránh giữ tài nguyên.
-            // if (_viewModel.StopAudioCommand.CanExecute(null))
-            //     _viewModel.StopAudioCommand.Execute(null);
         }
         catch (Exception ex)
         {

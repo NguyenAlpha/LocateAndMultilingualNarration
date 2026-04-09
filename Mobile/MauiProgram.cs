@@ -95,21 +95,16 @@ public static class MauiProgram
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
 
-        // OLD CODE (kept for reference): dùng builder.Services.AddTransient<T>() trực tiếp gây ambiguous extension trong một số context.
         ServiceCollectionServiceExtensions.AddTransient<StartViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<LoginViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
-        // OLD CODE (kept for reference): ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
-        // Tạm comment do class chưa tồn tại/đang chưa sẵn sàng trong workspace hiện tại.
-        // ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
         ServiceCollectionServiceExtensions.AddTransient<MainPage>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<MapPage>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<LanguagePage>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<VoicePage>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<StartPage>(builder.Services);
@@ -117,8 +112,7 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<ScanPage>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfilePage>(builder.Services);
 
-        // OLD CODE (kept for reference): service profile visitor chưa tồn tại trong solution hiện tại.
-        // ServiceCollectionServiceExtensions.AddTransient<IVisitorProfileService, VisitorProfileService>(builder.Services);
+        ServiceCollectionServiceExtensions.AddSingleton<MapPage>(builder.Services);
 
 #if DEBUG
         // Chỉ bật logging ra cửa sổ Debug khi build ở chế độ DEBUG

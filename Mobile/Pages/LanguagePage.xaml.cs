@@ -4,8 +4,6 @@ using Mobile.Services;
 
 namespace Mobile;
 
-[QueryProperty(nameof(StallId), "stallId")]
-[QueryProperty(nameof(Token), "token")]
 /// <summary>
 /// Màn hình hiển thị danh sách ngôn ngữ để người dùng chọn trước khi sang màn hình chọn giọng đọc.
 /// </summary>
@@ -13,9 +11,6 @@ public partial class LanguagePage : ContentPage
 {
     private readonly ILanguageService _languageService;
     private bool _isNavigating;
-
-    public string? StallId { get; set; }
-    public string? Token { get; set; }
 
     /// <summary>
     /// Khởi tạo trang và gán service lấy danh sách ngôn ngữ.
@@ -102,15 +97,7 @@ public partial class LanguagePage : ContentPage
             // OLD CODE (kept for reference):
             // await Shell.Current.GoToAsync($"{nameof(VoicePage)}?languageId={item.LanguageId}&languageCode={Uri.EscapeDataString(item.Code)}");
 
-            // Dùng route AudioPage (alias của VoicePage) để đúng flow yêu cầu: QR -> Language -> Audio -> Map.
             var route = $"AudioPage?languageId={item.LanguageId}&languageCode={Uri.EscapeDataString(item.Code)}";
-
-            // Truyền stallId/token từ QR để AudioPage điều hướng chính xác sang MapPage.
-            if (!string.IsNullOrWhiteSpace(StallId))
-                route += $"&stallId={Uri.EscapeDataString(StallId)}";
-            else if (!string.IsNullOrWhiteSpace(Token))
-                route += $"&token={Uri.EscapeDataString(Token)}";
-
             await Shell.Current.GoToAsync(route);
         }
         finally

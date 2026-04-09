@@ -71,9 +71,6 @@ public class MapViewModel : INotifyPropertyChanged
                 // Yêu cầu MapPage di chuyển camera đến vị trí gian hàng vừa chọn
                 FocusStallRequested?.Invoke(selectedStall);
 
-                // Chuẩn bị sẵn trạng thái audio theo gian hàng và ngôn ngữ đã chọn.
-                PrepareNarrationForSelectedStall();
-
                 // Yêu cầu MapPage vẽ lại pin (để đổi màu pin đang chọn so với các pin còn lại)
                 PinsRefreshRequested?.Invoke();
             }
@@ -137,9 +134,9 @@ public class MapViewModel : INotifyPropertyChanged
 
         // forceRefresh = true: bỏ qua cache, luôn gọi API mới
         RefreshCommand = new Command(async () => await LoadStallsAsync(true));
-        PlayAudioCommand  = new Command(async () => await PlayAudioAsync());
+        PlayAudioCommand = new Command(async () => await PlayAudioAsync());
         PauseAudioCommand = new Command(async () => await _audioGuideService.PauseAsync());
-        StopAudioCommand  = new Command(async () => await _audioGuideService.StopAsync());
+        StopAudioCommand = new Command(async () => await _audioGuideService.StopAsync());
     }
 
     /// <summary>
@@ -191,17 +188,9 @@ public class MapViewModel : INotifyPropertyChanged
 
             // Cập nhật ObservableCollection — UI tự động refresh CollectionView
             Stalls.Clear();
-
-            // Profile full có thể trả danh sách lớn; thêm theo lô để tránh block UI và giảm nguy cơ ANR/crash.
-            const int batchSize = 100;
-            for (var i = 0; i < stalls.Count; i++)
+            foreach (var stall in stalls)
             {
-                Stalls.Add(stalls[i]);
-
-                if ((i + 1) % batchSize == 0)
-                {
-                    await Task.Yield();
-                }
+                Stalls.Add(stall);
             }
 
             if (Stalls.Count == 0)
@@ -254,26 +243,6 @@ public class MapViewModel : INotifyPropertyChanged
             _logger.LogInformation("PlayStall - StallId: {StallId}, AudioUrl: {AudioUrl}", stall.StallId, audioUrl);
         ErrorMessage = string.Empty;
         await _audioGuideService.PlayAsync(audioUrl);
-    }
-
-    /// <summary>
-    /// Chuẩn bị narration cho stall đang chọn.
-    /// Hiện tại backend đã trả AudioUrl theo device preference ngôn ngữ/voice,
-    /// nên bước chuẩn bị ở mobile là kiểm tra sẵn dữ liệu để người dùng có thể bấm Phát ngay.
-    /// </summary>
-    private void PrepareNarrationForSelectedStall()
-    {
-        if (SelectedStall is null)
-            return;
-
-        // OLD CODE (kept for reference): if (string.IsNullOrWhiteSpace(SelectedStall.AudioUrl))
-        if (string.IsNullOrWhiteSpace(SelectedStall.NarrationContent?.AudioUrl))
-        {
-            ErrorMessage = "Gian hàng này chưa có audio theo ngôn ngữ đã chọn.";
-            return;
-        }
-
-        _logger.LogInformation("Narration đã sẵn sàng cho stall {StallId}", SelectedStall.StallId);
     }
 
     // ---- GEOFENCING ----
