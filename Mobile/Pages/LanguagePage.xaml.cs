@@ -97,7 +97,7 @@ public partial class LanguagePage : ContentPage
             // OLD CODE (kept for reference):
             // await Shell.Current.GoToAsync($"{nameof(VoicePage)}?languageId={item.LanguageId}&languageCode={Uri.EscapeDataString(item.Code)}");
 
-            var route = $"AudioPage?languageId={item.LanguageId}&languageCode={Uri.EscapeDataString(item.Code)}";
+            var route = $"{nameof(VoicePage)}?languageId={item.LanguageId}&languageCode={Uri.EscapeDataString(item.Code)}";
             await Shell.Current.GoToAsync(route);
         }
         finally

@@ -31,17 +31,20 @@
     <ShellContent
         Title="Scan"
         Route="ScanPage"
-        ContentTemplate="{DataTemplate pages:ScanPage}" />
+        ContentTemplate="{DataTemplate pages:ScanPage}"/>
 
     <ShellContent
         Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+        Route="MainPage"
+        ContentTemplate="{DataTemplate local:MainPage}"/>
 
     <ShellContent
         Title="Map"
-        ContentTemplate="{DataTemplate pages:MapPage}"
-        Route="MapPage" />
-    <!-- OLD CODE (kept for reference): <ShellContent Route="profile" ContentTemplate="{DataTemplate views:ProfilePage}" /> -->
-    <ShellContent Route="profile" ContentTemplate="{DataTemplate pages:ProfilePage}" />
+        Route="MapPage"
+        ContentTemplate="{DataTemplate pages:MapPage}"/>
+
+    <ShellContent
+        Title="Profile"
+        Route="profile"
+        ContentTemplate="{DataTemplate pages:ProfilePage}"/>
 </Shell>
