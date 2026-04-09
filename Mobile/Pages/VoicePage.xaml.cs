@@ -18,6 +18,7 @@ public partial class VoicePage : ContentPage
     private readonly IDeviceService _deviceService;
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
     private readonly ILogger<VoicePage> _logger;
+    private bool _isNavigating;
 
     // Id ngôn ngữ được truyền từ trang trước
     public string LanguageId { get; set; } = string.Empty;
@@ -91,37 +92,49 @@ public partial class VoicePage : ContentPage
     // Xử lý khi người dùng chạm vào một voice trong danh sách
     async void OnVoiceTapped(object sender, TappedEventArgs e)
     {
-        // Chỉ xử lý khi parameter đúng kiểu voice item
         if (e.Parameter is not TtsVoiceProfileListItemDto voice) return;
+        if (_isNavigating) return;
 
-        if (_logger.IsEnabled(LogLevel.Information))
-            _logger.LogInformation("[VoicePage][OnVoiceTapped] Chọn voice: ngôn ngữ: {LanguageCode} | {VoiceId}", LanguageCode, voice.Id);
-
-        // Lấy hoặc tạo DeviceId và thông tin thiết bị hiện tại
-        var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
-        var deviceInfo = _deviceService.GetDeviceInfo();
-
-        // Fire-and-forget: lưu voice vào DevicePreference, không chặn UI của người dùng
-        _ = _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
+        if (!Guid.TryParse(LanguageId, out var languageGuid))
         {
-            DeviceId = deviceId,
-            LanguageCode = LanguageCode,
-            Voice = voice.Id.ToString(),
-            AutoPlay = true,
-            Platform = deviceInfo.Platform,
-            DeviceModel = deviceInfo.DeviceModel,
-            Manufacturer = deviceInfo.Manufacturer,
-            OsVersion = deviceInfo.OsVersion
-        });
+            await DisplayAlertAsync("Lỗi", "LanguageId không hợp lệ.", "OK");
+            return;
+        }
 
-        if (_logger.IsEnabled(LogLevel.Information))
-            _logger.LogInformation("[VoicePage][OnVoiceTapped] Đã upsert DevicePreference cho device: {DeviceId}", deviceId);
+        try
+        {
+            _isNavigating = true;
 
-        // Lưu ngôn ngữ và voice đã chọn để MapPage đọc lại khi OnAppearing.
-        LanguageHelper.SetLanguage(LanguageCode);
-        LanguageHelper.SetVoice(voice.Id.ToString());
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("[VoicePage][OnVoiceTapped] Chọn voice: ngôn ngữ: {LanguageCode} | {VoiceId}", LanguageCode, voice.Id);
 
-        // Điều hướng sang bản đồ — MapPage đọc từ LanguageHelper thay vì query string.
-        await Shell.Current.GoToAsync("//MapPage");
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var deviceInfo = _deviceService.GetDeviceInfo();
+
+            await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
+            {
+                DeviceId = deviceId,
+                LanguageId = languageGuid,
+                VoiceId = voice.Id,
+                AutoPlay = true,
+                Platform = deviceInfo.Platform,
+                DeviceModel = deviceInfo.DeviceModel,
+                Manufacturer = deviceInfo.Manufacturer,
+                OsVersion = deviceInfo.OsVersion
+            });
+
+            LanguageHelper.SetLanguage(LanguageCode);
+            LanguageHelper.SetVoice(voice.Id.ToString());
+
+            await Shell.Current.GoToAsync("//MapPage");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Lỗi", $"Không thể lưu giọng đọc: {ex.Message}", "OK");
+        }
+        finally
+        {
+            _isNavigating = false;
+        }
     }
 }

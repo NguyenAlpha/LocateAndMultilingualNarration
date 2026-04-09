@@ -58,6 +58,7 @@ public class SyncBackgroundService : ISyncBackgroundService
         {
             _logger.LogInformation("[SyncBackgroundService][Start]: Start — sync lần đầu");
             _ = _syncService.SyncAsync(_cts.Token);
+            _logger.LogInformation("[SyncBackgroundService][Start]: _syncService.SyncAsync đã được gọi");
         }
     }
 

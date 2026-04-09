@@ -17,19 +17,20 @@ namespace TestAPI
         {
             using var factory = new ApiFactory();
             using var client = factory.CreateClient();
+            Guid viLanguageId;
 
             using (var scope = factory.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 TestDataSeeder.SeedLanguages(context);
+                viLanguageId = context.Languages.First(l => l.Code == "vi").Id;
             }
 
             // AllowAnonymous – không cần token
             var response = await client.PostAsJsonAsync("/api/device-preference", new DevicePreferenceUpsertDto
             {
                 DeviceId = "device-001",
-                LanguageCode = "vi",
-                Voice = "vi-VN-Standard-A",
+                LanguageId = viLanguageId,
                 SpeechRate = 1.0m,
                 AutoPlay = true,
                 Platform = "Android",
@@ -43,7 +44,7 @@ namespace TestAPI
             Assert.NotNull(result?.Data);
             Assert.Equal("device-001", result.Data.DeviceId);
             Assert.Equal("vi", result.Data.LanguageCode);
-            Assert.Equal("vi-VN-Standard-A", result.Data.Voice);
+            Assert.Null(result.Data.VoiceId);
         }
 
         [Fact]
@@ -51,18 +52,22 @@ namespace TestAPI
         {
             using var factory = new ApiFactory();
             using var client = factory.CreateClient();
+            Guid viLanguageId;
+            Guid enLanguageId;
 
             using (var scope = factory.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 TestDataSeeder.SeedLanguages(context);
+                viLanguageId = context.Languages.First(l => l.Code == "vi").Id;
+                enLanguageId = context.Languages.First(l => l.Code == "en").Id;
             }
 
             // Tạo lần đầu
             await client.PostAsJsonAsync("/api/device-preference", new DevicePreferenceUpsertDto
             {
                 DeviceId = "device-002",
-                LanguageCode = "vi",
+                LanguageId = viLanguageId,
                 SpeechRate = 1.0m
             });
 
@@ -70,8 +75,7 @@ namespace TestAPI
             var updateResponse = await client.PostAsJsonAsync("/api/device-preference", new DevicePreferenceUpsertDto
             {
                 DeviceId = "device-002",
-                LanguageCode = "en",
-                Voice = "en-US-Standard-B",
+                LanguageId = enLanguageId,
                 SpeechRate = 1.2m,
                 AutoPlay = false
             });
@@ -80,7 +84,7 @@ namespace TestAPI
             var result = await updateResponse.Content.ReadFromJsonAsync<ApiResult<DevicePreferenceDetailDto>>(JsonOptions.Default);
             Assert.NotNull(result?.Data);
             Assert.Equal("en", result.Data.LanguageCode);
-            Assert.Equal("en-US-Standard-B", result.Data.Voice);
+            Assert.Null(result.Data.VoiceId);
         }
 
         [Fact]
@@ -88,17 +92,19 @@ namespace TestAPI
         {
             using var factory = new ApiFactory();
             using var client = factory.CreateClient();
+            Guid viLanguageId;
 
             using (var scope = factory.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 TestDataSeeder.SeedLanguages(context);
+                viLanguageId = context.Languages.First(l => l.Code == "vi").Id;
             }
 
             await client.PostAsJsonAsync("/api/device-preference", new DevicePreferenceUpsertDto
             {
                 DeviceId = "device-get-001",
-                LanguageCode = "vi",
+                LanguageId = viLanguageId,
                 SpeechRate = 1.0m
             });
 
@@ -136,7 +142,7 @@ namespace TestAPI
             var response = await client.PostAsJsonAsync("/api/device-preference", new DevicePreferenceUpsertDto
             {
                 DeviceId = "device-bad-lang",
-                LanguageCode = "zz", // không tồn tại
+                LanguageId = Guid.NewGuid(), // không tồn tại
                 SpeechRate = 1.0m
             });
 
@@ -148,17 +154,19 @@ namespace TestAPI
         {
             using var factory = new ApiFactory();
             using var client = factory.CreateClient();
+            Guid jaLanguageId;
 
             using (var scope = factory.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 TestDataSeeder.SeedLanguages(context); // "ja" là inactive
+                jaLanguageId = context.Languages.First(l => l.Code == "ja").Id;
             }
 
             var response = await client.PostAsJsonAsync("/api/device-preference", new DevicePreferenceUpsertDto
             {
                 DeviceId = "device-inactive-lang",
-                LanguageCode = "ja", // inactive trong seed data
+                LanguageId = jaLanguageId, // inactive trong seed data
                 SpeechRate = 1.0m
             });
 

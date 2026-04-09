@@ -229,14 +229,14 @@ public class LanguageSelectionViewModel : INotifyPropertyChanged
             // Tạm thời bỏ qua update user language vì ILanguageService hiện chưa expose method này.
 
             // Cập nhật device preference để API map trả audio đúng ngôn ngữ/voice.
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             var deviceInfo = _deviceService.GetDeviceInfo();
 
             await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
             {
                 DeviceId = deviceId,
-                LanguageCode = SelectedLanguage.Code,
-                Voice = SelectedVoice.Id.ToString(),
+                LanguageId = SelectedLanguage.Id,
+                VoiceId = SelectedVoice.Id,
                 AutoPlay = true,
                 Platform = deviceInfo.Platform,
                 DeviceModel = deviceInfo.DeviceModel,

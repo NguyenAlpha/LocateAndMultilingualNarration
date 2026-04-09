@@ -37,7 +37,7 @@ public class SyncService : ISyncService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILocalStallRepository _localRepo;
     private readonly IAudioCacheService _audioCacheService;
-    private readonly IDevicePreferenceApiService _devicePreferenceApiService;
+    private readonly ILocalPreferenceService _localPreference;
     private readonly IDeviceService _deviceService;
     private readonly ILogger<SyncService> _logger;
 
@@ -52,14 +52,14 @@ public class SyncService : ISyncService
         IHttpClientFactory httpClientFactory,
         ILocalStallRepository localRepo,
         IAudioCacheService audioCacheService,
-        IDevicePreferenceApiService devicePreferenceApiService,
+        ILocalPreferenceService localPreference,
         IDeviceService deviceService,
         ILogger<SyncService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _localRepo = localRepo;
         _audioCacheService = audioCacheService;
-        _devicePreferenceApiService = devicePreferenceApiService;
+        _localPreference = localPreference;
         _deviceService = deviceService;
         _logger = logger;
     }
@@ -77,12 +77,13 @@ public class SyncService : ISyncService
 
         try
         {
-            // Bước 1: Lấy preference để biết ngôn ngữ và giọng đọc đang được chọn.
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
-            var pref = await _devicePreferenceApiService.GetAsync(deviceId, ct);
-            _logger.LogInformation("[SyncService][SyncAsync]Language name: {LanguageName} | voice: {Voice}", pref?.LanguageName, pref?.Voice);
+            // Bước 1: Đọc preference từ local cache — không cần gọi API thêm.
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var pref = _localPreference.Load();
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("[SyncService][SyncAsync]Language name: {LanguageName} | voice: {VoiceId}", pref?.LanguageName, pref?.VoiceId);
             var languageCode = pref?.LanguageCode ?? "vi";
-            var voiceId = pref?.Voice ?? string.Empty;
+            var voiceId = pref?.VoiceId?.ToString() ?? string.Empty;
 
             // Bước 2: Gọi API trực tiếp để lấy danh sách Stall của thiết bị hiện tại.
             var client = _httpClientFactory.CreateClient();

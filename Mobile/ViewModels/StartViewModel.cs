@@ -44,7 +44,7 @@ public class StartViewModel : INotifyPropertyChanged
         {
             _isInitializing = true;
 
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             var preference = await _devicePreferenceApiService.GetAsync(deviceId);
 
             if (preference is null)
@@ -55,8 +55,8 @@ public class StartViewModel : INotifyPropertyChanged
             else
             {
                 LanguageHelper.SetLanguage(preference.LanguageCode);
-                if (!string.IsNullOrWhiteSpace(preference.Voice))
-                    LanguageHelper.SetVoice(preference.Voice);
+                if (preference.VoiceId.HasValue)
+                    LanguageHelper.SetVoice(preference.VoiceId.Value.ToString());
 
                 _hasNavigatedFromStart = true;
                 await Shell.Current.GoToAsync($"//{nameof(MapPage)}");

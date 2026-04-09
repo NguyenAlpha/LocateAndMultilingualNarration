@@ -156,10 +156,9 @@ namespace Mobile.ViewModels
                     SpeechRate = preference.SpeechRate <= 0 ? 1.0m : preference.SpeechRate;
                     AutoPlay = preference.AutoPlay;
 
-                    if (!string.IsNullOrWhiteSpace(preference.Voice))
+                    if (preference.VoiceId.HasValue)
                     {
-                        SelectedVoice = AvailableVoices.FirstOrDefault(v =>
-                            string.Equals(v.Id, preference.Voice, StringComparison.OrdinalIgnoreCase));
+                        SelectedVoice = AvailableVoices.FirstOrDefault(v => v.Id == preference.VoiceId.Value);
                     }
                 }
             }
@@ -186,8 +185,7 @@ namespace Mobile.ViewModels
                 var upsertDto = new DevicePreferenceUpsertDto
                 {
                     LanguageId = SelectedLanguage.Id,
-                    LanguageCode = SelectedLanguage.Code,
-                    Voice = SelectedVoice?.Id,
+                    VoiceId = SelectedVoice?.Id,
                     SpeechRate = SpeechRate,
                     AutoPlay = AutoPlay
                 };
@@ -230,7 +228,7 @@ namespace Mobile.ViewModels
                 {
                     AvailableVoices.Add(new VoiceOption
                     {
-                        Id = voice.Id.ToString(),
+                        Id = voice.Id,
                         DisplayName = voice.DisplayName,
                         Description = voice.Description,
                         IsDefault = voice.IsDefault
@@ -272,7 +270,7 @@ namespace Mobile.ViewModels
 
         public class VoiceOption
         {
-            public string Id { get; set; } = string.Empty;
+            public Guid Id { get; set; }
             public string DisplayName { get; set; } = string.Empty;
             public string? Description { get; set; }
             public bool IsDefault { get; set; }

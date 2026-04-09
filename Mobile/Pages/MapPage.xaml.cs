@@ -15,6 +15,7 @@ using Mapsui.UI.Maui;
 using CommunityToolkit.Maui.Extensions;
 using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
+using Mobile.Services;
 using Mobile.ViewModels;
 using Shared.DTOs.Geo;
 // Geometry của NTS — tạo polygon, coordinate, linear ring
@@ -42,6 +43,7 @@ public partial class MapPage : ContentPage
     private readonly MapViewModel _viewModel;
     private readonly ILogger<MapPage> _logger;
     private readonly StallPopup _stallPopup;
+    private readonly ISyncBackgroundService _syncBackgroundService;
 
     // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
     private bool _isInitialized;
@@ -67,13 +69,14 @@ public partial class MapPage : ContentPage
     /// <summary>
     /// Constructor: khởi tạo UI, lấy ViewModel từ DI, đăng ký event, cấu hình bản đồ.
     /// </summary>
-    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup)
+    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService)
     {
         InitializeComponent();
 
         _viewModel = viewModel;
         _logger = logger;
         _stallPopup = stallPopup;
+        _syncBackgroundService = syncBackgroundService;
         BindingContext = _viewModel;
         Console.WriteLine($"[DEBUG] MapPage constructor — instance #{GetHashCode()}");
 
@@ -145,6 +148,7 @@ public partial class MapPage : ContentPage
         }
 
         _isInitialized = true;
+        _syncBackgroundService.Start();
         _ = InitializePageAsync(); // fire-and-forget rõ ràng, exception được bắt bên trong
     }
 

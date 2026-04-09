@@ -110,7 +110,7 @@ public class StallService : IStallService
         try
         {
             // Lấy deviceId để API trả về dữ liệu đúng theo thiết bị/ngữ cảnh người dùng.
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             // Tạo URL gọi API danh sách gian hàng.
             var client = _httpClientFactory.CreateClient();
             var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";

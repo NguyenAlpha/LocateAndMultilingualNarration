@@ -9,7 +9,7 @@ public class DevicePreferenceDetailDto
     public Guid? LanguageId { get; set; }
     public string LanguageCode { get; set; } = string.Empty;
     public string LanguageName { get; set; } = string.Empty;
-    public string? Voice { get; set; }
+    public Guid? VoiceId { get; set; }
     public decimal SpeechRate { get; set; }
     public bool AutoPlay { get; set; }
     public string? Platform { get; set; }

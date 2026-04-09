@@ -73,6 +73,9 @@ public static class MauiProgram
         // Lấy hoặc tạo DeviceId duy nhất cho thiết bị (dùng để nhận dạng visitor)
         builder.Services.AddSingleton<IDeviceService, DeviceService>();
 
+        // Lưu/đọc preference (ngôn ngữ, giọng đọc) cục bộ qua Preferences — không cần mạng
+        builder.Services.AddSingleton<ILocalPreferenceService, LocalPreferenceService>();
+
         // Lưu/lấy ngôn ngữ ưa thích của thiết bị từ API backend
         builder.Services.AddSingleton<IDevicePreferenceApiService, DevicePreferenceApiService>();
 
@@ -102,6 +105,7 @@ public static class MauiProgram
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
         builder.Services.AddTransient<MapPage>();
+        builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<VoicePage>();
         builder.Services.AddTransient<StartPage>();

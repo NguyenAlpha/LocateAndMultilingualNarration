@@ -18,8 +18,9 @@ namespace Api.Infrastructure.Persistence.Configurations
              .HasMaxLength(128);
             b.HasIndex(x => x.DeviceId).IsUnique();
 
-            b.Property(x => x.Voice)
-             .HasMaxLength(64);
+            b.Property(x => x.VoiceId)
+             .HasColumnType("uniqueidentifier")
+             .HasColumnName("VoiceId");
 
             b.Property(x => x.SpeechRate)
              .HasPrecision(4, 2)
@@ -49,6 +50,11 @@ namespace Api.Infrastructure.Persistence.Configurations
             b.HasOne(x => x.Language)
              .WithMany(l => l.DevicePreferences)
              .HasForeignKey(x => x.LanguageId)
+             .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(x => x.VoiceProfile)
+             .WithMany()
+             .HasForeignKey(x => x.VoiceId)
              .OnDelete(DeleteBehavior.Restrict);
         }
     }

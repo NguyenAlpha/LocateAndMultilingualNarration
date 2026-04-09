@@ -29,6 +29,10 @@
         ContentTemplate : chỉ định lớp Page sẽ được tạo khi route này được kích hoạt
     -->
     <ShellContent
+        Route="LoadingPage"
+        ContentTemplate="{DataTemplate pages:LoadingPage}" />
+
+    <ShellContent
         Title="Scan"
         Route="ScanPage"
         ContentTemplate="{DataTemplate pages:ScanPage}"/>

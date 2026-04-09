@@ -120,12 +120,15 @@ app.Use(async (context, next) =>
     }
 });
 
-// Chạy migration tự động nếu có connection string
+// Chạy migration và seed dữ liệu mặc định nếu có connection string
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     if (!string.IsNullOrEmpty(builder.Configuration.GetConnectionString("default")))
+    {
         db.Database.Migrate();
+        await DbSeeder.SeedAsync(db);
+    }
 }
 
 // Chuyển HTTP sang HTTPS (tắt ở Development để emulator/mobile dùng HTTP)
