@@ -30,7 +30,7 @@ public class StartViewModel : INotifyPropertyChanged
         _devicePreferenceApiService = devicePreferenceApiService;
         _logger = logger;
 
-        ScanCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(ScanPage)));
+        ScanCommand = new Command(async () => await Shell.Current.GoToAsync($"//{nameof(ScanPage)}"));
         LoginCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(LoginPage)));
     }
 
@@ -59,7 +59,7 @@ public class StartViewModel : INotifyPropertyChanged
                     LanguageHelper.SetVoice(preference.Voice);
 
                 _hasNavigatedFromStart = true;
-                await Shell.Current.GoToAsync(nameof(MapPage));
+                await Shell.Current.GoToAsync($"//{nameof(MapPage)}");
             }
         }
         catch (Exception ex)

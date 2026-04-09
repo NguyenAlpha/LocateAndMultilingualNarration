@@ -73,7 +73,7 @@ public class MainViewModel : INotifyPropertyChanged
         LoadUserName();
 
         StartCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
-        MapCommand = new Command(async () => await NavigateQuickActionAsync(nameof(MapPage)));
+        MapCommand = new Command(async () => await NavigateQuickActionAsync($"//{nameof(MapPage)}"));
         LanguageCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
         AudioCommand = new Command(async () => await NavigateQuickActionAsync("AudioPage"));
         ProfileCommand = new Command(async () => await ShowProfileAsync());
@@ -90,29 +90,29 @@ public class MainViewModel : INotifyPropertyChanged
 
     async Task LoadFeaturedStallsAsync()
     {
-        if (IsLoadingStalls) return;
+        //if (IsLoadingStalls) return;
 
-        try
-        {
-            IsLoadingStalls = true;
-            var stalls = await stallService.GetFeaturedStallsAsync();
+        //try
+        //{
+        //    IsLoadingStalls = true;
+        //    var stalls = await stallService.GetFeaturedStallsAsync();
             
-            FeaturedStalls.Clear();
-            foreach (var stall in stalls)
-            {
-                FeaturedStalls.Add(stall);
-            }
+        //    FeaturedStalls.Clear();
+        //    foreach (var stall in stalls)
+        //    {
+        //        FeaturedStalls.Add(stall);
+        //    }
 
-            HasStalls = FeaturedStalls.Count > 0;
-        }
-        catch
-        {
-            HasStalls = false;
-        }
-        finally
-        {
-            IsLoadingStalls = false;
-        }
+        //    HasStalls = FeaturedStalls.Count > 0;
+        //}
+        //catch
+        //{
+        //    HasStalls = false;
+        //}
+        //finally
+        //{
+        //    IsLoadingStalls = false;
+        //}
     }
 
     async Task ShowAudioHintAsync()
