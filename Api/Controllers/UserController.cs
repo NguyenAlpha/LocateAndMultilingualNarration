@@ -5,14 +5,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Security.Claims;
 
 namespace Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class UserController : ControllerBase
+    public class UserController : AppControllerBase
     {
         private readonly AppDbContext _context;
         private readonly ILogger<UserController> _logger;
@@ -41,15 +40,13 @@ namespace Api.Controllers
         {
             _logger.LogInformation("Bắt đầu lấy chi tiết user - Id: {UserId}", id);
 
-            var currentUserIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(currentUserIdValue, out var currentUserId))
+            if (!TryGetUserId(out var currentUserId))
             {
                 _logger.LogWarning("Không xác thực khi lấy chi tiết user - Id: {UserId}", id);
                 return this.UnauthorizedResult("Không xác thực");
             }
 
-            var isAdmin = User.IsInRole("Admin") || User.IsInRole("ADMIN");
-            if (!isAdmin && currentUserId != id)
+            if (!IsAdmin() && currentUserId != id)
             {
                 _logger.LogWarning("Không có quyền truy cập chi tiết user - Id: {UserId}", id);
                 return this.ForbiddenResult("Không có quyền truy cập");
@@ -76,12 +73,7 @@ namespace Api.Controllers
                 .Select(r => r!)
                 .ToList();
 
-            var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
-            var timeZone = string.IsNullOrWhiteSpace(timeZoneId)
-                ? TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-                : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-
-            _logger.LogDebug("Múi giờ dùng để trả về DTO - TimeZoneId: {TimeZoneId}", string.IsNullOrWhiteSpace(timeZoneId) ? "SE Asia Standard Time" : timeZoneId);
+            var timeZone = GetTimeZone();
 
             var response = new UserDetailDto
             {
@@ -138,38 +130,5 @@ namespace Api.Controllers
             return this.OkResult(response);
         }
 
-        private static DateTime ConvertFromUtc(DateTime utcDateTime, TimeZoneInfo timeZone)
-        {
-            var utc = DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
-            return TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone);
-        }
-
-        private static DateTime? ConvertFromUtc(DateTime? utcDateTime, TimeZoneInfo timeZone)
-        {
-            if (utcDateTime == null)
-            {
-                return null;
-            }
-
-            return ConvertFromUtc(utcDateTime.Value, timeZone);
-        }
-
-        private static DateTimeOffset? ConvertFromUtc(DateTimeOffset? utcDateTime, TimeZoneInfo timeZone)
-        {
-            if (utcDateTime == null)
-            {
-                return null;
-            }
-
-            return ConvertFromUtc(utcDateTime.Value, timeZone);
-        }
-
-        private static DateTimeOffset ConvertFromUtc(DateTimeOffset utcDateTime, TimeZoneInfo timeZone)
-        {
-            var utc = utcDateTime.UtcDateTime;
-            var local = TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone);
-            var offset = timeZone.GetUtcOffset(utc);
-            return new DateTimeOffset(local, offset);
-        }
     }
 }

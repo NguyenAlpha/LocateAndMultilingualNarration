@@ -12,12 +12,6 @@ namespace Api.Application.Services
     public interface IGeoService
     {
         /// <summary>
-        /// Tìm gian hàng gần nhất với tọa độ GPS được cung cấp,
-        /// kèm nội dung thuyết minh theo ngôn ngữ yêu cầu.
-        /// </summary>
-        Task<GeoNearestStallDto?> FindNearestStallAsync(decimal latitude, decimal longitude, string? languageCode, decimal? radiusMeters, CancellationToken cancellationToken);
-
-        /// <summary>
         /// Lấy toàn bộ danh sách gian hàng đang hoạt động,
         /// kèm AudioUrl được chọn theo ngôn ngữ và giọng đọc ưa thích của thiết bị.
         /// </summary>
@@ -30,7 +24,6 @@ namespace Api.Application.Services
     /// </summary>
     public class GeoService : IGeoService
     {
-        // EF Core DbContext — truy cập database
         private readonly AppDbContext _context;
         private readonly ILogger<GeoService> _logger;
 
@@ -38,122 +31,6 @@ namespace Api.Application.Services
         {
             _context = context;
             _logger = logger;
-        }
-
-        /// <summary>
-        /// Tìm gian hàng gần nhất theo thuật toán:
-        ///   1. Lọc sơ bộ bằng bounding box hình chữ nhật (nhanh, dùng được index DB)
-        ///   2. Tính khoảng cách Haversine chính xác trên tập kết quả nhỏ
-        ///   3. Kiểm tra lại radius chính xác sau khi sắp xếp
-        ///   4. Tải nội dung thuyết minh theo ngôn ngữ (nếu có yêu cầu)
-        /// </summary>
-        public async Task<GeoNearestStallDto?> FindNearestStallAsync(decimal latitude, decimal longitude, string? languageCode, decimal? radiusMeters, CancellationToken cancellationToken)
-        {
-            // Bước 1: Lấy các vị trí gian hàng đang hoạt động kèm thông tin gian hàng và doanh nghiệp
-            // AsNoTracking: không cần theo dõi thay đổi vì chỉ đọc, giúp tăng hiệu suất
-            var query = _context.StallLocations
-                .AsNoTracking()
-                .Where(l => l.IsActive)
-                .Include(l => l.Stall)
-                .ThenInclude(s => s.Business)
-                .AsQueryable();
-
-            if (radiusMeters.HasValue)
-            {
-                // Bước 1b: Thu hẹp sơ bộ bằng hình chữ nhật bao quanh bán kính
-                // Mục đích: giảm số record phải tính Haversine (tốn CPU hơn)
-                // 111_000 mét ≈ 1 độ vĩ độ; kinh độ thu hẹp theo cos(lat) khi xa xích đạo
-                var radius = (double)radiusMeters.Value;
-                var lat = (double)latitude;
-                var lng = (double)longitude;
-                var latDelta = radius / 111_000d;
-                var lngDelta = radius / (111_000d * Math.Cos(ToRadians(lat)));
-
-                var minLat = (decimal)(lat - latDelta);
-                var maxLat = (decimal)(lat + latDelta);
-                var minLng = (decimal)(lng - lngDelta);
-                var maxLng = (decimal)(lng + lngDelta);
-
-                query = query.Where(l => l.Latitude >= minLat && l.Latitude <= maxLat
-                                      && l.Longitude >= minLng && l.Longitude <= maxLng);
-            }
-
-            // Bước 2: Thực thi query — chỉ lấy gian hàng và doanh nghiệp đang hoạt động
-            var candidates = await query
-                .Where(l => l.Stall.IsActive && l.Stall.Business.IsActive)
-                .ToListAsync(cancellationToken);
-
-            if (candidates.Count == 0)
-            {
-                return null; // Không có ứng viên nào trong vùng
-            }
-
-            // Bước 3: Tính khoảng cách Haversine chính xác cho từng ứng viên, lấy gần nhất
-            var nearest = candidates
-                .Select(l => new
-                {
-                    Location = l,
-                    Distance = CalculateDistanceMeters(latitude, longitude, l.Latitude, l.Longitude)
-                })
-                .OrderBy(x => x.Distance)
-                .FirstOrDefault();
-
-            if (nearest == null)
-            {
-                return null;
-            }
-
-            // Bước 3b: Kiểm tra lại radius chính xác — bounding box có thể bao gồm điểm ngoài vòng tròn
-            if (radiusMeters.HasValue && nearest.Distance > radiusMeters.Value)
-            {
-                return null; // Gian hàng gần nhất vẫn nằm ngoài bán kính yêu cầu
-            }
-
-            // Bước 4: Tải nội dung thuyết minh theo ngôn ngữ (nếu có yêu cầu)
-            string? contentText = null;
-            string? audioUrl = null;
-
-            if (!string.IsNullOrWhiteSpace(languageCode))
-            {
-                // Tìm LanguageId từ code (vd: "vi", "en", "fr")
-                var languageId = await _context.Languages
-                    .AsNoTracking()
-                    .Where(l => l.Code == languageCode)
-                    .Select(l => l.Id)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                if (languageId != Guid.Empty)
-                {
-                    // Lấy nội dung thuyết minh đang active của gian hàng gần nhất theo ngôn ngữ
-                    var narration = await _context.StallNarrationContents
-                        .AsNoTracking()
-                        .Include(n => n.NarrationAudios)
-                        .FirstOrDefaultAsync(n => n.StallId == nearest.Location.StallId
-                            && n.LanguageId == languageId
-                            && n.IsActive, cancellationToken);
-
-                    if (narration != null)
-                    {
-                        contentText = narration.ScriptText;
-
-                        // Lấy audio URL mới nhất có URL hợp lệ (không null/rỗng)
-                        audioUrl = narration.NarrationAudios
-                            .OrderByDescending(a => a.UpdatedAt)
-                            .Select(a => a.AudioUrl)
-                            .FirstOrDefault(url => !string.IsNullOrWhiteSpace(url));
-                    }
-                }
-            }
-
-            // Bước 5: Trả về DTO kết quả với khoảng cách làm tròn 2 chữ số thập phân
-            return new GeoNearestStallDto
-            {
-                StallId = nearest.Location.StallId,
-                StallName = nearest.Location.Stall.Name,
-                DistanceMeters = decimal.Round(nearest.Distance, 2, MidpointRounding.AwayFromZero),
-                ContentText = contentText,
-                AudioUrl = audioUrl
-            };
         }
 
         /// <summary>
@@ -165,11 +42,8 @@ namespace Api.Application.Services
         /// </summary>
         public async Task<List<GeoStallDto>> GetAllStallsAsync(string? deviceId, CancellationToken cancellationToken)
         {
-            if (_logger.IsEnabled(LogLevel.Information))
-            {
-                var deviceIdLog = deviceId ?? "(none)";
-                _logger.LogInformation("GetAllStallsAsync: bắt đầu — DeviceId: {DeviceId}", deviceIdLog);
-            }
+            var deviceIdLog = deviceId ?? "(none)";
+            _logger.LogInformation("GetAllStallsAsync: bắt đầu — DeviceId: {DeviceId}", deviceIdLog);
 
             // Bước 1: Resolve ngôn ngữ và giọng đọc từ DevicePreference
             Guid languageId;
@@ -229,18 +103,12 @@ namespace Api.Application.Services
             }
 
             var locations = await locationsQuery.ToListAsync(cancellationToken);
-            if (_logger.IsEnabled(LogLevel.Information))
-                _logger.LogInformation("GetAllStallsAsync: truy vấn được {Total} vị trí gian hàng", locations.Count);
+            _logger.LogInformation("GetAllStallsAsync: truy vấn được {Total} vị trí gian hàng", locations.Count);
 
             // Bước 3: Map từng StallLocation sang GeoStallDto
             var result = locations.Select(l =>
             {
                 var contents = l.Stall.StallNarrationContents; // đã được lọc IsActive = true từ query
-
-                // Narration content theo ngôn ngữ ưu tiên — dùng để chọn AudioUrl chính
-                var preferredContent = languageId != Guid.Empty
-                    ? contents.FirstOrDefault(c => c.LanguageId == languageId)
-                    : contents.FirstOrDefault();
 
                 return new GeoStallDto
                 {

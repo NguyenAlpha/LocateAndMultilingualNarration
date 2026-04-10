@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Api.Application.DTOs.StallMedia;
 using Api.Domain.Settings;
 using Api.Extensions;
@@ -18,7 +17,7 @@ namespace Api.Controllers
     [ApiController]
     [Route("api/stall-media")]
     [Authorize]
-    public class StallMediaController : ControllerBase
+    public class StallMediaController : AppControllerBase
     {
         private const int MaxPageSize = 100;
         private static readonly HashSet<string> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -381,20 +380,5 @@ namespace Api.Controllers
             return (blobClient.Uri.ToString(), imageFile.ContentType);
         }
 
-        private bool TryGetUserId(out Guid userId)
-        {
-            var currentUserIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(currentUserIdValue, out userId);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin") || User.IsInRole("ADMIN");
-        }
-
-        private bool IsBusinessOwner()
-        {
-            return User.IsInRole("BusinessOwner") || User.IsInRole("BUSINESSOWNER");
-        }
     }
 }

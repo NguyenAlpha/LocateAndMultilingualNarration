@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -16,7 +15,7 @@ namespace Api.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class BusinessController : ControllerBase
+    public class BusinessController : AppControllerBase
     {
         private const int MaxPageSize = 100;
         private readonly AppDbContext _context;
@@ -251,36 +250,5 @@ namespace Api.Controllers
             };
         }
 
-        private static DateTimeOffset ConvertFromUtc(DateTimeOffset utcDateTime, TimeZoneInfo timeZone)
-        {
-            var utc = utcDateTime.UtcDateTime;
-            var local = TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone);
-            var offset = timeZone.GetUtcOffset(utc);
-            return new DateTimeOffset(local, offset);
-        }
-
-        private TimeZoneInfo GetTimeZone()
-        {
-            var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
-            return string.IsNullOrWhiteSpace(timeZoneId)
-                ? TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-                : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-
-        private bool TryGetUserId(out Guid userId)
-        {
-            var currentUserIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(currentUserIdValue, out userId);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin") || User.IsInRole("ADMIN");
-        }
-
-        private bool IsBusinessOwner()
-        {
-            return User.IsInRole("BusinessOwner") || User.IsInRole("BUSINESSOWNER");
-        }
     }
 }
