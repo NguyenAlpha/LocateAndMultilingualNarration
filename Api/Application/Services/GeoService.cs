@@ -173,7 +173,7 @@ namespace Api.Application.Services
 
             // Bước 1: Resolve ngôn ngữ và giọng đọc từ DevicePreference
             Guid languageId;
-            string? preferredVoice = null;
+            Guid? preferredVoice = null;
 
             if (!string.IsNullOrWhiteSpace(deviceId))
             {
@@ -186,7 +186,7 @@ namespace Api.Application.Services
                 {
                     // Thiết bị đã từng chọn ngôn ngữ → dùng preference đó
                     languageId = pref.LanguageId;
-                    preferredVoice = pref.Voice;
+                    preferredVoice = pref.VoiceId;
                 }
                 else
                 {
@@ -291,7 +291,7 @@ namespace Api.Application.Services
         ///   2. Audio được sinh bởi TTS (IsTts = true)
         ///   3. Bất kỳ audio nào có URL hợp lệ (fallback cuối cùng)
         /// </summary>
-        private static string? PickAudioUrl(IEnumerable<NarrationAudio>? audios, string? preferredVoice)
+        private static string? PickAudioUrl(IEnumerable<NarrationAudio>? audios, Guid? preferredVoice)
         {
             if (audios is null) return null;
 
@@ -300,9 +300,9 @@ namespace Api.Application.Services
             if (list.Count == 0) return null;
 
             // Ưu tiên 1: khớp voice preference của thiết bị (so sánh qua TtsVoiceProfileId)
-            if (!string.IsNullOrWhiteSpace(preferredVoice))
+            if (preferredVoice.HasValue)
             {
-                var voiceMatch = list.FirstOrDefault(a => a.TtsVoiceProfileId?.ToString() == preferredVoice);
+                var voiceMatch = list.FirstOrDefault(a => a.TtsVoiceProfileId == preferredVoice.Value);
                 if (voiceMatch != null) return voiceMatch.AudioUrl;
             }
 

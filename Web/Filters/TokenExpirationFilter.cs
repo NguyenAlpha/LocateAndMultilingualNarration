@@ -7,26 +7,43 @@ namespace Web.Filters
 {
     public class TokenExpirationFilter : IAsyncActionFilter
     {
+        private static readonly string[] _publicPaths =
+        [
+            "/Auth/Login",
+            "/Auth/Register",
+            "/Auth/Logout",
+            "/Home/Index",
+            "/Home/Privacy",
+        ];
+
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             var path = context.HttpContext.Request.Path;
-            if (path.StartsWithSegments("/Auth/Login") || path.StartsWithSegments("/Auth/Logout"))
+
+            // Bỏ qua các trang public
+            if (_publicPaths.Any(p => path.StartsWithSegments(p)))
             {
                 await next();
                 return;
             }
 
             var session = context.HttpContext.Session;
-            var expiresAtValue = session.GetString(ApiClient.TokenExpiresAtSessionKey);
+            var token = session.GetString(ApiClient.TokenSessionKey);
 
-            if (!string.IsNullOrWhiteSpace(expiresAtValue) && DateTimeOffset.TryParse(expiresAtValue, out var expiresAt))
+            // Chưa đăng nhập → redirect Login
+            if (string.IsNullOrWhiteSpace(token))
             {
-                if (expiresAt <= DateTimeOffset.Now)
-                {
-                    session.Clear();
-                    context.Result = new RedirectToActionResult("Login", "Auth", null);
-                    return;
-                }
+                context.Result = new RedirectToActionResult("Login", "Auth", null);
+                return;
+            }
+
+            // Token hết hạn → xóa session, redirect Login
+            var expiresAtValue = session.GetString(ApiClient.TokenExpiresAtSessionKey);
+            if (DateTimeOffset.TryParse(expiresAtValue, out var expiresAt) && expiresAt <= DateTimeOffset.Now)
+            {
+                session.Clear();
+                context.Result = new RedirectToActionResult("Login", "Auth", null);
+                return;
             }
 
             await next();

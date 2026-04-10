@@ -27,21 +27,18 @@ namespace Mobile
             // chỉ có thể điều hướng đến bằng: await Shell.Current.GoToAsync(nameof(XxxPage))
             // nameof() trả về tên lớp dưới dạng string, tránh lỗi typo và hỗ trợ refactor
 
-            // Trang đăng nhập — hiển thị khi người dùng chưa xác thực
-            Routing.RegisterRoute(nameof(LoginPage), typeof(LoginPage));
-
             // Trang chọn ngôn ngữ thuyết minh — hiển thị sau khi quét thành công
             Routing.RegisterRoute(nameof(LanguagePage), typeof(LanguagePage));
 
+<<<<<<< HEAD
             // OLD CODE (kept for reference):
             // Routing.RegisterRoute(nameof(LanguageSelectionPage), typeof(LanguageSelectionPage));
             // Tạm thời tắt route này vì class LanguageSelectionPage không tồn tại trong workspace hiện tại.
 
+=======
+>>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
             Routing.RegisterRoute(nameof(VoicePage), typeof(VoicePage));
-            // OLD CODE (kept for reference): chỉ route VoicePage.
-            // Alias AudioPage để tái sử dụng đúng trang hiện có theo yêu cầu flow mới.
-            Routing.RegisterRoute("AudioPage", typeof(VoicePage));
 
             // MapPage không đăng ký ở đây vì đã là ShellContent trong AppShell.xaml.
             // Đăng ký lại sẽ xung đột và tạo instance mới thay vì dùng instance ShellContent sẵn có.

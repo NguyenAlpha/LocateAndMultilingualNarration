@@ -366,3 +366,4 @@ FodyWeavers.xsd
 .claude/settings.local.json
 /Mobile/.idea
 *.md
+*.sql

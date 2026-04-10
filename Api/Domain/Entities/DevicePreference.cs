@@ -5,7 +5,7 @@ namespace Api.Domain.Entities
         public Guid Id { get; set; }                    // DEFAULT NEWSEQUENTIALID()
         public string DeviceId { get; set; } = null!;   // nvarchar(128) UNIQUE NOT NULL
         public Guid LanguageId { get; set; }             // FK -> Languages(Id)
-        public string? Voice { get; set; }               // nvarchar(64)
+        public Guid? VoiceId { get; set; }               // FK -> TtsVoiceProfiles(Id)
         public decimal SpeechRate { get; set; } = 1.0m; // decimal(4,2)
         public bool AutoPlay { get; set; } = true;
         public string? Platform { get; set; }            // nvarchar(32)
@@ -17,5 +17,6 @@ namespace Api.Domain.Entities
 
         // Navigation
         public Language Language { get; set; } = null!;
+        public TtsVoiceProfile? VoiceProfile { get; set; }
     }
 }

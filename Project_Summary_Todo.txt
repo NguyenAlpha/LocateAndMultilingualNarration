@@ -90,6 +90,8 @@ Sử dụng bảng DevicePreferences để lưu cấu hình theo thiết bị (a
 
 [ ] 11. Sử dụng QR tính toán sử dụng ( tính từ lúc quét sử dụng uược 7 ngày sau 7 ngày không sử dụng nữa, tính thời gian quét thời gian 24h, phải quet lại) 
 
+[ ] 12. Quét QR là lưu deviceID dù chưa chọn ngôn ngữ/voice/ tạo thêm 1 cột check xem đã quét hay chuaw quét QR rồi:true chưa quét: false
+
 8. ĐÁNH GIÁ TIẾN ĐỘ HIỆN TẠI
 ------------------------------------------------------------------------
 - Core flow người dùng đã chạy được end-to-end.

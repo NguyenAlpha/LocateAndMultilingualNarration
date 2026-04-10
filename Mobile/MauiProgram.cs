@@ -41,11 +41,11 @@ public static class MauiProgram
 
         // ---- HTTPCLIENT ----
         // Đăng ký HttpClient mặc định với timeout 10 giây — tránh treo UI khi server chậm hoặc không phản hồi.
-        // OLD CODE (kept for reference): ServiceCollectionServiceExtensions.AddHttpClient(builder.Services, string.Empty, client => ...)
         builder.Services.AddHttpClient(string.Empty, client =>
         {
             client.Timeout = TimeSpan.FromSeconds(10);
         });
+<<<<<<< HEAD
         builder.Services.AddTransient<ProfileViewModel>();
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<LanguageSelectionViewModel>();
@@ -54,53 +54,59 @@ public static class MauiProgram
         builder.Services.AddTransient<IDevicePreferenceApiService, DevicePreferenceApiService>();
         // OLD CODE (kept for reference): builder.Services.AddTransient<ProfileViewModel>();
         // ProfileViewModel đã được đăng ký ở section VIEWMODELS bên dưới để tránh đăng ký trùng.
+=======
+>>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
 
         // ---- SERVICES (Singleton — tạo 1 lần, dùng xuyên suốt app) ----
         // Singleton phù hợp cho service cần giữ state lâu dài hoặc dùng chung toàn app
 
         // Quản lý phiên đăng nhập (token, user info...)
-        ServiceCollectionServiceExtensions.AddSingleton<SessionService>(builder.Services);
+        builder.Services.AddSingleton<SessionService>();
 
         // Xác thực người dùng — đăng nhập, đăng xuất
-        ServiceCollectionServiceExtensions.AddSingleton<IAuthService, AuthService>(builder.Services);
+        builder.Services.AddSingleton<IAuthService, AuthService>();
 
         // Lấy danh sách gian hàng từ API — có cache, dùng chung cho MapPage và ScanPage
-        ServiceCollectionServiceExtensions.AddSingleton<IStallService, StallService>(builder.Services);
+        builder.Services.AddSingleton<IStallService, StallService>();
 
         // Lấy danh sách ngôn ngữ thuyết minh từ API
-        ServiceCollectionServiceExtensions.AddSingleton<ILanguageService, LanguageService>(builder.Services);
+        builder.Services.AddSingleton<ILanguageService, LanguageService>();
 
         // Lấy danh sách giọng đọc TTS theo ngôn ngữ từ API
-        ServiceCollectionServiceExtensions.AddSingleton<IVoiceService, VoiceService>(builder.Services);
+        builder.Services.AddSingleton<IVoiceService, VoiceService>();
 
         // AudioManager.Current là singleton do plugin cung cấp — bao bọc lại để inject qua DI
-        ServiceCollectionServiceExtensions.AddSingleton<IAudioManager>(builder.Services, _ => AudioManager.Current);
+        builder.Services.AddSingleton<IAudioManager>(AudioManager.Current);
 
         // Điều khiển phát/tạm dừng/dừng audio thuyết minh gian hàng
-        ServiceCollectionServiceExtensions.AddSingleton<IAudioGuideService, AudioGuideService>(builder.Services);
+        builder.Services.AddSingleton<IAudioGuideService, AudioGuideService>();
 
         // Lấy hoặc tạo DeviceId duy nhất cho thiết bị (dùng để nhận dạng visitor)
-        ServiceCollectionServiceExtensions.AddSingleton<IDeviceService, DeviceService>(builder.Services);
+        builder.Services.AddSingleton<IDeviceService, DeviceService>();
+
+        // Lưu/đọc preference (ngôn ngữ, giọng đọc) cục bộ qua Preferences — không cần mạng
+        builder.Services.AddSingleton<ILocalPreferenceService, LocalPreferenceService>();
 
         // Lưu/lấy ngôn ngữ ưa thích của thiết bị từ API backend
-        ServiceCollectionServiceExtensions.AddSingleton<IDevicePreferenceApiService, DevicePreferenceApiService>(builder.Services);
+        builder.Services.AddSingleton<IDevicePreferenceApiService, DevicePreferenceApiService>();
 
         // SQLite local database — cache stall data để hỗ trợ offline
-        ServiceCollectionServiceExtensions.AddSingleton<ILocalStallRepository, LocalStallRepository>(builder.Services);
+        builder.Services.AddSingleton<ILocalStallRepository, LocalStallRepository>();
 
         // Download và quản lý cache file audio local theo ngôn ngữ
-        ServiceCollectionServiceExtensions.AddSingleton<IAudioCacheService, AudioCacheService>(builder.Services);
+        builder.Services.AddSingleton<IAudioCacheService, AudioCacheService>();
 
         // Điều phối sync: API → SQLite → download audio
-        ServiceCollectionServiceExtensions.AddSingleton<ISyncService, SyncService>(builder.Services);
+        builder.Services.AddSingleton<ISyncService, SyncService>();
 
         // Background service: timer 3 phút + connectivity trigger
-        ServiceCollectionServiceExtensions.AddSingleton<ISyncBackgroundService, SyncBackgroundService>(builder.Services);
+        builder.Services.AddSingleton<ISyncBackgroundService, SyncBackgroundService>();
 
         // ---- VIEWMODELS (Transient — tạo mới mỗi khi được resolve) ----
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
 
+<<<<<<< HEAD
         // OLD CODE (kept for reference): dùng builder.Services.AddTransient<T>() trực tiếp gây ambiguous extension trong một số context.
         ServiceCollectionServiceExtensions.AddTransient<StartViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<LoginViewModel>(builder.Services);
@@ -112,20 +118,24 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<LanguageSelectionViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
+=======
+        builder.Services.AddTransient<StartViewModel>();
+        builder.Services.AddTransient<LoginViewModel>();
+        builder.Services.AddTransient<MainViewModel>();
+        builder.Services.AddTransient<MapViewModel>();
+        builder.Services.AddTransient<ScanViewModel>();
+        builder.Services.AddTransient<ProfileViewModel>();
+>>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
-        ServiceCollectionServiceExtensions.AddTransient<MainPage>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<MapPage>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<LanguagePage>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<VoicePage>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<StartPage>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<StallPopup>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<ScanPage>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<ProfilePage>(builder.Services);
-
-        // OLD CODE (kept for reference): service profile visitor chưa tồn tại trong solution hiện tại.
-        // ServiceCollectionServiceExtensions.AddTransient<IVisitorProfileService, VisitorProfileService>(builder.Services);
+        builder.Services.AddTransient<MapPage>();
+        builder.Services.AddTransient<LoadingPage>();
+        builder.Services.AddTransient<LanguagePage>();
+        builder.Services.AddTransient<VoicePage>();
+        builder.Services.AddTransient<StartPage>();
+        builder.Services.AddTransient<StallPopup>();
+        builder.Services.AddTransient<ProfilePage>();
 
 #if DEBUG
         // Chỉ bật logging ra cửa sổ Debug khi build ở chế độ DEBUG

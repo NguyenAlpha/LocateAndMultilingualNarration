@@ -15,6 +15,7 @@ using Mapsui.UI.Maui;
 using CommunityToolkit.Maui.Extensions;
 using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
+using Mobile.Services;
 using Mobile.ViewModels;
 using Shared.DTOs.Geo;
 // Geometry của NTS — tạo polygon, coordinate, linear ring
@@ -41,6 +42,8 @@ public partial class MapPage : ContentPage
 {
     private readonly MapViewModel _viewModel;
     private readonly ILogger<MapPage> _logger;
+    private readonly StallPopup _stallPopup;
+    private readonly ISyncBackgroundService _syncBackgroundService;
 
     // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
     private bool _isInitialized;
@@ -66,14 +69,16 @@ public partial class MapPage : ContentPage
     /// <summary>
     /// Constructor: khởi tạo UI, lấy ViewModel từ DI, đăng ký event, cấu hình bản đồ.
     /// </summary>
-    public MapPage()
+    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService)
     {
-        InitializeComponent(); // Nạp MapPage.xaml
+        InitializeComponent();
 
-        // Lấy ViewModel từ DI container thay vì new trực tiếp (để inject đúng service)
-        _viewModel = ServiceHelper.GetService<MapViewModel>();
-        _logger = ServiceHelper.GetService<ILogger<MapPage>>();
-        BindingContext = _viewModel; // Kết nối binding XAML với ViewModel
+        _viewModel = viewModel;
+        _logger = logger;
+        _stallPopup = stallPopup;
+        _syncBackgroundService = syncBackgroundService;
+        BindingContext = _viewModel;
+        Console.WriteLine($"[DEBUG] MapPage constructor — instance #{GetHashCode()}");
 
         // Lắng nghe event từ ViewModel để thực hiện thao tác trên MapView
         // (ViewModel không được giữ reference đến View, nên dùng event)
@@ -143,6 +148,7 @@ public partial class MapPage : ContentPage
         }
 
         _isInitialized = true;
+        _syncBackgroundService.Start();
         _ = InitializePageAsync(); // fire-and-forget rõ ràng, exception được bắt bên trong
     }
 
@@ -184,10 +190,6 @@ public partial class MapPage : ContentPage
         try
         {
             _viewModel.StopPolling();
-
-            // OLD CODE (kept for reference): khi rời map có thể dừng audio để tránh giữ tài nguyên.
-            // if (_viewModel.StopAudioCommand.CanExecute(null))
-            //     _viewModel.StopAudioCommand.Execute(null);
         }
         catch (Exception ex)
         {
@@ -376,17 +378,10 @@ public partial class MapPage : ContentPage
 
         try
         {
-            var popup = ServiceHelper.GetService<StallPopup>();
-            if (popup is null)
-            {
-                _logger.LogError("[Popup] GetService<StallPopup> trả về NULL");
-                return;
-            }
-            _logger.LogInformation("[Popup] GetService OK, gọi Init...");
-            popup.Init(stall);
+            _stallPopup.Init(stall);
             _logger.LogInformation("[Popup] Gọi ShowPopupAsync...");
             _isPopupOpen = true;
-            await this.ShowPopupAsync(popup);
+            await this.ShowPopupAsync(_stallPopup);
             _isPopupOpen = false;
             _logger.LogInformation("[Popup] ShowPopupAsync hoàn tất");
         }

@@ -2,7 +2,6 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Networking;
 using Mobile.LocalDb;
-using Mobile.Models;
 using Shared.DTOs.Common;
 using Shared.DTOs.Geo;
 
@@ -15,6 +14,7 @@ public interface IStallService
 {
     Task<List<GeoStallDto>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
     Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default);
+
     Task<List<StallItem>> GetFeaturedStallsAsync(CancellationToken cancellationToken = default);
 }
 
@@ -26,6 +26,7 @@ public class StallService : IStallService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDeviceService _deviceService;
     private readonly ILocalStallRepository _localRepo;
+    // OLD CODE (kept for reference): private readonly ISyncService _syncService;
     private readonly IServiceProvider _serviceProvider;
     private ISyncService? _resolvedSyncService;
     private readonly ILogger<StallService> _logger;
@@ -38,12 +39,14 @@ public class StallService : IStallService
         IHttpClientFactory httpClientFactory,
         IDeviceService deviceService,
         ILocalStallRepository localRepo,
+        // OLD CODE (kept for reference): ISyncService syncService,
         IServiceProvider serviceProvider,
         ILogger<StallService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _deviceService = deviceService;
         _localRepo = localRepo;
+        // OLD CODE (kept for reference): _syncService = syncService;
         _serviceProvider = serviceProvider;
         _logger = logger;
     }
@@ -62,6 +65,7 @@ public class StallService : IStallService
 
                 if (ShouldSync())
                 {
+                    // OLD CODE (kept for reference): _ = _syncService.SyncAsync(CancellationToken.None);
                     _ = TriggerBackgroundSyncSafelyAsync();
                 }
 
@@ -75,7 +79,7 @@ public class StallService : IStallService
             if (offline.Count > 0)
             {
                 _logger.LogWarning("[StallService][GetStallsAsync]: offline, fallback {Count} stall từ SQLite", offline.Count);
-                return offline.Select(ToDto).ToList();
+                return [..offline.Select(ToDto)];
             }
             _logger.LogWarning("[StallService][GetStallsAsync]: offline và SQLite trống");
             return [];
@@ -83,7 +87,9 @@ public class StallService : IStallService
 
         try
         {
+            // Lấy deviceId để API trả về dữ liệu đúng theo thiết bị/ngữ cảnh người dùng.
             var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            // Tạo URL gọi API danh sách gian hàng.
             var client = _httpClientFactory.CreateClient();
             var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
 
@@ -95,7 +101,7 @@ public class StallService : IStallService
             {
                 _logger.LogWarning("[StallService][GetStallsAsync]: API trả về {StatusCode}, fallback SQLite", (int)response.StatusCode);
                 var fallback = await _localRepo.GetAllAsync();
-                return fallback.Select(ToDto).ToList();
+                return [..fallback.Select(ToDto)];
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -117,190 +123,36 @@ public class StallService : IStallService
         return stalls.FirstOrDefault(x => x.StallId.ToString().Equals(stallId, StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>
-    /// Lấy danh sách gian hàng nổi bật cho MainPage với khoảng cách thực tế và ảnh đúng.
-    /// </summary>
     public async Task<List<StallItem>> GetFeaturedStallsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: Bắt đầu lấy featured stalls với dữ liệu mới");
+            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var client = _httpClientFactory.CreateClient();
+            var url = $"{BaseUrl}/api/stalls?deviceId={Uri.EscapeDataString(deviceId)}";
 
-            var geoStalls = await GetStallsAsync(forceRefresh: true, cancellationToken);
-
-            if (geoStalls.Count == 0)
+            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: gọi API {Url}", url);
+            
+            using var response = await client.GetAsync(url, cancellationToken);
+            
+            if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("[StallService][GetFeaturedStallsAsync]: Không có stall nào từ API");
+                _logger.LogWarning("[StallService][GetFeaturedStallsAsync]: API trả về {StatusCode}", (int)response.StatusCode);
                 return [];
             }
 
-            var userLocation = await GetCurrentUserLocationAsync();
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var result = await JsonSerializer.DeserializeAsync<ApiResult<List<StallItem>>>(stream, JsonOptions, cancellationToken);
+            var stalls = result?.Data ?? [];
 
-            var featured = new List<StallItem>();
-
-            foreach (var dto in geoStalls.Take(6))
-            {
-                double distanceKm = 0;
-
-                if (userLocation != null && dto.Latitude != 0 && dto.Longitude != 0)
-                {
-                    distanceKm = CalculateDistance(
-                        userLocation.Latitude,
-                        userLocation.Longitude,
-                        dto.Latitude,
-                        dto.Longitude);
-                }
-
-                var item = new StallItem
-                {
-                    Id = dto.StallId,
-                    Name = string.IsNullOrWhiteSpace(dto.StallName) ? "Không có tên" : dto.StallName,
-                    Description = GetSafeDescription(dto),
-                    ImageUrl = GetSafeImageUrl(dto),
-                    DistanceInKm = distanceKm
-                };
-
-                featured.Add(item);
-            }
-
-            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: Trả về {Count} gian hàng nổi bật", featured.Count);
-            return featured;
+            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: tải thành công {Count} gian hàng", stalls.Count);
+            return stalls.Take(5).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[StallService][GetFeaturedStallsAsync]: Lỗi khi lấy featured stalls");
+            _logger.LogError(ex, "[StallService][GetFeaturedStallsAsync]: exception");
             return [];
         }
-    }
-
-    private static string GetSafeDescription(GeoStallDto dto)
-    {
-        if (dto.NarrationContent == null)
-            return "Chưa có mô tả";
-
-        return FirstNonEmpty(
-            dto.NarrationContent.Description,
-            dto.NarrationContent.ScriptText,
-            dto.NarrationContent.Title,
-            "Chưa có mô tả"
-        );
-    }
-
-    private static string GetSafeImageUrl(GeoStallDto dto)
-    {
-        // Hiện tại GeoStallNarrationContentDto chưa có ImageUrl
-        // Nếu sau này backend thêm thì mở comment dòng dưới
-        // if (dto.NarrationContent?.ImageUrl != null) return dto.NarrationContent.ImageUrl;
-
-        return "https://via.placeholder.com/300x200?text=No+Image";
-    }
-    private static string FirstNonEmpty(params string?[] values)
-    {
-        foreach (var value in values)
-            if (!string.IsNullOrWhiteSpace(value))
-                return value;
-        return string.Empty;
-    }
-
-    private async Task<Location?> GetCurrentUserLocationAsync()
-    {
-        try
-        {
-            var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
-            if (status != PermissionStatus.Granted)
-            {
-                status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
-                if (status != PermissionStatus.Granted)
-                    return null;
-            }
-
-            return await Geolocation.GetLastKnownLocationAsync()
-                ?? await Geolocation.GetLocationAsync(new GeolocationRequest
-                {
-                    DesiredAccuracy = GeolocationAccuracy.Medium,
-                    Timeout = TimeSpan.FromSeconds(10)
-                });
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public double CalculateDistance(double userLat, double userLng, double stallLat, double stallLng)
-    {
-        const double EarthRadiusKm = 6371.0;
-
-        var dLat = ToRadians(stallLat - userLat);
-        var dLon = ToRadians(stallLng - userLng);
-
-        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(ToRadians(userLat)) * Math.Cos(ToRadians(stallLat)) *
-                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-
-        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        return EarthRadiusKm * c;
-    }
-
-    private static double ToRadians(double degrees) => degrees * (Math.PI / 180.0);
-
-    // ====================================================================
-    // OLD CODE (kept for reference) - Không xóa phần này
-    // ====================================================================
-    /*
-    public async Task<List<StallItem>> GetFeaturedStallsAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: Bắt đầu lấy featured stalls");
-
-            var stalls = await GetStallsAsync(forceRefresh: false, cancellationToken);
-            if (stalls.Count == 0)
-            {
-                _logger.LogWarning("[StallService][GetFeaturedStallsAsync]: Không có stall từ GetStallsAsync");
-                return [];
-            }
-
-            var featured = stalls.Select(dto => new StallItem
-            {
-                Id = dto.StallId,
-                Name = dto.StallName ?? "Không có tên",
-                Slug = dto.Slug ?? string.Empty,
-                Description = dto.NarrationContent?.Description ?? "Chưa có mô tả",
-                ImageUrl = GetFirstImageUrl(dto) ?? "https://via.placeholder.com/300x200?text=No+Image",
-                BusinessName = dto.BusinessName ?? string.Empty,
-                IsActive = dto.IsActive,
-                DistanceInKm = 0.0
-            }).Take(6).ToList();
-
-            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: Trả về {Count} gian hàng nổi bật", featured.Count);
-            return featured;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[StallService][GetFeaturedStallsAsync]: Lỗi khi lấy featured stalls");
-            return [];
-        }
-    }
-
-    private static string? GetFirstImageUrl(GeoStallDto dto)
-    {
-        if (!string.IsNullOrWhiteSpace(dto.NarrationContent?.ImageUrl))
-            return dto.NarrationContent.ImageUrl;
-
-        return null;
-    }
-
-    public double CalculateDistance(double userLat, double userLng, double stallLat, double stallLng)
-    {
-        const double R = 6371;
-        var dLat = ToRadians(stallLat - userLat);
-        var dLon = ToRadians(stallLng - userLng);
-        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(ToRadians(userLat)) * Math.Cos(ToRadians(stallLat)) *
-                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-        return R * c;
     }
 
     private static double ToRadians(double deg) => deg * (Math.PI / 180);
@@ -308,7 +160,12 @@ public class StallService : IStallService
 
     private bool ShouldSync()
     {
+        // OLD CODE (kept for reference): return _syncService.LastSyncedAt is null
+        // OLD CODE (kept for reference):     || DateTime.UtcNow - _syncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
+
+        // Resolve muộn để phá vòng phụ thuộc DI: SyncService -> StallService -> ISyncService.
         _resolvedSyncService ??= _serviceProvider.GetService<ISyncService>();
+
         if (_resolvedSyncService is null)
             return false;
 
@@ -316,12 +173,15 @@ public class StallService : IStallService
             || DateTime.UtcNow - _resolvedSyncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
     }
 
+    // Fire-and-forget có bắt lỗi để không crash process nếu sync ném exception ngoài dự kiến.
     private async Task TriggerBackgroundSyncSafelyAsync()
     {
         try
         {
             _resolvedSyncService ??= _serviceProvider.GetService<ISyncService>();
-            if (_resolvedSyncService is null) return;
+            if (_resolvedSyncService is null)
+                return;
+
             await _resolvedSyncService.SyncAsync(CancellationToken.None);
         }
         catch (Exception ex)
@@ -330,6 +190,11 @@ public class StallService : IStallService
         }
     }
 
+    /// <summary>
+    /// Chuyển <see cref="LocalStall"/> sang <see cref="GeoStallDto"/>, ưu tiên audio cục bộ nếu đã tải sẵn.
+    /// </summary>
+    /// <param name="s">Dữ liệu local của gian hàng.</param>
+    /// <returns>DTO gian hàng để UI sử dụng.</returns>
     private static GeoStallDto ToDto(LocalStall s) => new()
     {
         StallId = Guid.Parse(s.StallId),
@@ -342,8 +207,9 @@ public class StallService : IStallService
             Id = Guid.Parse(s.NarrationContentId),
             Title = s.NarrationTitle ?? string.Empty,
             Description = s.NarrationDescription,
-            ScriptText = s.NarrationScriptText ?? string.Empty,
-            AudioUrl = s.LocalAudioPath ?? s.AudioUrl
+            ScriptText  = s.NarrationScriptText ?? string.Empty,
+            // Ưu tiên file local đã tải, fallback về URL remote
+            AudioUrl    = s.LocalAudioPath ?? s.AudioUrl
         }
     };
 }

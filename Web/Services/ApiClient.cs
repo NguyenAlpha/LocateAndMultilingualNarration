@@ -11,6 +11,8 @@ namespace Web.Services
         public const string TokenExpiresAtSessionKey = "AuthTokenExpiresAt";
         public const string RefreshTokenSessionKey = "RefreshToken";
         public const string RefreshTokenExpiresAtSessionKey = "RefreshTokenExpiresAt";
+        public const string UserNameSessionKey = "UserName";
+        public const string UserRoleSessionKey = "UserRole";
 
         private readonly HttpClient _httpClient;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -45,6 +47,8 @@ namespace Web.Services
             session.SetString(TokenExpiresAtSessionKey, response.ExpiresAt.ToString("O"));
             session.SetString(RefreshTokenSessionKey, response.RefreshToken);
             session.SetString(RefreshTokenExpiresAtSessionKey, response.RefreshTokenExpiresAt.ToString("O"));
+            session.SetString(UserNameSessionKey, response.UserName ?? string.Empty);
+            session.SetString(UserRoleSessionKey, response.Roles.FirstOrDefault() ?? string.Empty);
         }
 
         public void ClearToken()
@@ -59,6 +63,8 @@ namespace Web.Services
             session.Remove(TokenExpiresAtSessionKey);
             session.Remove(RefreshTokenSessionKey);
             session.Remove(RefreshTokenExpiresAtSessionKey);
+            session.Remove(UserNameSessionKey);
+            session.Remove(UserRoleSessionKey);
         }
 
         public string? GetRefreshToken()

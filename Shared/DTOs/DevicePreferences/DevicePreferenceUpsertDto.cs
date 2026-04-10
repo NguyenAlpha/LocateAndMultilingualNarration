@@ -3,8 +3,8 @@ namespace Shared.DTOs.DevicePreferences
     public class DevicePreferenceUpsertDto
     {
         public string DeviceId { get; set; } = null!;
-        public string LanguageCode { get; set; } = null!;
-        public string? Voice { get; set; }
+        public Guid LanguageId { get; set; }
+        public Guid? VoiceId { get; set; }
         public decimal SpeechRate { get; set; } = 1.0m;
         public bool AutoPlay { get; set; } = true;
         public string? Platform { get; set; }

@@ -7,7 +7,7 @@ public class DevicePreferenceUpsertDto
 {
     public Guid? LanguageId { get; set; }
     public string? LanguageCode { get; set; }
-    public string? Voice { get; set; }
+    public Guid? VoiceId { get; set; }
     public decimal? SpeechRate { get; set; } = 1.0m;
     public bool? AutoPlay { get; set; } = true;
     public string? Platform { get; set; }

@@ -12,8 +12,6 @@ namespace Mobile.Pages;
 // không tách thêm tầng `ViewModel` riêng để tránh làm code rườm rà.
 [QueryProperty(nameof(LanguageId), "languageId")]
 [QueryProperty(nameof(LanguageCode), "languageCode")]
-[QueryProperty(nameof(StallId), "stallId")]
-[QueryProperty(nameof(Token), "token")]
 public partial class VoicePage : ContentPage
 {
     private readonly IVoiceService _voiceService;
@@ -26,8 +24,6 @@ public partial class VoicePage : ContentPage
     public string LanguageId { get; set; } = string.Empty;
     // Mã ngôn ngữ được truyền từ trang trước
     public string LanguageCode { get; set; } = string.Empty;
-    public string? StallId { get; set; }
-    public string? Token { get; set; }
 
     // Inject các service cần thiết cho trang
     public VoicePage(IVoiceService voiceService, IDeviceService deviceService, IDevicePreferenceApiService devicePreferenceApiService, ILogger<VoicePage> logger)
@@ -96,9 +92,14 @@ public partial class VoicePage : ContentPage
     // Xử lý khi người dùng chạm vào một voice trong danh sách
     async void OnVoiceTapped(object sender, TappedEventArgs e)
     {
-        // Chỉ xử lý khi parameter đúng kiểu voice item
         if (e.Parameter is not TtsVoiceProfileListItemDto voice) return;
         if (_isNavigating) return;
+
+        if (!Guid.TryParse(LanguageId, out var languageGuid))
+        {
+            await DisplayAlertAsync("Lỗi", "LanguageId không hợp lệ.", "OK");
+            return;
+        }
 
         try
         {
@@ -107,22 +108,14 @@ public partial class VoicePage : ContentPage
             if (_logger.IsEnabled(LogLevel.Information))
                 _logger.LogInformation("[VoicePage][OnVoiceTapped] Chọn voice: ngôn ngữ: {LanguageCode} | {VoiceId}", LanguageCode, voice.Id);
 
-            // Lấy hoặc tạo DeviceId và thông tin thiết bị hiện tại
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             var deviceInfo = _deviceService.GetDeviceInfo();
 
-            if (!Guid.TryParse(LanguageId, out var languageGuid))
-            {
-                await DisplayAlertAsync("Lỗi", "LanguageId không hợp lệ.", "OK");
-                return;
-            }
-
-            // Lưu device preferences ngay sau khi user chọn xong language + voice.
-            await _devicePreferenceApiService.SavePreferencesAsync(new DevicePreferencesRequest
+            await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
             {
                 DeviceId = deviceId,
                 LanguageId = languageGuid,
-                Voice = voice.Id.ToString(),
+                VoiceId = voice.Id,
                 AutoPlay = true,
                 Platform = deviceInfo.Platform,
                 DeviceModel = deviceInfo.DeviceModel,
@@ -130,16 +123,10 @@ public partial class VoicePage : ContentPage
                 OsVersion = deviceInfo.OsVersion
             });
 
-            Console.WriteLine("[DEBUG] VoicePage saved DevicePreferences thành công");
             LanguageHelper.SetLanguage(LanguageCode);
             LanguageHelper.SetVoice(voice.Id.ToString());
 
-            var route = $"//{nameof(MapPage)}";
-            if (!string.IsNullOrWhiteSpace(StallId))
-                route += $"?boothId={Uri.EscapeDataString(StallId)}";
-
-            Console.WriteLine($"[DEBUG] VoicePage navigate: {route}");
-            await Shell.Current.GoToAsync(route);
+            await Shell.Current.GoToAsync("//MapPage");
         }
         catch (Exception ex)
         {

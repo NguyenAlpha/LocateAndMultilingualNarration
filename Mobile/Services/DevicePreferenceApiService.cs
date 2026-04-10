@@ -39,16 +39,17 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDeviceService _deviceService;
+    private readonly ILocalPreferenceService _localPreference;
     private const string BaseUrl = "http://10.0.2.2:5299";
 
-    /// <summary>
-    /// Khởi tạo service với <see cref="IHttpClientFactory"/>.
-    /// </summary>
-    /// <param name="httpClientFactory">Factory dùng để tạo HttpClient.</param>
-    public DevicePreferenceApiService(IHttpClientFactory httpClientFactory, IDeviceService deviceService)
+    public DevicePreferenceApiService(
+        IHttpClientFactory httpClientFactory,
+        IDeviceService deviceService,
+        ILocalPreferenceService localPreference)
     {
         _httpClientFactory = httpClientFactory;
         _deviceService = deviceService;
+        _localPreference = localPreference;
     }
 
     /// <summary>
@@ -84,14 +85,17 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
     {
         try
         {
-            // Tạo client để gửi dữ liệu cấu hình lên server.
             var client = _httpClientFactory.CreateClient();
             var response = await client.PostAsJsonAsync($"{BaseUrl}/api/device-preference", dto, ct);
-            // Nếu server không chấp nhận request thì dừng lại.
             if (!response.IsSuccessStatusCode) return null;
-            // Đọc lại kết quả đã lưu từ API.
             var result = await response.Content.ReadFromJsonAsync<ApiResult<Shared.DTOs.DevicePreferences.DevicePreferenceDetailDto>>(cancellationToken: ct);
-            return result?.Data;
+            var data = result?.Data;
+
+            // Ghi local ngay khi API xác nhận — đảm bảo mọi nơi gọi overload này đều cache được
+            if (data is not null)
+                _localPreference.Save(data);
+
+            return data;
         }
         catch { return null; }
     }
@@ -99,7 +103,7 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
     public async Task SavePreferencesAsync(Shared.DTOs.DevicePreferences.DevicePreferencesRequest request, CancellationToken ct = default)
     {
         var client = _httpClientFactory.CreateClient();
-        Console.WriteLine($"[DEBUG] POST /api/device-preferences DeviceId={request.DeviceId}, LanguageId={request.LanguageId}, Voice={request.Voice}");
+        Console.WriteLine($"[DEBUG] POST /api/device-preferences DeviceId={request.DeviceId}, LanguageId={request.LanguageId}, VoiceId={request.VoiceId}");
         var response = await client.PostAsJsonAsync($"{BaseUrl}/api/device-preferences", request, ct);
         Console.WriteLine($"[DEBUG] POST /api/device-preferences => {(int)response.StatusCode} {response.StatusCode}");
         response.EnsureSuccessStatusCode();
@@ -109,7 +113,7 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
     {
         try
         {
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             var data = await GetAsync(deviceId, ct);
             if (data is null)
                 return null;
@@ -119,7 +123,7 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
                 DeviceId = data.DeviceId,
                 LanguageCode = data.LanguageCode,
                 LanguageName = data.LanguageName,
-                Voice = data.Voice,
+                VoiceId = data.VoiceId,
                 SpeechRate = data.SpeechRate,
                 AutoPlay = data.AutoPlay,
                 LastSeenAt = data.LastSeenAt
@@ -135,24 +139,23 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
     {
         try
         {
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             var deviceInfo = _deviceService.GetDeviceInfo();
 
-            if (string.IsNullOrWhiteSpace(dto.LanguageCode))
+            if (dto.LanguageId is null || dto.LanguageId == Guid.Empty)
             {
                 return ApiResult<DevicePreferenceDetailDto>.FromError(new ErrorDetail
                 {
                     Code = ErrorCode.Validation,
-                    Message = "Thiếu LanguageCode để lưu DevicePreference"
+                    Message = "Thiếu LanguageId để lưu DevicePreference"
                 });
             }
 
-            // OLD CODE (kept for reference): chỉ dùng LanguageCode có sẵn từ caller.
             var sharedDto = new Shared.DTOs.DevicePreferences.DevicePreferenceUpsertDto
             {
                 DeviceId = deviceId,
-                LanguageCode = dto.LanguageCode,
-                Voice = dto.Voice,
+                LanguageId = dto.LanguageId.Value,
+                VoiceId = dto.VoiceId,  // Guid? → Guid?
                 SpeechRate = dto.SpeechRate ?? 1.0m,
                 AutoPlay = dto.AutoPlay ?? true,
                 Platform = dto.Platform ?? deviceInfo.Platform,
@@ -176,7 +179,7 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
                 DeviceId = data.DeviceId,
                 LanguageCode = data.LanguageCode,
                 LanguageName = data.LanguageName,
-                Voice = data.Voice,
+                VoiceId = data.VoiceId,
                 SpeechRate = data.SpeechRate,
                 AutoPlay = data.AutoPlay,
                 LastSeenAt = data.LastSeenAt

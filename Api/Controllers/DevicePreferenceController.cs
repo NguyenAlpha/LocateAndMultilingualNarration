@@ -49,6 +49,16 @@ namespace Api.Controllers
             if (language is null)
                 return this.BadRequestResult($"Không tìm thấy ngôn ngữ với id '{request.LanguageId}'", "LanguageId");
 
+            if (request.VoiceId.HasValue)
+            {
+                var voiceExists = await _context.TtsVoiceProfiles
+                    .AsNoTracking()
+                    .AnyAsync(v => v.Id == request.VoiceId.Value && v.IsActive);
+
+                if (!voiceExists)
+                    return this.BadRequestResult($"Không tìm thấy giọng đọc với id '{request.VoiceId}'", "VoiceId");
+            }
+
             var now = DateTimeOffset.UtcNow;
 
             var existing = await _context.DevicePreferences
@@ -57,7 +67,7 @@ namespace Api.Controllers
             if (existing != null)
             {
                 existing.LanguageId = request.LanguageId;
-                existing.Voice = request.Voice;
+                existing.VoiceId = request.VoiceId;
                 existing.SpeechRate = request.SpeechRate;
                 existing.AutoPlay = request.AutoPlay;
                 existing.Platform = request.Platform;
@@ -72,7 +82,7 @@ namespace Api.Controllers
                 {
                     DeviceId = request.DeviceId,
                     LanguageId = request.LanguageId,
-                    Voice = request.Voice,
+                    VoiceId = request.VoiceId,
                     SpeechRate = request.SpeechRate,
                     AutoPlay = request.AutoPlay,
                     Platform = request.Platform,
@@ -97,10 +107,20 @@ namespace Api.Controllers
 
             var language = await _context.Languages
                 .AsNoTracking()
-                .FirstOrDefaultAsync(l => l.Code == request.LanguageCode && l.IsActive);
+                .FirstOrDefaultAsync(l => l.Id == request.LanguageId && l.IsActive);
 
             if (language is null)
-                return this.BadRequestResult($"Không tìm thấy ngôn ngữ với code '{request.LanguageCode}'", "LanguageCode");
+                return this.BadRequestResult($"Không tìm thấy ngôn ngữ với id '{request.LanguageId}'", "LanguageId");
+
+            if (request.VoiceId.HasValue)
+            {
+                var voiceExists = await _context.TtsVoiceProfiles
+                    .AsNoTracking()
+                    .AnyAsync(v => v.Id == request.VoiceId.Value && v.IsActive);
+
+                if (!voiceExists)
+                    return this.BadRequestResult($"Không tìm thấy giọng đọc với id '{request.VoiceId}'", "VoiceId");
+            }
 
             var now = DateTimeOffset.UtcNow;
 
@@ -114,7 +134,7 @@ namespace Api.Controllers
                 {
                     DeviceId     = request.DeviceId,
                     LanguageId   = language.Id,
-                    Voice        = request.Voice,
+                    VoiceId      = request.VoiceId,
                     SpeechRate   = request.SpeechRate,
                     AutoPlay     = request.AutoPlay,
                     Platform     = request.Platform,
@@ -129,7 +149,7 @@ namespace Api.Controllers
             else
             {
                 preference.LanguageId   = language.Id;
-                preference.Voice        = request.Voice;
+                preference.VoiceId      = request.VoiceId;
                 preference.SpeechRate   = request.SpeechRate;
                 preference.AutoPlay     = request.AutoPlay;
                 preference.Platform     = request.Platform;
@@ -149,13 +169,22 @@ namespace Api.Controllers
 
         private static DevicePreferenceDetailDto MapToDetail(Api.Domain.Entities.DevicePreference p) => new()
         {
-            DeviceId     = p.DeviceId,
-            LanguageCode = p.Language.Code,
-            LanguageName = p.Language.DisplayName ?? p.Language.Name,
-            Voice        = p.Voice,
-            SpeechRate   = p.SpeechRate,
-            AutoPlay     = p.AutoPlay,
-            LastSeenAt   = p.LastSeenAt
+            Id                  = p.Id,
+            DeviceId            = p.DeviceId,
+            Platform            = p.Platform,
+            DeviceModel         = p.DeviceModel,
+            Manufacturer        = p.Manufacturer,
+            OsVersion           = p.OsVersion,
+            LanguageId          = p.LanguageId,
+            LanguageCode        = p.Language.Code,
+            LanguageName        = p.Language.Name,
+            LanguageDisplayName = p.Language.DisplayName,
+            LanguageFlagCode    = p.Language.FlagCode,
+            VoiceId             = p.VoiceId,
+            SpeechRate          = p.SpeechRate,
+            AutoPlay            = p.AutoPlay,
+            FirstSeenAt         = p.FirstSeenAt,
+            LastSeenAt          = p.LastSeenAt
         };
     }
 }
