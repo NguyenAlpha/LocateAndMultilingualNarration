@@ -1,75 +1,103 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="Mobile.LanguagePage"
-    Title="Chọn ngôn ngữ"
-    BackgroundColor="#F6F6F6">
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Mobile.LanguagePage"
+             Title="Chọn ngôn ngữ &amp; giọng đọc"
+             BackgroundColor="#F8F9FC"
+             Padding="20">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="24">
 
-        <!-- Title -->
-        <Label
-            Grid.Row="0"
-            Text="Chọn ngôn ngữ thuyết minh"
-            FontSize="22"
-            FontAttributes="Bold"
-            HorizontalOptions="Center"
-            Margin="0,25,0,15"/>
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="8">
+            <Label Text="Chọn ngôn ngữ thuyết minh"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   TextColor="#1F2937"
+                   HorizontalOptions="Center"/>
+            <Label Text="Nghe rõ ràng hơn bằng tiếng mẹ đẻ"
+                   FontSize="15"
+                   TextColor="#6B7280"
+                   HorizontalOptions="Center"/>
+        </VerticalStackLayout>
 
-        <!-- Loading indicator -->
-        <ActivityIndicator
-            x:Name="LoadingIndicator"
-            Grid.Row="1"
-            IsRunning="True"
-            IsVisible="True"
-            Color="#6A5AE0"
-            VerticalOptions="Center"
-            HorizontalOptions="Center"/>
+        <!-- Search Bar -->
+        <Frame Grid.Row="1"
+               CornerRadius="25"
+               BackgroundColor="White"
+               HasShadow="True"
+               Padding="16,12">
+            <Entry Placeholder="Tìm ngôn ngữ (ví dụ: Việt, Anh, Pháp...)"
+                   Text="{Binding SearchText, Mode=TwoWay}"
+                   FontSize="16"
+                   BackgroundColor="Transparent"
+                   ClearButtonVisibility="WhileEditing"
+                   TextChanged="OnSearchTextChanged"/>
+        </Frame>
 
-        <!-- Language list -->
-        <CollectionView
-            x:Name="LanguageList"
-            Grid.Row="1"
-            IsVisible="False"
-            Margin="20,0,20,20"
-            SelectionMode="None">
+        <!-- Chọn ngôn ngữ -->
+        <VerticalStackLayout Grid.Row="2" Spacing="8">
+            <Label Text="Ngôn ngữ thuyết minh"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#374151"/>
+            <Picker ItemsSource="{Binding AvailableLanguages}"
+                    SelectedItem="{Binding SelectedLanguage}"
+                    ItemDisplayBinding="{Binding Name}"
+                    Title="Chọn ngôn ngữ"
+                    FontSize="16"/>
+        </VerticalStackLayout>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Border
-                        BackgroundColor="#6A5AE0"
-                        Padding="15"
-                        Margin="0,0,0,12"
-                        StrokeThickness="0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="15"/>
-                        </Border.StrokeShape>
+        <!-- Chọn giọng đọc (tự động cập nhật theo ngôn ngữ) -->
+        <VerticalStackLayout Grid.Row="3" Spacing="8">
+            <Label Text="Giọng đọc"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#374151"/>
+            <Picker ItemsSource="{Binding AvailableVoices}"
+                    SelectedItem="{Binding SelectedVoice}"
+                    ItemDisplayBinding="{Binding DisplayText}"
+                    Title="Chọn giọng đọc"
+                    FontSize="16"/>
+        </VerticalStackLayout>
 
-                        <HorizontalStackLayout Spacing="15">
-                            <Label
-                                Text="{Binding FlagEmoji}"
-                                FontSize="24"
-                                VerticalOptions="Center"/>
-                            <Label
-                                Text="{Binding DisplayLabel}"
-                                FontSize="18"
-                                TextColor="White"
-                                VerticalOptions="Center"/>
-                        </HorizontalStackLayout>
+        <!-- Cài đặt bổ sung -->
+        <VerticalStackLayout Grid.Row="4" Spacing="16">
+            <Label Text="Cài đặt thuyết minh"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#374151"/>
 
-                        <Border.GestureRecognizers>
-                            <TapGestureRecognizer
-                                CommandParameter="{Binding .}"
-                                Tapped="OnLanguageTapped"/>
-                        </Border.GestureRecognizers>
+            <Frame CornerRadius="16" BackgroundColor="White" Padding="16" HasShadow="True">
+                <VerticalStackLayout Spacing="16">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Label Grid.Column="0" Text="Tốc độ đọc" VerticalOptions="Center" TextColor="#334155"/>
+                        <Label Grid.Column="2" Text="{Binding SpeechRateText}" 
+                               FontAttributes="Bold" TextColor="#4F46E5" VerticalOptions="Center"/>
+                    </Grid>
+                    <Slider Minimum="0.5" Maximum="2.0" 
+                            Value="{Binding SpeechRate, Mode=TwoWay}"
+                            ThumbColor="#4F46E5"/>
 
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Tự động phát khi mở thuyết minh" 
+                               VerticalOptions="Center" TextColor="#334155"/>
+                        <Switch IsToggled="{Binding AutoPlay, Mode=TwoWay}" OnColor="#4F46E5"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
 
-        </CollectionView>
-
+        <!-- Button Tiếp tục -->
+        <Button Grid.Row="5"
+                Text="Tiếp tục đến bản đồ"
+                BackgroundColor="#4F46E5"
+                TextColor="White"
+                CornerRadius="18"
+                HeightRequest="56"
+                FontSize="17"
+                FontAttributes="Bold"
+                Command="{Binding ConfirmSelectionCommand}"
+                IsEnabled="{Binding IsReadyToContinue}"/>
     </Grid>
-
 </ContentPage>

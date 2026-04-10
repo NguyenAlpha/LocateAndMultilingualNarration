@@ -1,0 +1,331 @@
+=====================================================================
+SEQUENCE / USER FLOW - LOCATEANDMULTILINGUALNARRATION (MOBILE APP)
+Báo cáo luồng người dùng cho đồ án tốt nghiệp
+=====================================================================
+
+Trạng thái phạm vi tài liệu:
+- Chỉ mô tả các chức năng đã triển khai và đang sử dụng thực tế trong app.
+- Không mô tả tính năng giả định/chưa có code.
+
+Tổng hợp trạng thái 5 flow chính:
+1) QR Scan -> Language -> Voice -> Narration on Map: ĐANG SỬ DỤNG ĐƯỢC
+2) Profile -> DevicePreferences (Language/Voice/SpeechRate/AutoPlay): ĐANG SỬ DỤNG ĐƯỢC
+3) Khám phá gần tôi (Nearest Stall): ĐANG SỬ DỤNG ĐƯỢC
+4) Map interaction (pins/location/focus stall): ĐANG SỬ DỤNG ĐƯỢC
+5) MainPage Quick Actions navigation: ĐANG SỬ DỤNG ĐƯỢC
+
+
+=====================================================================
+FLOW 1: QUÉT QR -> CHỌN NGÔN NGỮ & GIỌNG ĐỌC -> NGHE THUYẾT MINH
+(EN: QR Scan -> Language & Voice Selection -> Listen Narration)
+=====================================================================
+
+Mô tả ngắn:
+Flow cho khách du lịch quét mã QR tại gian hàng để vào nhanh trải nghiệm ngôn ngữ + giọng đọc và nghe thuyết minh trên bản đồ.
+
+Trình tự chi tiết:
+1. User mở MainPage và chọn chức năng quét QR (đi vào ScanPage).
+2. ScanPage mở camera, đọc mã QR gian hàng.
+3. App validate dữ liệu QR (stallId hợp lệ), lưu ngữ cảnh scan và điều hướng sang LanguagePage.
+4. LanguagePage tải danh sách ngôn ngữ từ API (GET /api/languages/active).
+5. User chọn ngôn ngữ -> app điều hướng sang VoicePage.
+6. VoicePage gọi API lấy voice theo ngôn ngữ (GET /api/tts-voice-profiles/active?languageId=...).
+7. User chọn voice.
+8. App lấy DeviceId từ DeviceService và upsert DevicePreferences qua API:
+   POST /api/device-preference
+9. App điều hướng sang MapPage (kèm context stall nếu có).
+10. MapPage focus stall vừa quét, user bấm phát audio narration.
+
+Sequence Diagram (PlantUML text):
+@startuml
+actor User
+participant MainPage
+participant ScanPage
+participant LanguagePage
+participant VoicePage
+participant DeviceService
+participant DevicePreferenceApi
+participant LanguageApi
+participant VoiceApi
+participant MapPage
+
+User -> MainPage: Chọn Scan
+MainPage -> ScanPage: Navigate
+User -> ScanPage: Quét QR
+ScanPage -> LanguagePage: Navigate(stallId)
+LanguagePage -> LanguageApi: GET /api/languages/active
+LanguageApi --> LanguagePage: List<Language>
+User -> LanguagePage: Chọn language
+LanguagePage -> VoicePage: Navigate(languageId, languageCode)
+VoicePage -> VoiceApi: GET /api/tts-voice-profiles/active
+VoiceApi --> VoicePage: List<Voice>
+User -> VoicePage: Chọn voice
+VoicePage -> DeviceService: GetOrCreateDeviceIdAsync()
+VoicePage -> DevicePreferenceApi: POST /api/device-preference
+DevicePreferenceApi --> VoicePage: OK
+VoicePage -> MapPage: Navigate(stall context)
+User -> MapPage: Play narration
+@enduml
+
+Happy path test cases:
+- TC1.1: Quét QR hợp lệ -> điều hướng LanguagePage thành công.
+- TC1.2: Chọn language + voice -> lưu DevicePreferences thành công (HTTP 200).
+- TC1.3: Vào MapPage đúng stall vừa quét và phát được audio.
+
+Edge/error test cases:
+- TC1.E1: QR không hợp lệ -> hiển thị thông báo lỗi, cho quét lại.
+- TC1.E2: Camera permission bị từ chối -> không scan được, hiển thị cảnh báo quyền.
+- TC1.E3: API ngôn ngữ lỗi/mất mạng -> không tải danh sách ngôn ngữ.
+- TC1.E4: API voice trả rỗng -> báo ngôn ngữ chưa có voice khả dụng.
+- TC1.E5: Lưu DevicePreferences thất bại -> hiển thị lỗi, không tự chuyển flow sai.
+
+Kết quả mong đợi sau khi hoàn tất flow:
+- DevicePreferences được cập nhật theo thiết bị.
+- User vào đúng MapPage và nghe narration theo language/voice vừa chọn.
+
+
+=====================================================================
+FLOW 2: PROFILE -> CÀI ĐẶT DEVICEPREFERENCES
+(EN: Profile Settings -> Save Device-based Preferences)
+=====================================================================
+
+Mô tả ngắn:
+Flow cấu hình sở thích theo thiết bị (không phụ thuộc tài khoản): Language, Voice, SpeechRate, AutoPlay.
+
+Trình tự chi tiết:
+1. User từ MainPage chọn Profile (ProfilePage).
+2. ProfileViewModel khởi tạo, gọi LoadProfileAsync().
+3. App tải danh sách ngôn ngữ (ILanguageService -> GET /api/languages/active).
+4. App lấy DeviceId (DeviceService.GetOrCreateDeviceIdAsync).
+5. App gọi GET /api/device-preference/{deviceId} để load preference hiện tại.
+6. Nếu có dữ liệu cũ: set SelectedLanguage, SelectedVoice, SpeechRate, AutoPlay.
+7. User thay đổi cấu hình:
+   - Language
+   - Voice (dynamic theo language)
+   - SpeechRate (slider)
+   - AutoPlay (switch)
+8. User nhấn "Lưu thay đổi".
+9. App gọi POST /api/device-preference để upsert.
+10. Trả về thành công -> thông báo lưu thành công.
+
+Sequence Diagram (PlantUML text):
+@startuml
+actor User
+participant MainPage
+participant ProfilePage
+participant ProfileVM
+participant LanguageApi
+participant DeviceService
+participant DevicePreferenceApi
+participant VoiceApi
+
+User -> MainPage: Chọn Profile
+MainPage -> ProfilePage: Navigate
+ProfilePage -> ProfileVM: LoadProfileAsync()
+ProfileVM -> LanguageApi: GET /api/languages/active
+LanguageApi --> ProfileVM: List<Language>
+ProfileVM -> DeviceService: GetOrCreateDeviceIdAsync()
+ProfileVM -> DevicePreferenceApi: GET /api/device-preference/{deviceId}
+DevicePreferenceApi --> ProfileVM: DevicePreferenceDetailDto
+User -> ProfilePage: Chọn Language
+ProfileVM -> VoiceApi: GET voices by language
+VoiceApi --> ProfileVM: List<Voice>
+User -> ProfilePage: Chọn Voice + SpeechRate + AutoPlay
+User -> ProfilePage: Nhấn Lưu
+ProfileVM -> DevicePreferenceApi: POST /api/device-preference
+DevicePreferenceApi --> ProfileVM: OK
+ProfileVM --> User: Thông báo thành công
+@enduml
+
+Happy path test cases:
+- TC2.1: Mở Profile thấy đúng preference đã lưu trước đó.
+- TC2.2: Đổi language + voice + speech rate + autoplay -> lưu thành công.
+- TC2.3: Mở lại Profile vẫn thấy giá trị vừa cập nhật.
+
+Edge/error test cases:
+- TC2.E1: DevicePreference chưa tồn tại -> màn hình vẫn load được, dùng giá trị mặc định.
+- TC2.E2: Chưa chọn language mà bấm lưu -> hiển thị thông báo yêu cầu chọn language.
+- TC2.E3: API upsert lỗi 4xx/5xx -> hiển thị lỗi "Lưu thất bại".
+- TC2.E4: Language đổi nhưng API voice lỗi -> danh sách voice rỗng, không crash.
+- TC2.E5: Mất mạng khi load profile -> thông báo lỗi tải hồ sơ.
+
+Kết quả mong đợi sau khi hoàn tất flow:
+- Cấu hình DevicePreferences được lưu đúng theo DeviceId.
+- Lần sử dụng sau app có thể khôi phục đúng sở thích người dùng trên thiết bị đó.
+
+
+=====================================================================
+FLOW 3: KHÁM PHÁ GẦN TÔI (NEAREST STALL)
+(EN: Explore Near Me / Nearest Stall)
+=====================================================================
+
+Mô tả ngắn:
+Flow giúp user nhanh chóng tìm gian hàng gần vị trí hiện tại.
+
+Trình tự chi tiết:
+1. User vào MapPage.
+2. App xin quyền vị trí (LocationWhenInUse) nếu cần.
+3. App lấy GPS hiện tại của user.
+4. App tải danh sách stalls (dịch vụ stall + cache/local fallback).
+5. App tính khoảng cách đến các stall và xác định stall gần nhất.
+6. App focus map tới stall gần nhất, highlight pin/tâm bản đồ.
+7. User có thể mở thông tin stall và phát thuyết minh.
+
+Sequence Diagram (PlantUML text):
+@startuml
+actor User
+participant MapPage
+participant Permission
+participant Geolocation
+participant StallService
+participant LocalCache
+
+User -> MapPage: Mở bản đồ
+MapPage -> Permission: Request Location
+Permission --> MapPage: Granted/Denied
+MapPage -> Geolocation: Get current location
+Geolocation --> MapPage: Lat/Lng
+MapPage -> StallService: Get stalls
+StallService -> LocalCache: Read cache (if any)
+StallService --> MapPage: Stall list
+MapPage -> MapPage: Compute nearest stall
+MapPage -> MapPage: Focus nearest pin
+User -> MapPage: Xem/Nghe thuyết minh
+@enduml
+
+Happy path test cases:
+- TC3.1: Có GPS + có dữ liệu stall -> app focus đúng gian hàng gần nhất.
+- TC3.2: Sau khi focus, user thao tác pin và phát audio bình thường.
+- TC3.3: Di chuyển vị trí, nearest được cập nhật hợp lý theo polling.
+
+Edge/error test cases:
+- TC3.E1: User từ chối quyền location -> không nearest, map vẫn hoạt động cơ bản.
+- TC3.E2: GPS timeout/không lấy được vị trí -> fallback center mặc định.
+- TC3.E3: Dữ liệu stall rỗng -> không crash, hiển thị trạng thái không có dữ liệu.
+- TC3.E4: Offline -> ưu tiên cache local; nếu cache rỗng thì không thể nearest.
+- TC3.E5: Sai số GPS cao -> nearest có thể lệch nhẹ, vẫn không làm hỏng flow.
+
+Kết quả mong đợi sau khi hoàn tất flow:
+- User thấy gian hàng gần nhất nhanh chóng và có thể tương tác ngay trên map.
+
+
+=====================================================================
+FLOW 4: MỞ BẢN ĐỒ VÀ TƯƠNG TÁC GIAN HÀNG
+(EN: Open Map and Interact with Stalls)
+=====================================================================
+
+Mô tả ngắn:
+Flow nền tảng của app: hiển thị map, pin gian hàng, chọn pin và phát narration.
+
+Trình tự chi tiết:
+1. User mở MapPage từ MainPage hoặc từ flow QR.
+2. MapPage khởi tạo Mapsui + OpenStreetMap tile layer.
+3. App tải stalls và render pins trên bản đồ.
+4. App hiển thị vị trí user (nếu có quyền location).
+5. User chạm vào pin gian hàng.
+6. App cập nhật SelectedStall và hiển thị thông tin liên quan.
+7. User bấm Play/Pause/Stop để điều khiển audio narration.
+
+Sequence Diagram (PlantUML text):
+@startuml
+actor User
+participant MainPage
+participant MapPage
+participant MapVM
+participant StallService
+participant AudioService
+
+User -> MainPage: Chọn Map
+MainPage -> MapPage: Navigate
+MapPage -> MapVM: InitializeAsync()
+MapVM -> StallService: GetStallsAsync()
+StallService --> MapVM: Stall list
+MapVM -> MapPage: Render pins
+User -> MapPage: Tap pin
+MapPage -> MapVM: Select stall
+User -> MapPage: Play/Pause/Stop
+MapVM -> AudioService: Play/Pause/Stop
+@enduml
+
+Happy path test cases:
+- TC4.1: Vào map thấy pin stalls hiển thị đầy đủ.
+- TC4.2: Tap pin chuyển selected đúng stall.
+- TC4.3: Play/Pause/Stop audio hoạt động đúng trạng thái.
+
+Edge/error test cases:
+- TC4.E1: API stalls lỗi -> app fallback cache hoặc danh sách rỗng an toàn.
+- TC4.E2: Stall chưa có audio -> hiển thị thông báo phù hợp, không crash.
+- TC4.E3: Mạng chập chờn lúc stream audio -> xử lý lỗi phát âm thanh.
+- TC4.E4: Rời map giữa lúc audio đang chạy -> kiểm tra dừng/tài nguyên audio.
+- TC4.E5: Không có internet + cache rỗng -> map vẫn mở nhưng không có dữ liệu stall.
+
+Kết quả mong đợi sau khi hoàn tất flow:
+- User tương tác map ổn định và nghe được thuyết minh cho stall hợp lệ.
+
+
+=====================================================================
+FLOW 5: MAINPAGE QUICK ACTIONS NAVIGATION
+(EN: MainPage Quick Actions Navigation)
+=====================================================================
+
+Mô tả ngắn:
+Flow điều hướng nhanh từ màn hình chính đến các chức năng cốt lõi.
+
+Trình tự chi tiết:
+1. User mở MainPage.
+2. App hiển thị quick actions: Map, Language, Audio, Profile.
+3. User chọn một action:
+   - Map -> mở MapPage
+   - Language -> mở LanguagePage
+   - Audio -> mở VoicePage (alias AudioPage)
+   - Profile -> mở ProfilePage
+4. MainViewModel dùng command + navigation guard để tránh điều hướng trùng do double tap.
+5. Trang đích mở thành công và hoạt động theo flow tương ứng.
+
+Sequence Diagram (PlantUML text):
+@startuml
+actor User
+participant MainPage
+participant MainVM
+participant Shell
+
+User -> MainPage: Tap quick action
+MainPage -> MainVM: Execute command
+MainVM -> MainVM: Check navigation guard
+MainVM -> Shell: GoToAsync(route)
+Shell --> User: Open target page
+@enduml
+
+Happy path test cases:
+- TC5.1: Tap Map mở đúng MapPage.
+- TC5.2: Tap Language mở đúng LanguagePage.
+- TC5.3: Tap Profile mở đúng ProfilePage.
+- TC5.4: Tap Audio mở đúng AudioPage/VoicePage.
+
+Edge/error test cases:
+- TC5.E1: Double tap liên tục -> guard chặn điều hướng lặp.
+- TC5.E2: Route sai/chưa đăng ký -> hiển thị lỗi điều hướng (nếu có).
+- TC5.E3: Session clear/logout sau quick action -> quay về StartPage đúng flow.
+- TC5.E4: Mở trang đích nhưng dữ liệu API lỗi -> trang vẫn mở, hiển thị lỗi tải dữ liệu.
+- TC5.E5: Điều hướng từ trạng thái app resume/background -> không tạo stack bất thường.
+
+Kết quả mong đợi sau khi hoàn tất flow:
+- Điều hướng nhanh, ổn định, không bị double navigation, user vào đúng module mong muốn.
+
+
+=====================================================================
+GHI CHÚ KIỂM THỬ BỔ SUNG CHO BÁO CÁO
+=====================================================================
+- Mỗi flow nên có ít nhất 1 testcase automation/integration và 2 testcase manual.
+- Nên log API status code cho các điểm quan trọng:
+  + GET /api/languages/active
+  + GET /api/device-preference/{deviceId}
+  + POST /api/device-preference
+- Khi viết chương "Đánh giá", có thể chấm theo 3 tiêu chí:
+  1) Tính đúng nghiệp vụ (Correctness)
+  2) Tính ổn định runtime (Stability)
+  3) Trải nghiệm người dùng (UX)
+
+=====================================================================
+END OF USER FLOW SECTION
+=====================================================================

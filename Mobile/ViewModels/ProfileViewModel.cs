@@ -1,9 +1,9 @@
-﻿using Mobile.Models;
-using Mobile.Services;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using Mobile.Models;
+using Mobile.Services;
 
 namespace Mobile.ViewModels
 {
@@ -16,6 +16,7 @@ namespace Mobile.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        // Thông tin cơ bản
         private string _userName = "Du khách";
         public string UserName
         {
@@ -37,9 +38,11 @@ namespace Mobile.ViewModels
             set { _userAvatar = value; OnPropertyChanged(); }
         }
 
+        // Danh sách
         public ObservableCollection<LanguageDetailDto> AvailableLanguages { get; } = new();
         public ObservableCollection<VoiceOption> AvailableVoices { get; } = new();
 
+        // Lựa chọn
         private LanguageDetailDto? _selectedLanguage;
         public LanguageDetailDto? SelectedLanguage
         {
@@ -48,7 +51,8 @@ namespace Mobile.ViewModels
             {
                 _selectedLanguage = value;
                 OnPropertyChanged();
-                _ = LoadVoicesBySelectedLanguageAsync();
+                if (value != null)
+                    _ = LoadVoicesBySelectedLanguageAsync();
             }
         }
 
@@ -69,7 +73,7 @@ namespace Mobile.ViewModels
             get => _speechRate;
             set
             {
-                if (_speechRate == value) return;
+                if (Math.Abs(_speechRate - value) < 0.01m) return;
                 _speechRate = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(SpeechRateText));
@@ -102,9 +106,22 @@ namespace Mobile.ViewModels
             }
         }
 
+        private string _statusMessage = "";
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            set
+            {
+                _statusMessage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // Commands
         public ICommand SaveProfileCommand { get; }
         public ICommand LogoutCommand { get; }
         public ICommand LoadProfileCommand { get; }
+        public ICommand ResetSettingsCommand { get; }
 
         public ProfileViewModel(
             ILanguageService languageService,
@@ -120,6 +137,7 @@ namespace Mobile.ViewModels
             SaveProfileCommand = new Command(async () => await SaveProfileAsync());
             LogoutCommand = new Command(async () => await LogoutAsync());
             LoadProfileCommand = new Command(async () => await LoadProfileAsync());
+            ResetSettingsCommand = new Command(async () => await ResetToDefaultAsync());
 
             _ = LoadProfileAsync();
         }
@@ -129,47 +147,79 @@ namespace Mobile.ViewModels
             try
             {
                 IsBusy = true;
+                StatusMessage = "Đang tải thông tin hồ sơ...";
+
                 UserName = _sessionService.GetUserName() ?? "Du khách";
 
+                // Load danh sách ngôn ngữ
                 var languages = await _languageService.GetLanguagesAsync(forceRefresh: true);
-
                 AvailableLanguages.Clear();
-                foreach (var lang in languages)
+
+                foreach (var lang in languages.Where(l => l.IsActive))
                 {
                     AvailableLanguages.Add(new LanguageDetailDto
                     {
                         Id = lang.Id,
                         Code = lang.Code,
                         Name = lang.DisplayName ?? lang.Name,
+                        // OLD CODE (kept for reference): NativeName = lang.NativeName ?? lang.Name,
+                        // Shared LanguageDetailDto hiện chưa có NativeName nên fallback theo Name.
                         NativeName = lang.Name,
                         Flag = ConvertFlagToEmoji(lang.FlagCode),
                         IsActive = lang.IsActive
                     });
                 }
 
+                // Load cấu hình thiết bị hiện tại
                 var preference = await _devicePreferenceService.GetByDeviceIdAsync();
-                if (preference is not null)
+                if (preference != null)
                 {
                     SelectedLanguage = AvailableLanguages.FirstOrDefault(l =>
                         string.Equals(l.Code, preference.LanguageCode, StringComparison.OrdinalIgnoreCase));
 
-                    SpeechRate = preference.SpeechRate <= 0 ? 1.0m : preference.SpeechRate;
+                    SpeechRate = preference.SpeechRate > 0 ? preference.SpeechRate : 1.0m;
                     AutoPlay = preference.AutoPlay;
-
-                    if (!string.IsNullOrWhiteSpace(preference.Voice))
-                    {
-                        SelectedVoice = AvailableVoices.FirstOrDefault(v =>
-                            string.Equals(v.Id, preference.Voice, StringComparison.OrdinalIgnoreCase));
-                    }
                 }
             }
             catch (Exception ex)
             {
-                await Application.Current!.MainPage!.DisplayAlertAsync("Lỗi", $"Không tải được hồ sơ: {ex.Message}", "OK");
+                StatusMessage = "Không tải được hồ sơ";
+                await Application.Current!.MainPage!.DisplayAlertAsync("Lỗi", $"Không thể tải hồ sơ: {ex.Message}", "OK");
             }
             finally
             {
                 IsBusy = false;
+            }
+        }
+
+        private async Task LoadVoicesBySelectedLanguageAsync()
+        {
+            AvailableVoices.Clear();
+            SelectedVoice = null;
+
+            if (SelectedLanguage == null) return;
+
+            try
+            {
+                var voices = await _voiceService.GetVoicesByLanguageAsync(SelectedLanguage.Id);
+
+                foreach (var voice in voices.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Priority))
+                {
+                    AvailableVoices.Add(new VoiceOption
+                    {
+                        Id = voice.Id.ToString(),
+                        DisplayName = voice.DisplayName,
+                        Description = voice.Description ?? "Giọng đọc chuẩn",
+                        IsDefault = voice.IsDefault
+                    });
+                }
+
+                SelectedVoice = AvailableVoices.FirstOrDefault(v => v.IsDefault) ?? AvailableVoices.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                // Không chặn flow nếu API voice lỗi
+                System.Diagnostics.Debug.WriteLine($"Load voice error: {ex.Message}");
             }
         }
 
@@ -183,6 +233,9 @@ namespace Mobile.ViewModels
 
             try
             {
+                IsBusy = true;
+                StatusMessage = "Đang lưu cấu hình...";
+
                 var upsertDto = new DevicePreferenceUpsertDto
                 {
                     LanguageId = SelectedLanguage.Id,
@@ -196,7 +249,8 @@ namespace Mobile.ViewModels
 
                 if (result.Success)
                 {
-                    await Application.Current!.MainPage!.DisplayAlertAsync("Thành công", "Đã lưu cấu hình thiết bị!", "OK");
+                    StatusMessage = "Đã lưu thành công!";
+                    await Application.Current!.MainPage!.DisplayAlertAsync("Thành công", "Cấu hình thuyết minh đã được cập nhật.", "OK");
                 }
                 else
                 {
@@ -207,48 +261,35 @@ namespace Mobile.ViewModels
             {
                 await Application.Current!.MainPage!.DisplayAlertAsync("Lỗi", ex.Message, "OK");
             }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
-        /// <summary>
-        /// Tải danh sách voice theo ngôn ngữ đang chọn.
-        /// </summary>
-        private async Task LoadVoicesBySelectedLanguageAsync()
+        private async Task ResetToDefaultAsync()
         {
-            AvailableVoices.Clear();
+            bool confirm = await Application.Current!.MainPage!.DisplayAlertAsync(
+                "Đặt lại mặc định",
+                "Bạn có muốn đặt lại tất cả cài đặt về mặc định không?",
+                "Có", "Không");
 
-            if (SelectedLanguage is null)
-            {
-                SelectedVoice = null;
-                return;
-            }
+            if (!confirm) return;
 
-            try
-            {
-                var voices = await _voiceService.GetVoicesByLanguageAsync(SelectedLanguage.Id);
+            SpeechRate = 1.0m;
+            AutoPlay = true;
+            SelectedVoice = null;
 
-                foreach (var voice in voices.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Priority))
-                {
-                    AvailableVoices.Add(new VoiceOption
-                    {
-                        Id = voice.Id.ToString(),
-                        DisplayName = voice.DisplayName,
-                        Description = voice.Description,
-                        IsDefault = voice.IsDefault
-                    });
-                }
-
-                // OLD CODE (kept for reference): chưa có chọn mặc định voice.
-                SelectedVoice ??= AvailableVoices.FirstOrDefault(v => v.IsDefault) ?? AvailableVoices.FirstOrDefault();
-            }
-            catch
-            {
-                // Giữ im lặng để không chặn flow Profile khi API voice lỗi tạm thời.
-            }
+            await Application.Current!.MainPage!.DisplayAlertAsync("Thành công", "Đã đặt lại cài đặt về mặc định.", "OK");
         }
 
         private async Task LogoutAsync()
         {
-            bool confirm = await Application.Current!.MainPage!.DisplayAlertAsync("Đăng xuất", "Bạn có chắc muốn đăng xuất?", "Có", "Không");
+            bool confirm = await Application.Current!.MainPage!.DisplayAlertAsync(
+                "Đăng xuất",
+                "Bạn có chắc muốn đăng xuất khỏi thiết bị này?",
+                "Có", "Không");
+
             if (!confirm) return;
 
             _sessionService.ClearSession();
@@ -270,13 +311,17 @@ namespace Mobile.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        // Class hỗ trợ hiển thị giọng đọc trong Picker
         public class VoiceOption
         {
             public string Id { get; set; } = string.Empty;
             public string DisplayName { get; set; } = string.Empty;
             public string? Description { get; set; }
             public bool IsDefault { get; set; }
-            public string DisplayText => IsDefault ? $"{DisplayName} (Mặc định)" : DisplayName;
+
+            public string DisplayText => IsDefault
+                ? $"{DisplayName} (Mặc định)"
+                : DisplayName;
         }
     }
 }

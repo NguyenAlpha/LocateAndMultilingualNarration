@@ -73,7 +73,8 @@ public class MainViewModel : INotifyPropertyChanged
         LoadUserName();
 
         StartCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
-        MapCommand = new Command(async () => await NavigateQuickActionAsync(nameof(MapPage)));
+        // OLD CODE (kept for reference): MapCommand = new Command(async () => await NavigateQuickActionAsync(nameof(MapPage)));
+        MapCommand = new Command(async () => await NavigateQuickActionAsync("//MapPage"));
         LanguageCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
         AudioCommand = new Command(async () => await NavigateQuickActionAsync("AudioPage"));
         ProfileCommand = new Command(async () => await ShowProfileAsync());
@@ -88,7 +89,7 @@ public class MainViewModel : INotifyPropertyChanged
         UserName = sessionService.GetUserName();
     }
 
-    async Task LoadFeaturedStallsAsync()
+    public async Task LoadFeaturedStallsAsync()
     {
         if (IsLoadingStalls) return;
 
@@ -163,6 +164,13 @@ public class MainViewModel : INotifyPropertyChanged
         try
         {
             await Shell.Current.GoToAsync(route);
+        }
+        catch (Exception ex)
+        {
+            if (Application.Current?.Windows[0].Page != null)
+            {
+                await Application.Current.Windows[0].Page!.DisplayAlertAsync("Lỗi điều hướng", ex.Message, "OK");
+            }
         }
         finally
         {
