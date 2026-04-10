@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -13,7 +12,7 @@ namespace Api.Controllers
     [ApiController]
     [Route("api/stall-geo-fence")]
     [Authorize]
-    public class StallGeoFenceController : ControllerBase
+    public class StallGeoFenceController : AppControllerBase
     {
         private const int MaxPageSize = 100;
         private readonly AppDbContext _context;
@@ -202,20 +201,5 @@ namespace Api.Controllers
             };
         }
 
-        private bool TryGetUserId(out Guid userId)
-        {
-            var currentUserIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(currentUserIdValue, out userId);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin") || User.IsInRole("ADMIN");
-        }
-
-        private bool IsBusinessOwner()
-        {
-            return User.IsInRole("BusinessOwner") || User.IsInRole("BUSINESSOWNER");
-        }
     }
 }

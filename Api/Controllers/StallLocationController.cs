@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -16,7 +15,7 @@ namespace Api.Controllers
     /// <summary>
     /// API quản lý vị trí gian hàng với phân quyền theo vai trò.
     /// </summary>
-    public class StallLocationController : ControllerBase
+    public class StallLocationController : AppControllerBase
     {
         private const int MaxPageSize = 100;
         private readonly AppDbContext _context;
@@ -272,46 +271,5 @@ namespace Api.Controllers
             };
         }
 
-        private static DateTimeOffset? ConvertFromUtc(DateTimeOffset? utcDateTime, TimeZoneInfo timeZone)
-        {
-            // Chuyển đổi thời gian UTC sang múi giờ người dùng để hiển thị.
-            if (utcDateTime == null)
-            {
-                return null;
-            }
-
-            var utc = utcDateTime.Value.UtcDateTime;
-            var local = TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone);
-            var offset = timeZone.GetUtcOffset(utc);
-            return new DateTimeOffset(local, offset);
-        }
-
-        private TimeZoneInfo GetTimeZone()
-        {
-            // Lấy múi giờ từ header, mặc định theo khu vực SE Asia.
-            var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
-            return string.IsNullOrWhiteSpace(timeZoneId)
-                ? TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-                : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-
-        private bool TryGetUserId(out Guid userId)
-        {
-            // Lấy UserId từ claim để phục vụ kiểm tra quyền.
-            var currentUserIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(currentUserIdValue, out userId);
-        }
-
-        private bool IsAdmin()
-        {
-            // Kiểm tra vai trò Admin (không phân biệt hoa thường).
-            return User.IsInRole("Admin") || User.IsInRole("ADMIN");
-        }
-
-        private bool IsBusinessOwner()
-        {
-            // Kiểm tra vai trò BusinessOwner (không phân biệt hoa thường).
-            return User.IsInRole("BusinessOwner") || User.IsInRole("BUSINESSOWNER");
-        }
     }
 }

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Api.Application.Services;
@@ -21,7 +20,7 @@ namespace Api.Controllers
     [ApiController]
     [Route("api/stall-narration-content")]
     [Authorize]
-    public class StallNarrationContentController : ControllerBase
+    public class StallNarrationContentController : AppControllerBase
     {
         private const int MaxPageSize = 100;
         private readonly AppDbContext _context;
@@ -476,46 +475,5 @@ namespace Api.Controllers
             };
         }
 
-        private static DateTimeOffset? ConvertFromUtc(DateTimeOffset? utcDateTime, TimeZoneInfo timeZone)
-        {
-            if (utcDateTime == null)
-            {
-                return null;
-            }
-
-            // Lấy DateTime ở dạng UTC từ DateTimeOffset và chuyển sang thời gian local theo timeZone
-            var utc = utcDateTime.Value.UtcDateTime;
-            var local = TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone);
-            var offset = timeZone.GetUtcOffset(utc);
-            return new DateTimeOffset(local, offset);
-        }
-
-        private TimeZoneInfo GetTimeZone()
-        {
-            // Đọc header X-TimeZoneId do client gửi. Nếu không có -> dùng múi giờ mặc định SE Asia
-            var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
-            return string.IsNullOrWhiteSpace(timeZoneId)
-                ? TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-                : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-
-        private bool TryGetUserId(out Guid userId)
-        {
-            // Lấy claim NameIdentifier (thường là user id) và parse sang Guid
-            var currentUserIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(currentUserIdValue, out userId);
-        }
-
-        private bool IsAdmin()
-        {
-            // Kiểm tra user có role Admin (case-insensitive check bằng 2 giá trị)
-            return User.IsInRole("Admin") || User.IsInRole("ADMIN");
-        }
-
-        private bool IsBusinessOwner()
-        {
-            // Kiểm tra user có role BusinessOwner
-            return User.IsInRole("BusinessOwner") || User.IsInRole("BUSINESSOWNER");
-        }
     }
 }

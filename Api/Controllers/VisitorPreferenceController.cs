@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +11,7 @@ namespace Api.Controllers
     [ApiController]
     [Route("api/visitor-preference")]
     [Authorize]
-    public class VisitorPreferenceController : ControllerBase
+    public class VisitorPreferenceController : AppControllerBase
     {
         private readonly AppDbContext _context;
         private readonly ILogger<VisitorPreferenceController> _logger;
@@ -111,31 +110,5 @@ namespace Api.Controllers
             };
         }
 
-        private static DateTimeOffset? ConvertFromUtc(DateTimeOffset? utcDateTime, TimeZoneInfo timeZone)
-        {
-            if (utcDateTime == null)
-            {
-                return null;
-            }
-
-            var utc = utcDateTime.Value.UtcDateTime;
-            var local = TimeZoneInfo.ConvertTimeFromUtc(utc, timeZone);
-            var offset = timeZone.GetUtcOffset(utc);
-            return new DateTimeOffset(local, offset);
-        }
-
-        private TimeZoneInfo GetTimeZone()
-        {
-            var timeZoneId = HttpContext.Request.Headers["X-TimeZoneId"].ToString();
-            return string.IsNullOrWhiteSpace(timeZoneId)
-                ? TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")
-                : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-
-        private bool TryGetUserId(out Guid userId)
-        {
-            var currentUserIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(currentUserIdValue, out userId);
-        }
     }
 }
