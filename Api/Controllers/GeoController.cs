@@ -28,36 +28,5 @@ namespace Api.Controllers
             _logger.LogInformation("Lấy danh sách stall cho bản đồ thành công - Tổng: {Total}", result.Count);
             return this.OkResult(result);
         }
-
-        [HttpGet("nearest-stall")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetNearestStall([FromQuery] decimal lat, [FromQuery] decimal lng, [FromQuery] string? langCode, [FromQuery] decimal? radius, CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("Bắt đầu tìm stall gần nhất - Lat: {Lat}, Lng: {Lng}", lat, lng);
-
-            if (lat < -90 || lat > 90)
-            {
-                return this.BadRequestResult("Latitude không hợp lệ", "lat");
-            }
-
-            if (lng < -180 || lng > 180)
-            {
-                return this.BadRequestResult("Longitude không hợp lệ", "lng");
-            }
-
-            if (radius.HasValue && radius.Value <= 0)
-            {
-                return this.BadRequestResult("Radius phải lớn hơn 0", "radius");
-            }
-
-            var result = await _geoService.FindNearestStallAsync(lat, lng, langCode, radius, cancellationToken);
-            if (result == null)
-            {
-                return NoContent();
-            }
-
-            _logger.LogInformation("Tìm stall gần nhất thành công - StallId: {StallId}", result.StallId);
-            return this.OkResult(result);
-        }
     }
 }
