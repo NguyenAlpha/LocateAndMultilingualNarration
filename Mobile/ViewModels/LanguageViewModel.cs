@@ -355,17 +355,11 @@ public class LanguageSelectionViewModel : INotifyPropertyChanged
             await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
             {
                 DeviceId = deviceId,
-<<<<<<< HEAD:Mobile/ViewModels/LanguageViewModel.cs
-                LanguageCode = SelectedLanguage.Code,
-                Voice = SelectedVoice.Id.ToString(),
+                LanguageId = SelectedLanguage.Id,
+                VoiceId = SelectedVoice.Id,
                 // OLD CODE (kept for reference): AutoPlay = true,
                 AutoPlay = AutoPlay,
                 SpeechRate = SpeechRate,
-=======
-                LanguageId = SelectedLanguage.Id,
-                VoiceId = SelectedVoice.Id,
-                AutoPlay = true,
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224:Mobile/ViewModels/LanguageSelectionViewModel.cs
                 Platform = deviceInfo.Platform,
                 DeviceModel = deviceInfo.DeviceModel,
                 Manufacturer = deviceInfo.Manufacturer,

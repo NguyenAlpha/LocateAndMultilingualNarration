@@ -30,14 +30,7 @@ namespace Mobile
             // Trang chọn ngôn ngữ thuyết minh — hiển thị sau khi quét thành công
             Routing.RegisterRoute(nameof(LanguagePage), typeof(LanguagePage));
 
-<<<<<<< HEAD
-            // OLD CODE (kept for reference):
-            // Routing.RegisterRoute(nameof(LanguageSelectionPage), typeof(LanguageSelectionPage));
-            // Tạm thời tắt route này vì class LanguageSelectionPage không tồn tại trong workspace hiện tại.
 
-=======
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
-            // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
             Routing.RegisterRoute(nameof(VoicePage), typeof(VoicePage));
 
             // MapPage không đăng ký ở đây vì đã là ShellContent trong AppShell.xaml.

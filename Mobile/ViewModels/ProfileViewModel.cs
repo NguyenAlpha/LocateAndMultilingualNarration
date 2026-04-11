@@ -179,14 +179,11 @@ namespace Mobile.ViewModels
 
                     SpeechRate = preference.SpeechRate > 0 ? preference.SpeechRate : 1.0m;
                     AutoPlay = preference.AutoPlay;
-<<<<<<< HEAD
-=======
 
                     if (preference.VoiceId.HasValue)
                     {
                         SelectedVoice = AvailableVoices.FirstOrDefault(v => v.Id == preference.VoiceId.Value);
                     }
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
                 }
             }
             catch (Exception ex)
@@ -215,7 +212,7 @@ namespace Mobile.ViewModels
                 {
                     AvailableVoices.Add(new VoiceOption
                     {
-                        Id = voice.Id.ToString(),
+                        Id = voice.Id,
                         DisplayName = voice.DisplayName,
                         Description = voice.Description ?? "Giọng đọc chuẩn",
                         IsDefault = voice.IsDefault
@@ -286,29 +283,7 @@ namespace Mobile.ViewModels
             SpeechRate = 1.0m;
             AutoPlay = true;
             SelectedVoice = null;
-
-<<<<<<< HEAD
             await Application.Current!.MainPage!.DisplayAlertAsync("Thành công", "Đã đặt lại cài đặt về mặc định.", "OK");
-=======
-                foreach (var voice in voices.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Priority))
-                {
-                    AvailableVoices.Add(new VoiceOption
-                    {
-                        Id = voice.Id,
-                        DisplayName = voice.DisplayName,
-                        Description = voice.Description,
-                        IsDefault = voice.IsDefault
-                    });
-                }
-
-                // OLD CODE (kept for reference): chưa có chọn mặc định voice.
-                SelectedVoice ??= AvailableVoices.FirstOrDefault(v => v.IsDefault) ?? AvailableVoices.FirstOrDefault();
-            }
-            catch
-            {
-                // Giữ im lặng để không chặn flow Profile khi API voice lỗi tạm thời.
-            }
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
         }
 
         private async Task LogoutAsync()

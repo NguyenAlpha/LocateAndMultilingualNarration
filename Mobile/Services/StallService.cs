@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Networking;
 using Mobile.LocalDb;
+using Mobile.Models;
 using Shared.DTOs.Common;
 using Shared.DTOs.Geo;
 
@@ -30,9 +31,10 @@ public class StallService : IStallService
     private readonly IServiceProvider _serviceProvider;
     private ISyncService? _resolvedSyncService;
     private readonly ILogger<StallService> _logger;
+    private const string ApiClientName = "ApiHttp";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private const string BaseUrl = "http://10.0.2.2:5299";
+    // OLD CODE (kept for reference): private const string BaseUrl = "http://10.0.2.2:5299";
     private const string StallsEndpoint = "/api/geo/stalls";
 
     public StallService(
@@ -88,10 +90,10 @@ public class StallService : IStallService
         try
         {
             // Lấy deviceId để API trả về dữ liệu đúng theo thiết bị/ngữ cảnh người dùng.
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             // Tạo URL gọi API danh sách gian hàng.
-            var client = _httpClientFactory.CreateClient();
-            var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
+            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var url = $"{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
 
             _logger.LogInformation("[StallService][GetStallsAsync]: gọi API {Url}", url);
 
@@ -127,9 +129,9 @@ public class StallService : IStallService
     {
         try
         {
-            var deviceId = await _deviceService.GetOrCreateDeviceIdAsync();
-            var client = _httpClientFactory.CreateClient();
-            var url = $"{BaseUrl}/api/stalls?deviceId={Uri.EscapeDataString(deviceId)}";
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var url = $"/api/stalls?deviceId={Uri.EscapeDataString(deviceId)}";
 
             _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: gọi API {Url}", url);
             
@@ -156,7 +158,7 @@ public class StallService : IStallService
     }
 
     private static double ToRadians(double deg) => deg * (Math.PI / 180);
-    */
+    
 
     private bool ShouldSync()
     {

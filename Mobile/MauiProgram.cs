@@ -40,22 +40,34 @@ public static class MauiProgram
             });
 
         // ---- HTTPCLIENT ----
-        // Đăng ký HttpClient mặc định với timeout 10 giây — tránh treo UI khi server chậm hoặc không phản hồi.
-        builder.Services.AddHttpClient(string.Empty, client =>
+        // OLD CODE (kept for reference): đăng ký HttpClient mặc định không BaseAddress.
+        // builder.Services.AddHttpClient(string.Empty, client =>
+        // {
+        //     client.Timeout = TimeSpan.FromSeconds(10);
+        // });
+
+        // Base URL dùng cho Android Emulator khi chạy development.
+        // Dùng named client để toàn bộ service gọi API cùng một cấu hình, tránh lệch HTTP/HTTPS giữa các file.
+        const string DevApiBaseUrl = "http://10.0.2.2:5299/";
+
+        builder.Services.AddHttpClient("ApiHttp", client =>
         {
+            client.BaseAddress = new Uri(DevApiBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(10);
         });
-<<<<<<< HEAD
+
         builder.Services.AddTransient<ProfileViewModel>();
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<LanguageSelectionViewModel>();
         builder.Services.AddTransient<ProfileViewModel>();
         builder.Services.AddTransient<IVoiceService, VoiceService>();
+        // === Đăng ký ScanService ===
+        builder.Services.AddSingleton<IScanService, ScanService>();
         builder.Services.AddTransient<IDevicePreferenceApiService, DevicePreferenceApiService>();
         // OLD CODE (kept for reference): builder.Services.AddTransient<ProfileViewModel>();
         // ProfileViewModel đã được đăng ký ở section VIEWMODELS bên dưới để tránh đăng ký trùng.
-=======
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
+
+
 
         // ---- SERVICES (Singleton — tạo 1 lần, dùng xuyên suốt app) ----
         // Singleton phù hợp cho service cần giữ state lâu dài hoặc dùng chung toàn app
@@ -106,7 +118,7 @@ public static class MauiProgram
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
 
-<<<<<<< HEAD
+
         // OLD CODE (kept for reference): dùng builder.Services.AddTransient<T>() trực tiếp gây ambiguous extension trong một số context.
         ServiceCollectionServiceExtensions.AddTransient<StartViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<LoginViewModel>(builder.Services);
@@ -118,14 +130,14 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<LanguageSelectionViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
-=======
+
         builder.Services.AddTransient<StartViewModel>();
         builder.Services.AddTransient<LoginViewModel>();
         builder.Services.AddTransient<MainViewModel>();
         builder.Services.AddTransient<MapViewModel>();
         builder.Services.AddTransient<ScanViewModel>();
         builder.Services.AddTransient<ProfileViewModel>();
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
+
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
