@@ -74,6 +74,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         StartCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
         // OLD CODE (kept for reference): MapCommand = new Command(async () => await NavigateQuickActionAsync(nameof(MapPage)));
+        // OLD CODE (kept for reference): MapCommand = new Command(async () => await NavigateQuickActionAsync($"//{nameof(MapPage)}"));
         MapCommand = new Command(async () => await NavigateQuickActionAsync("//MapPage"));
         LanguageCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
         AudioCommand = new Command(async () => await NavigateQuickActionAsync("AudioPage"));

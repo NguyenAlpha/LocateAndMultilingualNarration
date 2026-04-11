@@ -179,6 +179,11 @@ namespace Mobile.ViewModels
 
                     SpeechRate = preference.SpeechRate > 0 ? preference.SpeechRate : 1.0m;
                     AutoPlay = preference.AutoPlay;
+
+                    if (preference.VoiceId.HasValue)
+                    {
+                        SelectedVoice = AvailableVoices.FirstOrDefault(v => v.Id == preference.VoiceId.Value);
+                    }
                 }
             }
             catch (Exception ex)
@@ -207,7 +212,7 @@ namespace Mobile.ViewModels
                 {
                     AvailableVoices.Add(new VoiceOption
                     {
-                        Id = voice.Id.ToString(),
+                        Id = voice.Id,
                         DisplayName = voice.DisplayName,
                         Description = voice.Description ?? "Giọng đọc chuẩn",
                         IsDefault = voice.IsDefault
@@ -279,7 +284,6 @@ namespace Mobile.ViewModels
             SpeechRate = 1.0m;
             AutoPlay = true;
             SelectedVoice = null;
-
             await Application.Current!.MainPage!.DisplayAlertAsync("Thành công", "Đã đặt lại cài đặt về mặc định.", "OK");
         }
 

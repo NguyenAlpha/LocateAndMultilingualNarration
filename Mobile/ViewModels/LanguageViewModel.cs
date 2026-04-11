@@ -235,9 +235,11 @@ public class LanguageSelectionViewModel : INotifyPropertyChanged
             await _devicePreferenceApiService.UpsertAsync(new DevicePreferenceUpsertDto
             {
                 DeviceId = deviceId,
-                LanguageCode = SelectedLanguage.Code,
-                Voice = SelectedVoice.Id.ToString(),
-                AutoPlay = true,
+                LanguageId = SelectedLanguage.Id,
+                VoiceId = SelectedVoice.Id,
+                // OLD CODE (kept for reference): AutoPlay = true,
+                AutoPlay = AutoPlay,
+                SpeechRate = SpeechRate,
                 Platform = deviceInfo.Platform,
                 DeviceModel = deviceInfo.DeviceModel,
                 Manufacturer = deviceInfo.Manufacturer,

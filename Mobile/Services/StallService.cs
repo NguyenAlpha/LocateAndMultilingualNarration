@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Mobile.LocalDb;
+using Mobile.Models;
 using Shared.DTOs.Common;
 using Shared.DTOs.Geo;
 
@@ -91,8 +92,8 @@ public class StallService : IStallService
             // Lấy deviceId để API trả về dữ liệu đúng theo thiết bị/ngữ cảnh người dùng.
             var deviceId = _deviceService.GetOrCreateDeviceId();
             // Tạo URL gọi API danh sách gian hàng.
-            var client = _httpClientFactory.CreateClient();
-            var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
+            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var url = $"{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
 
             _logger.LogInformation("[StallService][GetStallsAsync]: gọi API {Url}", url);
             using var response = await client.GetAsync(url, cancellationToken);
@@ -125,6 +126,41 @@ public class StallService : IStallService
         var stalls = await GetStallsAsync(false, cancellationToken);
         return stalls.FirstOrDefault(x => x.StallId.ToString().Equals(stallId, StringComparison.OrdinalIgnoreCase));
     }
+
+    public async Task<List<StallItem>> GetFeaturedStallsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var url = $"/api/stalls?deviceId={Uri.EscapeDataString(deviceId)}";
+
+            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: gọi API {Url}", url);
+            
+            using var response = await client.GetAsync(url, cancellationToken);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[StallService][GetFeaturedStallsAsync]: API trả về {StatusCode}", (int)response.StatusCode);
+                return [];
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var result = await JsonSerializer.DeserializeAsync<ApiResult<List<StallItem>>>(stream, JsonOptions, cancellationToken);
+            var stalls = result?.Data ?? [];
+
+            _logger.LogInformation("[StallService][GetFeaturedStallsAsync]: tải thành công {Count} gian hàng", stalls.Count);
+            return stalls.Take(5).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[StallService][GetFeaturedStallsAsync]: exception");
+            return [];
+        }
+    }
+
+    private static double ToRadians(double deg) => deg * (Math.PI / 180);
+    
 
     /// <summary>
     /// Chuyển <see cref="LocalStall"/> sang <see cref="GeoStallDto"/>, ưu tiên audio cục bộ nếu đã tải sẵn.

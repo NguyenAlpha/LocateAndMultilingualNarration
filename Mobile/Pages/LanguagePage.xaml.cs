@@ -11,6 +11,10 @@ public partial class LanguagePage : ContentPage
     public string? StallId { get; set; }
     public string? Token { get; set; }
 
+    /// <summary>
+    /// Khởi tạo trang và gán ViewModel qua DI.
+    /// </summary>
+    /// <param name="viewModel">ViewModel xử lý logic chọn ngôn ngữ/giọng đọc.</param>
     public LanguagePage(LanguageSelectionViewModel viewModel)
     {
         InitializeComponent();
@@ -27,6 +31,8 @@ public partial class LanguagePage : ContentPage
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
     {
-        // Logic search đã được xử lý trong ViewModel
+        // OLD CODE (kept for reference): logic lọc và gọi API trực tiếp trong code-behind.
+        // Đồng bộ SearchText về ViewModel để FilterLanguages chạy theo chuẩn MVVM.
+        _viewModel.SearchText = e.NewTextValue ?? string.Empty;
     }
 }
