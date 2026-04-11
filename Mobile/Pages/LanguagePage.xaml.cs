@@ -2,11 +2,8 @@ using Mobile.ViewModels;
 
 namespace Mobile;
 
-[QueryProperty(nameof(StallId), "stallId")]
+//[QueryProperty(nameof(StallId), "stallId")]
 [QueryProperty(nameof(Token), "token")]
-/// <summary>
-/// Màn hình hiển thị danh sách ngôn ngữ để người dùng chọn trước khi sang màn hình chọn giọng đọc.
-/// </summary>
 public partial class LanguagePage : ContentPage
 {
     private readonly LanguageSelectionViewModel _viewModel;

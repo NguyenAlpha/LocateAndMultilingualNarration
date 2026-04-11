@@ -12,8 +12,8 @@ public interface IAuthService
 public class AuthService : IAuthService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-
-    private const string BaseUrl = "http://10.0.2.2:5299";
+    private const string ApiClientName = "ApiHttp";
+    // OLD CODE (kept for reference): private const string BaseUrl = "http://10.0.2.2:5299";
 
     public AuthService(IHttpClientFactory httpClientFactory)
     {
@@ -24,8 +24,9 @@ public class AuthService : IAuthService
     {
         try
         {
-            var client = _httpClientFactory.CreateClient();
-            var response = await client.PostAsJsonAsync($"{BaseUrl}/api/auth/login", new { email, password }, cancellationToken);
+            // Dùng named client đã cấu hình BaseAddress trong MauiProgram để tránh hard-code URL.
+            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var response = await client.PostAsJsonAsync("api/auth/login", new { email, password }, cancellationToken);
             var raw = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)

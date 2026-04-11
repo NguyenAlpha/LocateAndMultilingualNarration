@@ -1,3 +1,4 @@
+using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -41,6 +42,7 @@ namespace Api.Controllers
         /// <response code="401">Không xác thực</response>
         /// <response code="403">Không có quyền truy cập</response>
         [HttpPost]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> CreateBusiness([FromBody] BusinessCreateDto request)
         {
             _logger.LogInformation("Bắt đầu tạo business - Name: {Name}", request.Name);
@@ -49,12 +51,6 @@ namespace Api.Controllers
             {
                 _logger.LogWarning("Không xác thực khi tạo business");
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                _logger.LogWarning("Không có quyền tạo business - UserId: {UserId}", userId);
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             _logger.LogDebug("Tạo entity business cho UserId: {UserId}", userId);
@@ -90,6 +86,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         /// <response code="404">Không tìm thấy business</response>
         [HttpPut("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> UpdateBusiness(Guid id, [FromBody] BusinessUpdateDto request)
         {
             _logger.LogInformation("Bắt đầu cập nhật business - Id: {BusinessId}", id);
@@ -139,6 +136,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         /// <response code="404">Không tìm thấy business</response>
         [HttpGet("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetBusinessDetail(Guid id)
         {
             _logger.LogInformation("Bắt đầu lấy chi tiết business - Id: {BusinessId}", id);
@@ -180,6 +178,7 @@ namespace Api.Controllers
         /// <response code="401">Không xác thực</response>
         /// <response code="403">Không có quyền truy cập</response>
         [HttpGet]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetBusinesses([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         {
             _logger.LogInformation("Bắt đầu lấy danh sách business - Page: {Page}, PageSize: {PageSize}", page, pageSize);
@@ -188,12 +187,6 @@ namespace Api.Controllers
             {
                 _logger.LogWarning("Không xác thực khi lấy danh sách business");
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                _logger.LogWarning("Không có quyền truy cập danh sách business - UserId: {UserId}", userId);
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             page = Math.Max(1, page);

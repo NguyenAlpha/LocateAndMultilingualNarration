@@ -40,7 +40,8 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDeviceService _deviceService;
     private readonly ILocalPreferenceService _localPreference;
-    private const string BaseUrl = "http://10.0.2.2:5299";
+    private const string ApiClientName = "ApiHttp";
+    // OLD CODE (kept for reference): private const string BaseUrl = "http://10.0.2.2:5299";
 
     public DevicePreferenceApiService(
         IHttpClientFactory httpClientFactory,
@@ -63,8 +64,8 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
         try
         {
             // Tạo client để gọi endpoint lấy cấu hình theo deviceId.
-            var client = _httpClientFactory.CreateClient();
-            var response = await client.GetAsync($"{BaseUrl}/api/device-preference/{Uri.EscapeDataString(deviceId)}", ct);
+            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var response = await client.GetAsync($"api/device-preference/{Uri.EscapeDataString(deviceId)}", ct);
             Console.WriteLine($"[DEBUG] GET /api/device-preference/{{deviceId}} => {(int)response.StatusCode} {response.StatusCode}");
             // Nếu server trả lỗi thì không xử lý tiếp.
             if (!response.IsSuccessStatusCode) return null;
@@ -85,8 +86,8 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
     {
         try
         {
-            var client = _httpClientFactory.CreateClient();
-            var response = await client.PostAsJsonAsync($"{BaseUrl}/api/device-preference", dto, ct);
+            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var response = await client.PostAsJsonAsync("api/device-preference", dto, ct);
             if (!response.IsSuccessStatusCode) return null;
             var result = await response.Content.ReadFromJsonAsync<ApiResult<Shared.DTOs.DevicePreferences.DevicePreferenceDetailDto>>(cancellationToken: ct);
             var data = result?.Data;
@@ -102,9 +103,9 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
 
     public async Task SavePreferencesAsync(Shared.DTOs.DevicePreferences.DevicePreferencesRequest request, CancellationToken ct = default)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient(ApiClientName);
         Console.WriteLine($"[DEBUG] POST /api/device-preferences DeviceId={request.DeviceId}, LanguageId={request.LanguageId}, VoiceId={request.VoiceId}");
-        var response = await client.PostAsJsonAsync($"{BaseUrl}/api/device-preferences", request, ct);
+        var response = await client.PostAsJsonAsync("api/device-preferences", request, ct);
         Console.WriteLine($"[DEBUG] POST /api/device-preferences => {(int)response.StatusCode} {response.StatusCode}");
         response.EnsureSuccessStatusCode();
     }

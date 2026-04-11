@@ -40,17 +40,9 @@ public static class MauiProgram
             });
 
         // ---- HTTPCLIENT ----
-        // OLD CODE (kept for reference): đăng ký HttpClient mặc định không BaseAddress.
-        // builder.Services.AddHttpClient(string.Empty, client =>
-        // {
-        //     client.Timeout = TimeSpan.FromSeconds(10);
-        // });
-
-        // Base URL dùng cho Android Emulator khi chạy development.
-        // Dùng named client để toàn bộ service gọi API cùng một cấu hình, tránh lệch HTTP/HTTPS giữa các file.
-        const string DevApiBaseUrl = "http://10.0.2.2:5299/";
-
-        builder.Services.AddHttpClient("ApiHttp", client =>
+        // Đăng ký HttpClient mặc định với timeout 10 giây — tránh treo UI khi server chậm hoặc không phản hồi.
+        // OLD CODE (kept for reference): ServiceCollectionServiceExtensions.AddHttpClient(builder.Services, string.Empty, client => ...)
+        builder.Services.AddHttpClient(string.Empty, client =>
         {
             client.BaseAddress = new Uri(DevApiBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(10);
@@ -66,8 +58,8 @@ public static class MauiProgram
         builder.Services.AddTransient<IDevicePreferenceApiService, DevicePreferenceApiService>();
         // OLD CODE (kept for reference): builder.Services.AddTransient<ProfileViewModel>();
         // ProfileViewModel đã được đăng ký ở section VIEWMODELS bên dưới để tránh đăng ký trùng.
-
-
+=======
+>>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
 
         // ---- SERVICES (Singleton — tạo 1 lần, dùng xuyên suốt app) ----
         // Singleton phù hợp cho service cần giữ state lâu dài hoặc dùng chung toàn app
@@ -130,14 +122,6 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<LanguageSelectionViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
-
-        builder.Services.AddTransient<StartViewModel>();
-        builder.Services.AddTransient<LoginViewModel>();
-        builder.Services.AddTransient<MainViewModel>();
-        builder.Services.AddTransient<MapViewModel>();
-        builder.Services.AddTransient<ScanViewModel>();
-        builder.Services.AddTransient<ProfileViewModel>();
-
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng

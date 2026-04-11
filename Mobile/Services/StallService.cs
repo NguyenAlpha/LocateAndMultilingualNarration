@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Maui.Networking;
 using Mobile.LocalDb;
 using Mobile.Models;
 using Shared.DTOs.Common;
@@ -13,77 +12,78 @@ namespace Mobile.Services;
 /// </summary>
 public interface IStallService
 {
+    /// <summary>
+    /// Lấy toàn bộ danh sách gian hàng, có hỗ trợ cache.
+    /// </summary>
+    /// <param name="forceRefresh">Giá trị <c>true</c> để bỏ qua cache và gọi API mới.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Danh sách gian hàng đã được tải từ cache hoặc từ API.</returns>
     Task<List<GeoStallDto>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
-    Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default);
 
-    Task<List<StallItem>> GetFeaturedStallsAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Lấy một gian hàng cụ thể theo ID.
+    /// </summary>
+    /// <param name="stallId">Mã gian hàng cần tìm.</param>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Gian hàng tương ứng nếu tìm thấy; ngược lại trả về <c>null</c>.</returns>
+    Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// Implementation của IStallService — Cache-First pattern.
+/// Implementation của IStallService — Cache-First pattern:
+///   1. Đọc từ SQLite (LocalStallRepository) → trả về ngay, render bản đồ tức thì
+///   2. Nếu SQLite trống và có mạng → gọi API trực tiếp
+///   3. Offline + SQLite trống → fallback mock
 /// </summary>
 public class StallService : IStallService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDeviceService _deviceService;
     private readonly ILocalStallRepository _localRepo;
-    // OLD CODE (kept for reference): private readonly ISyncService _syncService;
-    private readonly IServiceProvider _serviceProvider;
-    private ISyncService? _resolvedSyncService;
     private readonly ILogger<StallService> _logger;
-    private const string ApiClientName = "ApiHttp";
 
+    // Cấu hình JsonSerializer để giải mã dữ liệu API.
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    // OLD CODE (kept for reference): private const string BaseUrl = "http://10.0.2.2:5299";
+
+    private const string BaseUrl = "http://10.0.2.2:5299";
     private const string StallsEndpoint = "/api/geo/stalls";
 
-    public StallService(
-        IHttpClientFactory httpClientFactory,
-        IDeviceService deviceService,
-        ILocalStallRepository localRepo,
-        // OLD CODE (kept for reference): ISyncService syncService,
-        IServiceProvider serviceProvider,
-        ILogger<StallService> logger)
+    public StallService(IHttpClientFactory httpClientFactory,IDeviceService deviceService, ILocalStallRepository localRepo, ILogger<StallService> logger)
     {
         _httpClientFactory = httpClientFactory;
         _deviceService = deviceService;
         _localRepo = localRepo;
-        // OLD CODE (kept for reference): _syncService = syncService;
-        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Lấy danh sách gian hàng theo chiến lược cache-first.
-    /// </summary>
     public async Task<List<GeoStallDto>> GetStallsAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
     {
+        // Cache-First: đọc SQLite trước (nhanh, không cần mạng)
         if (!forceRefresh)
         {
+            // Lấy dữ liệu đã lưu sẵn trong máy.
             var cached = await _localRepo.GetAllAsync();
             if (cached.Count > 0)
             {
                 _logger.LogDebug("[StallService][GetStallsAsync]: {Count} stall từ SQLite", cached.Count);
 
-                if (ShouldSync())
-                {
-                    // OLD CODE (kept for reference): _ = _syncService.SyncAsync(CancellationToken.None);
-                    _ = TriggerBackgroundSyncSafelyAsync();
-                }
-
+                // Chuyển dữ liệu local sang DTO để UI dùng trực tiếp.
                 return cached.Select(ToDto).ToList();
             }
         }
 
+        // SQLite trống hoặc forceRefresh: kiểm tra mạng
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
         {
+            // Không có mạng → fallback SQLite (dù forceRefresh = true)
             var offline = await _localRepo.GetAllAsync();
             if (offline.Count > 0)
             {
                 _logger.LogWarning("[StallService][GetStallsAsync]: offline, fallback {Count} stall từ SQLite", offline.Count);
-                return [..offline.Select(ToDto)];
+                return [.. offline.Select(ToDto)];
             }
-            _logger.LogWarning("[StallService][GetStallsAsync]: offline và SQLite trống");
+
+            _logger.LogWarning("[StallService][GetStallsAsync]: offline và SQLite trống, trả về danh sách rỗng");
             return [];
         }
 
@@ -96,16 +96,16 @@ public class StallService : IStallService
             var url = $"{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
 
             _logger.LogInformation("[StallService][GetStallsAsync]: gọi API {Url}", url);
-
             using var response = await client.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("[StallService][GetStallsAsync]: API trả về {StatusCode}, fallback SQLite", (int)response.StatusCode);
                 var fallback = await _localRepo.GetAllAsync();
-                return [..fallback.Select(ToDto)];
+                return [.. fallback.Select(ToDto)];
             }
 
+            // Giải mã dữ liệu JSON từ API.
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
             var dtos = (await JsonSerializer.DeserializeAsync<ApiResult<List<GeoStallDto>>>(stream, JsonOptions, cancellationToken))?.Data ?? [];
 
@@ -114,6 +114,7 @@ public class StallService : IStallService
         }
         catch (Exception ex)
         {
+            // Nếu lỗi bất ngờ thì trả về rỗng để tránh làm sập UI.
             _logger.LogError(ex, "[StallService][GetStallsAsync]: exception");
             return [];
         }
@@ -121,6 +122,7 @@ public class StallService : IStallService
 
     public async Task<GeoStallDto?> GetStallByIdAsync(string stallId, CancellationToken cancellationToken = default)
     {
+        // Tái sử dụng GetStallsAsync để lấy danh sách rồi tìm theo ID.
         var stalls = await GetStallsAsync(false, cancellationToken);
         return stalls.FirstOrDefault(x => x.StallId.ToString().Equals(stallId, StringComparison.OrdinalIgnoreCase));
     }
@@ -160,38 +162,6 @@ public class StallService : IStallService
     private static double ToRadians(double deg) => deg * (Math.PI / 180);
     
 
-    private bool ShouldSync()
-    {
-        // OLD CODE (kept for reference): return _syncService.LastSyncedAt is null
-        // OLD CODE (kept for reference):     || DateTime.UtcNow - _syncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
-
-        // Resolve muộn để phá vòng phụ thuộc DI: SyncService -> StallService -> ISyncService.
-        _resolvedSyncService ??= _serviceProvider.GetService<ISyncService>();
-
-        if (_resolvedSyncService is null)
-            return false;
-
-        return _resolvedSyncService.LastSyncedAt is null
-            || DateTime.UtcNow - _resolvedSyncService.LastSyncedAt.Value > TimeSpan.FromMinutes(3);
-    }
-
-    // Fire-and-forget có bắt lỗi để không crash process nếu sync ném exception ngoài dự kiến.
-    private async Task TriggerBackgroundSyncSafelyAsync()
-    {
-        try
-        {
-            _resolvedSyncService ??= _serviceProvider.GetService<ISyncService>();
-            if (_resolvedSyncService is null)
-                return;
-
-            await _resolvedSyncService.SyncAsync(CancellationToken.None);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "TriggerBackgroundSyncSafelyAsync: lỗi khi sync ngầm");
-        }
-    }
-
     /// <summary>
     /// Chuyển <see cref="LocalStall"/> sang <see cref="GeoStallDto"/>, ưu tiên audio cục bộ nếu đã tải sẵn.
     /// </summary>
@@ -209,9 +179,9 @@ public class StallService : IStallService
             Id = Guid.Parse(s.NarrationContentId),
             Title = s.NarrationTitle ?? string.Empty,
             Description = s.NarrationDescription,
-            ScriptText  = s.NarrationScriptText ?? string.Empty,
+            ScriptText = s.NarrationScriptText ?? string.Empty,
             // Ưu tiên file local đã tải, fallback về URL remote
-            AudioUrl    = s.LocalAudioPath ?? s.AudioUrl
+            AudioUrl = s.LocalAudioPath ?? s.AudioUrl
         }
     };
 }

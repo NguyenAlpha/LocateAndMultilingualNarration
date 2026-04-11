@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Api.Infrastructure.Persistence;
 using Api.Application.Services;
+using Api.Authorization;
 using Api.Domain.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -52,7 +53,14 @@ builder.Services.AddAuthentication(options =>
 });
 
 // Bật authorization policy
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AppPolicies.AdminOnly, policy =>
+        policy.RequireRole("Admin"));
+
+    options.AddPolicy(AppPolicies.AdminOrBusinessOwner, policy =>
+        policy.RequireRole("Admin", "BusinessOwner"));
+});
 
 // Cấu hình CORS để cho phép Web project gọi API
 builder.Services.AddCors(options =>

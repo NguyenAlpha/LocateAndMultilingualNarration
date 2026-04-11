@@ -92,29 +92,29 @@ public class MainViewModel : INotifyPropertyChanged
 
     public async Task LoadFeaturedStallsAsync()
     {
-        //if (IsLoadingStalls) return;
+        if (IsLoadingStalls) return;
 
-        //try
-        //{
-        //    IsLoadingStalls = true;
-        //    var stalls = await stallService.GetFeaturedStallsAsync();
-            
-        //    FeaturedStalls.Clear();
-        //    foreach (var stall in stalls)
-        //    {
-        //        FeaturedStalls.Add(stall);
-        //    }
+        try
+        {
+            IsLoadingStalls = true;
+            var stalls = await stallService.GetFeaturedStallsAsync();
 
-        //    HasStalls = FeaturedStalls.Count > 0;
-        //}
-        //catch
-        //{
-        //    HasStalls = false;
-        //}
-        //finally
-        //{
-        //    IsLoadingStalls = false;
-        //}
+            FeaturedStalls.Clear();
+            foreach (var stall in stalls)
+            {
+                FeaturedStalls.Add(stall);
+            }
+
+            HasStalls = FeaturedStalls.Count > 0;
+        }
+        catch
+        {
+            HasStalls = false;
+        }
+        finally
+        {
+            IsLoadingStalls = false;
+        }
     }
 
     async Task ShowAudioHintAsync()

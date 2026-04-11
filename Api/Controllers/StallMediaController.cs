@@ -1,4 +1,5 @@
 using Api.Application.DTOs.StallMedia;
+using Api.Authorization;
 using Api.Domain.Settings;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
@@ -38,15 +39,13 @@ namespace Api.Controllers
 
         [HttpPost("upload")]
         [Consumes("multipart/form-data")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> UploadCreate([FromForm] StallMediaUploadCreateRequest request)
         {
             _logger.LogInformation("Bắt đầu upload và tạo stall media - StallId: {StallId}", request.StallId);
 
             if (!TryGetUserId(out var userId))
                 return this.UnauthorizedResult("Không xác thực");
-
-            if (!IsAdmin() && !IsBusinessOwner())
-                return this.ForbiddenResult("Không có quyền truy cập");
 
             var stall = await _context.Stalls
                 .Include(s => s.Business)
@@ -92,15 +91,13 @@ namespace Api.Controllers
 
         [HttpPut("{id:guid}/upload")]
         [Consumes("multipart/form-data")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> UploadUpdate(Guid id, [FromForm] StallMediaUploadUpdateRequest request)
         {
             _logger.LogInformation("Bắt đầu upload và cập nhật stall media - Id: {MediaId}", id);
 
             if (!TryGetUserId(out var userId))
                 return this.UnauthorizedResult("Không xác thực");
-
-            if (!IsAdmin() && !IsBusinessOwner())
-                return this.ForbiddenResult("Không có quyền truy cập");
 
             var media = await _context.StallMedia
                 .Include(m => m.Stall)
@@ -141,15 +138,13 @@ namespace Api.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> Delete(Guid id)
         {
             _logger.LogInformation("Bắt đầu xóa stall media - Id: {MediaId}", id);
 
             if (!TryGetUserId(out var userId))
                 return this.UnauthorizedResult("Không xác thực");
-
-            if (!IsAdmin() && !IsBusinessOwner())
-                return this.ForbiddenResult("Không có quyền truy cập");
 
             var media = await _context.StallMedia
                 .Include(m => m.Stall)
@@ -169,6 +164,7 @@ namespace Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> Create([FromBody] StallMediaCreateDto request)
         {
             _logger.LogInformation("Bắt đầu tạo stall media - StallId: {StallId}", request.StallId);
@@ -176,11 +172,6 @@ namespace Api.Controllers
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             var stall = await _context.Stalls
@@ -214,6 +205,7 @@ namespace Api.Controllers
         }
 
         [HttpPut("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> Update(Guid id, [FromBody] StallMediaUpdateDto request)
         {
             _logger.LogInformation("Bắt đầu cập nhật stall media - Id: {MediaId}", id);
@@ -221,11 +213,6 @@ namespace Api.Controllers
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             var media = await _context.StallMedia
@@ -255,6 +242,7 @@ namespace Api.Controllers
         }
 
         [HttpGet("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetDetail(Guid id)
         {
             _logger.LogInformation("Bắt đầu lấy chi tiết stall media - Id: {MediaId}", id);
@@ -284,6 +272,7 @@ namespace Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetList([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? stallId = null, [FromQuery] bool? isActive = null)
         {
             _logger.LogInformation("Bắt đầu lấy danh sách stall media - Page: {Page}, PageSize: {PageSize}", page, pageSize);
@@ -291,11 +280,6 @@ namespace Api.Controllers
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             page = Math.Max(1, page);

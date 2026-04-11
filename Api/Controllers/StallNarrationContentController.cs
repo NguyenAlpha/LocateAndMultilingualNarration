@@ -1,3 +1,4 @@
+using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Api.Application.Services;
@@ -44,20 +45,14 @@ namespace Api.Controllers
         /// <param name="request">Dữ liệu tạo narration content.</param>
         /// <returns>Trả về <see cref="IActionResult"/> với kết quả tạo hoặc lỗi tương ứng.</returns>
         [HttpPost]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> Create([FromBody] StallNarrationContentCreateDto request)
         {
             _logger.LogInformation("Bắt đầu tạo narration content - StallId: {StallId}", request.StallId);
 
-            // Lấy userId từ claims; nếu không có -> trả về 401
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            // Chỉ user có role Admin hoặc BusinessOwner mới được phép thao tác
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             // Tải stall cùng business để kiểm tra quyền sở hữu (nếu user không phải Admin)
@@ -160,19 +155,14 @@ namespace Api.Controllers
         /// <param name="request">Dữ liệu cập nhật.</param>
         /// <returns>Trả về <see cref="IActionResult"/> với kết quả cập nhật hoặc lỗi tương ứng.</returns>
         [HttpPut("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> Update(Guid id, [FromBody] StallNarrationContentUpdateDto request)
         {
             _logger.LogInformation("Bắt đầu cập nhật narration content - Id: {ContentId}", id);
-            // Xác thực user
+
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            // Chỉ Admin hoặc BusinessOwner được phép cập nhật
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             // Tải content kèm thông tin stall->business để kiểm tra quyền sở hữu
@@ -244,6 +234,7 @@ namespace Api.Controllers
         /// Nếu set active = true thì deactivate tất cả content khác của cùng stall.
         /// </summary>
         [HttpPatch("{id:guid}/status")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> ToggleStatus(Guid id, [FromBody] bool isActive)
         {
             _logger.LogInformation("Bắt đầu đổi trạng thái narration content - Id: {ContentId}, IsActive: {IsActive}", id, isActive);
@@ -251,11 +242,6 @@ namespace Api.Controllers
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             var content = await _context.StallNarrationContents
@@ -300,10 +286,11 @@ namespace Api.Controllers
         /// <param name="id">Id của narration content.</param>
         /// <returns>Chi tiết narration content hoặc lỗi tương ứng.</returns>
         [HttpGet("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetDetail(Guid id)
         {
             _logger.LogInformation("Bắt đầu lấy chi tiết narration content - Id: {ContentId}", id);
-            // Xác thực user
+
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
@@ -359,19 +346,14 @@ namespace Api.Controllers
         /// <param name="languageId">Lọc theo LanguageId (tùy chọn).</param>
         /// <returns>Danh sách phân trang các narration content.</returns>
         [HttpGet]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetList([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? stallId = null, [FromQuery] Guid? languageId = null, [FromQuery] string? search = null, [FromQuery] bool? isActive = null)
         {
             _logger.LogInformation("Bắt đầu lấy danh sách narration content - Page: {Page}, PageSize: {PageSize}", page, pageSize);
-            // Xác thực user
+
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            // Chỉ Admin hoặc BusinessOwner được phép lấy danh sách
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             // Chuẩn hóa paging

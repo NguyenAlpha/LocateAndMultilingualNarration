@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -43,6 +44,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         /// <response code="404">Không tìm thấy business</response>
         [HttpPost]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> CreateStall([FromBody] StallCreateDto request)
         {
             _logger.LogInformation("Bắt đầu tạo stall - Name: {Name}", request.Name);
@@ -51,12 +53,6 @@ namespace Api.Controllers
             {
                 _logger.LogWarning("Không xác thực khi tạo stall");
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                _logger.LogWarning("Không có quyền tạo stall - UserId: {UserId}", userId);
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             _logger.LogDebug("Truy vấn business - BusinessId: {BusinessId}", request.BusinessId);
@@ -120,6 +116,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         /// <response code="404">Không tìm thấy stall</response>
         [HttpPut("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> UpdateStall(Guid id, [FromBody] StallUpdateDto request)
         {
             _logger.LogInformation("Bắt đầu cập nhật stall - Id: {StallId}", id);
@@ -192,6 +189,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         /// <response code="404">Không tìm thấy stall</response>
         [HttpGet("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetStallDetail(Guid id)
         {
             _logger.LogInformation("Bắt đầu lấy chi tiết stall - Id: {StallId}", id);
@@ -238,22 +236,15 @@ namespace Api.Controllers
         /// <response code="401">Không xác thực</response>
         /// <response code="403">Không có quyền truy cập</response>
         [HttpGet]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetStalls([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] Guid? businessId = null)
         {
             _logger.LogInformation("<<BEGIN>>Bắt đầu lấy danh sách stall - Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
-            // Lấy userId từ claim, nếu không có -> trả về 401
             if (!TryGetUserId(out var userId))
             {
                 _logger.LogWarning("Không xác thực khi lấy danh sách stall");
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            // Kiểm tra quyền: chỉ Admin hoặc BusinessOwner mới được truy cập
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                _logger.LogWarning("Không có quyền truy cập danh sách stall - UserId: {UserId}", userId);
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             // Chuẩn hóa tham số phân trang

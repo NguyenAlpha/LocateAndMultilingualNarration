@@ -244,7 +244,8 @@ namespace Mobile.ViewModels
                 var upsertDto = new DevicePreferenceUpsertDto
                 {
                     LanguageId = SelectedLanguage.Id,
-                    VoiceId = SelectedVoice?.Id,
+                    LanguageCode = SelectedLanguage.Code,
+                    Voice = SelectedVoice?.Id,
                     SpeechRate = SpeechRate,
                     AutoPlay = AutoPlay
                 };
@@ -317,7 +318,7 @@ namespace Mobile.ViewModels
         // Class hỗ trợ hiển thị giọng đọc trong Picker
         public class VoiceOption
         {
-            public Guid Id { get; set; }
+            public string Id { get; set; } = string.Empty;
             public string DisplayName { get; set; } = string.Empty;
             public string? Description { get; set; }
             public bool IsDefault { get; set; }
