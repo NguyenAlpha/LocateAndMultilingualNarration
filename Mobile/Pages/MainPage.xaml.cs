@@ -14,12 +14,17 @@ namespace Mobile
             BindingContext = _viewModel;
         }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             base.OnAppearing();
-            _viewModel.LoadUserName();   // giữ nguyên
-            // Nếu có LoadFeaturedStalls thì gọi thêm
-            // _viewModel.LoadFeaturedStalls();
+
+            if (_viewModel != null)
+            {
+                _viewModel.LoadUserName();
+
+                // Load dữ liệu gian hàng
+                await _viewModel.LoadFeaturedStallsAsync();
+            }
         }
     }
 }

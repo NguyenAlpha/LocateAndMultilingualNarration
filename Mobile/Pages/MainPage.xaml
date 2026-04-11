@@ -4,7 +4,7 @@
              xmlns:components="clr-namespace:Mobile.Components"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="Mobile.MainPage"
-             BackgroundColor="#F4F6F9"
+             BackgroundColor="#F8FAFC"
              NavigationPage.HasNavigationBar="False">
 
     <ContentPage.Resources>
@@ -13,142 +13,213 @@
         </ResourceDictionary>
     </ContentPage.Resources>
 
-    <Grid>
-        <Grid RowDefinitions="Auto, *">
+    <Grid RowDefinitions="Auto, *, Auto">
 
-            <Grid Grid.Row="0" Padding="20,40,20,30">
-                <Grid.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#6A11CB" Offset="0.0" />
-                        <GradientStop Color="#2575FC" Offset="1.0" />
-                    </LinearGradientBrush>
-                </Grid.Background>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <!-- ==================== HEADER - ĐÃ THU NHỎ ~50% ==================== -->
+        <Grid Grid.Row="0" Padding="20,40,20,20">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#4F46E5" Offset="0.0" />
+                    <GradientStop Color="#7C3AED" Offset="1.0" />
+                </LinearGradientBrush>
+            </Grid.Background>
 
-                <components:HeaderView Grid.Row="0" Title="Locate" LogoutCommand="{Binding LogoutCommand}" Margin="0,0,0,20" />
+            <VerticalStackLayout Spacing="12">
+                <!-- Header Bar -->
+                <components:HeaderView Title="Home" 
+                                       LogoutCommand="{Binding LogoutCommand}" 
+                                       Margin="0,0,0,8"/>
 
-                <VerticalStackLayout Grid.Row="1" Spacing="5" Margin="0,0,0,20">
-                    <Label Text="{Binding HelloText}" TextColor="#E0E0E0" FontSize="16" />
-                    <Label Text="Khám phá du lịch" TextColor="White" FontSize="26" FontAttributes="Bold" />
+                <!-- Welcome -->
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding HelloText}" 
+                           TextColor="#E0E7FF" 
+                           FontSize="15" />
+                    <Label Text="Khám phá du lịch" 
+                           TextColor="White" 
+                           FontSize="24" 
+                           FontAttributes="Bold" />
+                    <Label Text="Trải nghiệm gian hàng văn hóa qua thuyết minh đa ngôn ngữ" 
+                           TextColor="#C4D0FF" 
+                           FontSize="13.5" 
+                           LineBreakMode="WordWrap"/>
                 </VerticalStackLayout>
 
-                <Button Grid.Row="2" Text="Bắt đầu khám phá" BackgroundColor="White" TextColor="#2575FC"
-                        CornerRadius="24" FontAttributes="Bold" HeightRequest="48" Command="{Binding StartCommand}" />
-            </Grid>
+                <!-- Nút Khám phá gần tôi (gọn hơn) -->
+                <Button Text="Khám phá gần tôi" 
+                        BackgroundColor="White"
+                        TextColor="#4F46E5"
+                        CornerRadius="30"
+                        FontAttributes="Bold"
+                        HeightRequest="52"
+                        FontSize="16.5"
+                        Command="{Binding ExploreNearMeCommand}">
+                    <Button.Shadow>
+                        <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.12"/>
+                    </Button.Shadow>
+                </Button>
+            </VerticalStackLayout>
+        </Grid>
 
-            <ScrollView Grid.Row="1" Margin="0,-20,0,0">
-                <VerticalStackLayout Spacing="20" Padding="20,0,20,20">
+        <!-- ==================== NỘI DUNG CHÍNH ==================== -->
+        <ScrollView Grid.Row="1" Padding="20,10,20,20">
+            <VerticalStackLayout Spacing="24">
 
-                    <Label Text="Chức năng nhanh" FontSize="18" FontAttributes="Bold" TextColor="#333333" Margin="0,20,0,0"/>
-                    <Grid ColumnDefinitions="*, *, *, *" ColumnSpacing="15">
+                <!-- Danh sách gian hàng -->
+                <Label Text="Danh sách gian hàng"
+                       FontSize="19"
+                       FontAttributes="Bold"
+                       TextColor="#1E2937"/>
 
-                        <VerticalStackLayout Grid.Column="0" Spacing="8" HorizontalOptions="Center">
-                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
+                <CollectionView ItemsSource="{Binding FeaturedStalls}"
+                                IsVisible="{Binding HasStalls}"
+                                SelectionMode="None"
+                                HeightRequest="500">
+                    <!-- Giới hạn chiều cao để dễ phân trang -->
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Frame CornerRadius="22" Padding="14" BackgroundColor="White" 
+                                   HasShadow="True" Margin="0,0,0,14">
                                 <Frame.Shadow>
-                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
+                                    <Shadow Brush="Black" Offset="0,6" Radius="12" Opacity="0.08"/>
                                 </Frame.Shadow>
-                                <ImageButton BackgroundColor="Transparent" Command="{Binding MapCommand}">
-                                    <ImageButton.Source>
-                                        <FontImageSource Glyph="🗺" Color="#6A11CB" Size="24"/>
-                                    </ImageButton.Source>
-                                </ImageButton>
-                            </Frame>
-                            <Label Text="Bản đồ" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Grid.Column="1" Spacing="8" HorizontalOptions="Center">
-                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
-                                <Frame.Shadow>
-                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
-                                </Frame.Shadow>
-                                <ImageButton BackgroundColor="Transparent" Command="{Binding LanguageCommand}">
-                                    <ImageButton.Source>
-                                        <FontImageSource Glyph="🌐" Color="#00B4DB" Size="24"/>
-                                    </ImageButton.Source>
-                                </ImageButton>
-                            </Frame>
-                            <Label Text="Ngôn ngữ" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Grid.Column="2" Spacing="8" HorizontalOptions="Center">
-                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
-                                <Frame.Shadow>
-                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
-                                </Frame.Shadow>
-                                <ImageButton BackgroundColor="Transparent" Command="{Binding AudioCommand}">
-                                    <ImageButton.Source>
-                                        <FontImageSource Glyph="🔊" Color="#00C9FF" Size="24"/>
-                                    </ImageButton.Source>
-                                </ImageButton>
-                            </Frame>
-                            <Label Text="Âm thanh" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Grid.Column="3" Spacing="8" HorizontalOptions="Center">
-                            <Frame WidthRequest="60" HeightRequest="60" CornerRadius="16" Padding="0" BackgroundColor="White" BorderColor="Transparent" HasShadow="True">
-                                <Frame.Shadow>
-                                    <Shadow Brush="Black" Offset="0,4" Radius="8" Opacity="0.05"/>
-                                </Frame.Shadow>
-                                <ImageButton BackgroundColor="Transparent" Command="{Binding ProfileCommand}">
-                                    <ImageButton.Source>
-                                        <FontImageSource Glyph="👤" Color="#2575FC" Size="24"/>
-                                    </ImageButton.Source>
-                                </ImageButton>
-                            </Frame>
-                            <Label Text="Hồ sơ" FontSize="12" HorizontalOptions="Center" TextColor="#555555"/>
-                        </VerticalStackLayout>
-                    </Grid>
-
-                    <Label Text="Gian hàng nổi bật" FontSize="18" FontAttributes="Bold" TextColor="#333333" Margin="0,10,0,0"/>
-
-                    <CollectionView ItemsSource="{Binding FeaturedStalls}" IsVisible="{Binding HasStalls}" SelectionMode="None">
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Frame CornerRadius="20" Padding="12" BackgroundColor="White" BorderColor="Transparent" HasShadow="True" Margin="0,0,0,14">
-                                    <Frame.Shadow>
-                                        <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.08"/>
-                                    </Frame.Shadow>
-                                    <Grid ColumnDefinitions="100, *">
-                                        <Frame Grid.Column="0" CornerRadius="16" Padding="0" IsClippedToBounds="True" HasShadow="False">
-                                            <Image Source="{Binding ImageUrl}" Aspect="AspectFill" HeightRequest="100" />
-                                        </Frame>
-
-                                        <VerticalStackLayout Grid.Column="1" Padding="12,0,0,0" Spacing="4">
-                                            <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="#222222" MaxLines="1" LineBreakMode="TailTruncation"/>
-                                            <Label Text="{Binding Description}" FontSize="12" TextColor="#777777" MaxLines="2" LineBreakMode="TailTruncation"/>
-                                            <Grid ColumnDefinitions="*, Auto" Margin="0,5,0,0">
-                                                <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                                <Grid ColumnDefinitions="110, *">
+                                    <Frame Grid.Column="0" CornerRadius="16" IsClippedToBounds="True" Padding="0">
+                                        <Image Source="{Binding ImageUrl}" Aspect="AspectFill" HeightRequest="110"/>
+                                    </Frame>
+                                    <VerticalStackLayout Grid.Column="1" Padding="14,4,0,0" Spacing="6">
+                                        <Label Text="{Binding Name}" FontSize="17" FontAttributes="Bold" TextColor="#1F2937"/>
+                                        <Label Text="{Binding Description}" FontSize="13.5" TextColor="#64748B" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                        <Grid ColumnDefinitions="Auto, Auto" ColumnSpacing="8">
+                                            <Frame Padding="8,4" CornerRadius="12" BackgroundColor="#EEF2FF" HasShadow="False" BorderColor="#C7D2FE">
+                                                <HorizontalStackLayout Spacing="4">
                                                     <Label Text="📍" FontSize="12"/>
-                                                    <Label Text="{Binding DistanceText}" FontSize="12" TextColor="#6A11CB" FontAttributes="Bold"/>
+                                                    <Label Text="{Binding DistanceText}" FontSize="12.5" TextColor="#4338CA" FontAttributes="Bold"/>
                                                 </HorizontalStackLayout>
-                                                <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                                    <Label Text="⭐" FontSize="12" TextColor="#FF5722"/>
-                                                    <Label Text="{Binding RatingText}" FontSize="12" TextColor="#333333" FontAttributes="Bold"/>
+                                            </Frame>
+                                            <Frame Grid.Column="1" Padding="8,4" CornerRadius="12" BackgroundColor="#FFF7ED" HasShadow="False" BorderColor="#FED7AA">
+                                                <HorizontalStackLayout Spacing="4">
+                                                    <Label Text="⭐" FontSize="12" TextColor="#F59E0B"/>
+                                                    <Label Text="{Binding RatingText}" FontSize="12.5" TextColor="#9A3412" FontAttributes="Bold"/>
                                                 </HorizontalStackLayout>
-                                            </Grid>
-                                        </VerticalStackLayout>
-                                    </Grid>
-                                </Frame>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
+                                            </Frame>
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
 
-                    <ActivityIndicator IsVisible="{Binding IsLoadingStalls}" IsRunning="{Binding IsLoadingStalls}" Color="#6A11CB" HeightRequest="40"/>
+                <!-- Phân trang (Pagination) -->
+                <Grid ColumnDefinitions="Auto,*,Auto" Padding="10,0" IsVisible="{Binding HasStalls}">
+                    <Button Text="← Trước" 
+                            BackgroundColor="White" 
+                            TextColor="#64748B"
+                            Command="{Binding PreviousPageCommand}"
+                            IsEnabled="{Binding CanGoPrevious}"/>
 
-                    <Label Text="Không có gian hàng nổi bật"
-                           IsVisible="{Binding HasStalls, Converter={StaticResource InvertedBoolConverter}}"
-                           FontSize="14"
-                           TextColor="#999999"
-                           HorizontalOptions="Center"
-                           Margin="0,20,0,10"/>
+                    <Label Text="{Binding CurrentPageDisplay}" 
+                           HorizontalOptions="Center" 
+                           VerticalOptions="Center"
+                           FontSize="15"
+                           TextColor="#475569"/>
 
-                    <BoxView HeightRequest="40" Color="Transparent"/>
-                </VerticalStackLayout>
-            </ScrollView>
+                    <Button Text="Sau →" 
+                            BackgroundColor="White" 
+                            TextColor="#64748B"
+                            Command="{Binding NextPageCommand}"
+                            IsEnabled="{Binding CanGoNext}"/>
+                </Grid>
+
+                <!-- Empty & Loading State -->
+                <ActivityIndicator IsVisible="{Binding IsLoadingStalls}" 
+                                   IsRunning="{Binding IsLoadingStalls}" 
+                                   Color="#4F46E5" HeightRequest="60"/>
+
+                <Label Text="Hiện chưa có gian hàng nào"
+                       IsVisible="{Binding HasStalls, Converter={StaticResource InvertedBoolConverter}}"
+                       FontSize="15" 
+                       TextColor="#94A3B8"
+                       HorizontalOptions="Center" 
+                       HorizontalTextAlignment="Center"
+                       Margin="0,40,0,0"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ==================== BOTTOM NAVIGATION BAR ==================== -->
+        <Grid Grid.Row="2" 
+              BackgroundColor="White" 
+              HeightRequest="76"
+              Padding="8,8,8,12"
+              ColumnSpacing="0">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Bản đồ -->
+            <VerticalStackLayout Grid.Column="0" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
+                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
+                    </Frame.Shadow>
+                    <ImageButton BackgroundColor="Transparent" Command="{Binding MapCommand}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="🗺️" Color="#4F46E5" Size="28"/>
+                        </ImageButton.Source>
+                    </ImageButton>
+                </Frame>
+                <Label Text="Bản đồ" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Ngôn ngữ -->
+            <VerticalStackLayout Grid.Column="1" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
+                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
+                    </Frame.Shadow>
+                    <ImageButton BackgroundColor="Transparent" Command="{Binding LanguageCommand}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="🌐" Color="#10B981" Size="28"/>
+                        </ImageButton.Source>
+                    </ImageButton>
+                </Frame>
+                <Label Text="Ngôn ngữ" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Âm thanh -->
+            <VerticalStackLayout Grid.Column="2" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
+                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
+                    </Frame.Shadow>
+                    <ImageButton BackgroundColor="Transparent" Command="{Binding AudioCommand}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="🔊" Color="#F59E0B" Size="28"/>
+                        </ImageButton.Source>
+                    </ImageButton>
+                </Frame>
+                <Label Text="Âm thanh" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Hồ sơ -->
+            <VerticalStackLayout Grid.Column="3" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
+                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
+                    </Frame.Shadow>
+                    <ImageButton BackgroundColor="Transparent" Command="{Binding ProfileCommand}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="👤" Color="#8B5CF6" Size="28"/>
+                        </ImageButton.Source>
+                    </ImageButton>
+                </Frame>
+                <Label Text="Hồ sơ" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
         </Grid>
     </Grid>
 </ContentPage>
