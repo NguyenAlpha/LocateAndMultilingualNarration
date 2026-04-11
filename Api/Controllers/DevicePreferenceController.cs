@@ -1,5 +1,6 @@
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
+using Api.Infrastructure.Persistence.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -42,18 +43,14 @@ namespace Api.Controllers
         {
             _logger.LogInformation("Lưu device preferences cho deviceId: {DeviceId}", request.DeviceId);
 
-            var language = await _context.Languages
-                .AsNoTracking()
-                .FirstOrDefaultAsync(l => l.Id == request.LanguageId && l.IsActive);
+            var language = await _context.Languages.GetActiveByIdAsync(request.LanguageId);
 
             if (language is null)
                 return this.BadRequestResult($"Không tìm thấy ngôn ngữ với id '{request.LanguageId}'", "LanguageId");
 
             if (request.VoiceId.HasValue)
             {
-                var voiceExists = await _context.TtsVoiceProfiles
-                    .AsNoTracking()
-                    .AnyAsync(v => v.Id == request.VoiceId.Value && v.IsActive);
+                var voiceExists = await _context.TtsVoiceProfiles.IsActiveByIdAsync(request.VoiceId.Value);
 
                 if (!voiceExists)
                     return this.BadRequestResult($"Không tìm thấy giọng đọc với id '{request.VoiceId}'", "VoiceId");
@@ -61,8 +58,7 @@ namespace Api.Controllers
 
             var now = DateTimeOffset.UtcNow;
 
-            var existing = await _context.DevicePreferences
-                .FirstOrDefaultAsync(x => x.DeviceId == request.DeviceId);
+            var existing = await _context.DevicePreferences.GetByDeviceIdAsync(request.DeviceId);
 
             if (existing != null)
             {
@@ -105,18 +101,14 @@ namespace Api.Controllers
         {
             _logger.LogInformation("Upsert device preference cho deviceId: {DeviceId}", request.DeviceId);
 
-            var language = await _context.Languages
-                .AsNoTracking()
-                .FirstOrDefaultAsync(l => l.Id == request.LanguageId && l.IsActive);
+            var language = await _context.Languages.GetActiveByIdAsync(request.LanguageId);
 
             if (language is null)
                 return this.BadRequestResult($"Không tìm thấy ngôn ngữ với id '{request.LanguageId}'", "LanguageId");
 
             if (request.VoiceId.HasValue)
             {
-                var voiceExists = await _context.TtsVoiceProfiles
-                    .AsNoTracking()
-                    .AnyAsync(v => v.Id == request.VoiceId.Value && v.IsActive);
+                var voiceExists = await _context.TtsVoiceProfiles.IsActiveByIdAsync(request.VoiceId.Value);
 
                 if (!voiceExists)
                     return this.BadRequestResult($"Không tìm thấy giọng đọc với id '{request.VoiceId}'", "VoiceId");
