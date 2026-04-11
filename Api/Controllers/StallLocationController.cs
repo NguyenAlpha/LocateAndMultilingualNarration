@@ -1,3 +1,4 @@
+using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -31,21 +32,14 @@ namespace Api.Controllers
         /// Tạo mới vị trí gian hàng.
         /// </summary>
         [HttpPost]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> Create([FromBody] StallLocationCreateDto request)
         {
-            // Tạo mới vị trí gian hàng, chỉ cho phép Admin hoặc chủ doanh nghiệp.
             _logger.LogInformation("Bắt đầu tạo stall location - StallId: {StallId}", request.StallId);
 
-            // Xác thực người dùng đăng nhập.
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            // Kiểm tra quyền truy cập theo vai trò.
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             var stall = await _context.Stalls
@@ -89,21 +83,14 @@ namespace Api.Controllers
         /// Cập nhật vị trí gian hàng theo id.
         /// </summary>
         [HttpPut("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> Update(Guid id, [FromBody] StallLocationUpdateDto request)
         {
-            // Cập nhật vị trí gian hàng theo Id, chỉ cho phép Admin hoặc chủ doanh nghiệp.
             _logger.LogInformation("Bắt đầu cập nhật stall location - Id: {LocationId}", id);
 
-            // Xác thực người dùng đăng nhập.
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            // Kiểm tra quyền truy cập theo vai trò.
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             var location = await _context.StallLocations
@@ -142,12 +129,11 @@ namespace Api.Controllers
         /// Lấy chi tiết vị trí gian hàng theo id.
         /// </summary>
         [HttpGet("{id:guid}")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetDetail(Guid id)
         {
-            // Lấy chi tiết vị trí gian hàng theo Id.
             _logger.LogInformation("Bắt đầu lấy chi tiết stall location - Id: {LocationId}", id);
 
-            // Xác thực người dùng đăng nhập.
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
@@ -180,21 +166,14 @@ namespace Api.Controllers
         /// Lấy danh sách vị trí gian hàng theo phân trang và bộ lọc.
         /// </summary>
         [HttpGet]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
         public async Task<IActionResult> GetList([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? stallId = null, [FromQuery] bool? isActive = null, [FromQuery] string? stallName = null)
         {
-            // Lấy danh sách vị trí gian hàng theo phân trang và bộ lọc.
             _logger.LogInformation("<<BEGIN>> Bắt đầu lấy danh sách stall location - Page: {Page}, PageSize: {PageSize}<<END>>", page, pageSize);
 
-            // Xác thực người dùng đăng nhập.
             if (!TryGetUserId(out var userId))
             {
                 return this.UnauthorizedResult("Không xác thực");
-            }
-
-            // Kiểm tra quyền truy cập theo vai trò.
-            if (!IsAdmin() && !IsBusinessOwner())
-            {
-                return this.ForbiddenResult("Không có quyền truy cập");
             }
 
             page = Math.Max(1, page);

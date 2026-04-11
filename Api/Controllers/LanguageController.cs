@@ -1,3 +1,4 @@
+using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -38,7 +39,7 @@ namespace Api.Controllers
         /// <response code="401">Không xác thực</response>
         /// <response code="403">Không có quyền truy cập</response>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> CreateLanguage([FromBody] LanguageCreateDto request)
         {
             _logger.LogInformation("Bắt đầu tạo language - Code: {Code}", request.Code);
@@ -83,7 +84,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         /// <response code="404">Không tìm thấy language</response>
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> UpdateLanguage(Guid id, [FromBody] LanguageUpdateDto request)
         {
             _logger.LogInformation("Bắt đầu cập nhật language - Id: {LanguageId}", id);
@@ -132,7 +133,7 @@ namespace Api.Controllers
         /// <response code="401">Không xác thực</response>
         /// <response code="403">Không có quyền truy cập</response>
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> GetLanguages([FromQuery] bool? isActive = null)
         {
             _logger.LogInformation("Bắt đầu lấy danh sách language");
@@ -188,7 +189,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         /// <response code="404">Không tìm thấy language</response>
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> DeactivateLanguage(Guid id)
         {
             _logger.LogInformation("Bắt đầu deactive language - Id: {LanguageId}", id);
