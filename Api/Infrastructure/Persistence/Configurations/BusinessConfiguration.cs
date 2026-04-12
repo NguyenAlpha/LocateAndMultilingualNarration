@@ -27,6 +27,9 @@ namespace Api.Infrastructure.Persistence.Configurations
              .HasDefaultValueSql("SYSUTCDATETIME()"); // Tự động gán giá trị UTC hiện tại
             b.Property(x => x.IsActive).HasDefaultValue(true); // Mặc định IsActive là true
 
+            b.Property(x => x.Plan).HasMaxLength(16).HasDefaultValue("Free").IsRequired();
+            b.Property(x => x.PlanExpiresAt).HasColumnType("datetimeoffset(3)");
+
             b.HasOne(x => x.OwnerUser) // Thiết lập quan hệ với User
              .WithMany(u => u.Businesses) // Một User có thể sở hữu nhiều Business
              .HasForeignKey(x => x.OwnerUserId) // Khóa ngoại OwnerUserId trong Business

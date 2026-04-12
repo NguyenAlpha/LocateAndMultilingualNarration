@@ -73,6 +73,20 @@ namespace Api.Controllers
                 return this.ForbiddenResult("Không có quyền truy cập");
             }
 
+            // Kiểm tra plan có hỗ trợ TTS không (Admin bypass)
+            if (!IsAdmin())
+            {
+                var effectivePlan = stall.Business.PlanExpiresAt.HasValue && stall.Business.PlanExpiresAt.Value <= DateTimeOffset.UtcNow
+                    ? Api.Domain.SubscriptionPlan.Free
+                    : stall.Business.Plan;
+
+                if (!Api.Domain.SubscriptionPlan.AllowsTts(effectivePlan))
+                {
+                    _logger.LogWarning("Plan không hỗ trợ TTS - BusinessId: {BusinessId}, Plan: {Plan}", stall.BusinessId, effectivePlan);
+                    return this.ForbiddenResult("Gói Free không hỗ trợ tính năng TTS. Vui lòng nâng cấp lên Basic hoặc Pro.");
+                }
+            }
+
             // Kiểm tra language tồn tại và đang active
             var language = await _context.Languages.GetActiveByIdAsync(request.LanguageId);
 
@@ -207,19 +221,36 @@ namespace Api.Controllers
 
             if (scriptChanged)
             {
-                try
+                // Kiểm tra plan trước khi chạy TTS (Admin bypass; BusinessOwner Free bỏ qua TTS)
+                var canRunTts = IsAdmin();
+                if (!canRunTts)
                 {
-                    await _narrationAudioService.CreateOrUpdateFromTtsAsync(
-                        content.Id,
-                        content.ScriptText,
-                        content.LanguageId,
-                        null,
-                        null);
+                    var effectivePlan = content.Stall.Business.PlanExpiresAt.HasValue && content.Stall.Business.PlanExpiresAt.Value <= DateTimeOffset.UtcNow
+                        ? Api.Domain.SubscriptionPlan.Free
+                        : content.Stall.Business.Plan;
+                    canRunTts = Api.Domain.SubscriptionPlan.AllowsTts(effectivePlan);
                 }
-                catch (Exception ex)
+
+                if (canRunTts)
                 {
-                    _logger.LogError(ex, "TTS thất bại khi cập nhật narration content - ContentId: {ContentId}", content.Id);
-                    return this.ServerErrorResult("Cập nhật narration content thành công nhưng TTS thất bại.");
+                    try
+                    {
+                        await _narrationAudioService.CreateOrUpdateFromTtsAsync(
+                            content.Id,
+                            content.ScriptText,
+                            content.LanguageId,
+                            null,
+                            null);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "TTS thất bại khi cập nhật narration content - ContentId: {ContentId}", content.Id);
+                        return this.ServerErrorResult("Cập nhật narration content thành công nhưng TTS thất bại.");
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("Bỏ qua TTS vì plan không hỗ trợ - BusinessId: {BusinessId}", content.Stall.BusinessId);
                 }
             }
 

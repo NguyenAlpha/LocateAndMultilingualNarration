@@ -70,6 +70,22 @@ namespace Api.Controllers
                 return this.ForbiddenResult("Không có quyền truy cập");
             }
 
+            // Kiểm tra giới hạn số stall theo plan (Admin bypass)
+            if (!IsAdmin())
+            {
+                var effectivePlan = business.PlanExpiresAt.HasValue && business.PlanExpiresAt.Value <= DateTimeOffset.UtcNow
+                    ? Api.Domain.SubscriptionPlan.Free
+                    : business.Plan;
+
+                var maxStalls = Api.Domain.SubscriptionPlan.GetMaxStalls(effectivePlan);
+                var stallCount = await _context.Stalls.CountAsync(s => s.BusinessId == business.Id);
+                if (stallCount >= maxStalls)
+                {
+                    _logger.LogWarning("Vượt giới hạn stall theo plan - BusinessId: {BusinessId}, Plan: {Plan}, Count: {Count}", request.BusinessId, effectivePlan, stallCount);
+                    return this.ForbiddenResult($"Gói {effectivePlan} chỉ cho phép tối đa {maxStalls} gian hàng. Vui lòng nâng cấp gói.");
+                }
+            }
+
             var slug = NormalizeSlug(string.IsNullOrWhiteSpace(request.Slug) ? request.Name : request.Slug);
             if (string.IsNullOrWhiteSpace(slug))
             {

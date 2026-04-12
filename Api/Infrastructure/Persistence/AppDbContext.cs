@@ -27,6 +27,7 @@ namespace Api.Infrastructure.Persistence
         public DbSet<VisitorLocationLog> VisitorLocationLogs => Set<VisitorLocationLog>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<DevicePreference> DevicePreferences => Set<DevicePreference>();
+        public DbSet<SubscriptionOrder> SubscriptionOrders => Set<SubscriptionOrder>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
