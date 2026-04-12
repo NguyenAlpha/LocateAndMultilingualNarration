@@ -65,13 +65,6 @@ namespace Api.Application.Services
             }
 
             // Bước 3: Lấy danh sách voice profile TTS đang hoạt động.
-            // Chỉ những profile có IsActive = true mới được phép tham gia luồng tạo audio.
-            // Việc sắp xếp theo Priority giúp xử lý profile quan trọng trước.
-            // ThenBy(Id) được dùng để đảm bảo thứ tự ổn định khi nhiều profile có cùng Priority.
-            // Lấy danh sách voice profile TTS đang được bật.
-            // Chỉ các profile có IsActive = true mới được dùng để tạo audio.
-            // Sắp xếp theo Priority trước để xử lý profile ưu tiên cao hơn trước,
-            // nếu Priority trùng nhau thì sắp xếp tiếp theo Id để kết quả ổn định.
             var voiceProfiles = await _context.TtsVoiceProfiles
                 .Where(v => v.IsActive)
                 .OrderBy(v => v.Priority)
@@ -162,14 +155,7 @@ namespace Api.Application.Services
         /// <param name="voiceProfileId">Id voice profile nếu audio thuộc về profile cụ thể; null khi dùng fallback.</param>
         /// <param name="profileProvider">Nhà cung cấp ưu tiên lấy từ voice profile.</param>
         /// <returns>Bản ghi <see cref="NarrationAudio"/> đã được tạo hoặc cập nhật.</returns>
-        private async Task<NarrationAudio> CreateOrUpdateSingleAsync(
-            Guid narrationContentId,
-            string scriptText,
-            string languageCode,
-            string? voice,
-            string? provider,
-            Guid? voiceProfileId,
-            string? profileProvider)
+        private async Task<NarrationAudio> CreateOrUpdateSingleAsync(Guid narrationContentId, string scriptText, string languageCode, string? voice, string? provider, Guid? voiceProfileId, string? profileProvider)
         {
             // Sinh audio và upload lên Blob Storage trước, sau đó mới cập nhật metadata trong DB.
             var (audioUrl, blobId, durationSeconds, voiceName) = await SynthesizeAndUploadAsync(narrationContentId, scriptText, languageCode, voice);
