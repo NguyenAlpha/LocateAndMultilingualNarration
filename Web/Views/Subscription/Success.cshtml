@@ -1,0 +1,48 @@
+@{
+    ViewData["Title"] = "Thanh toán thành công";
+    Layout = "_Layout";
+    var plan = ViewBag.Plan as string ?? "";
+    var orderId = ViewBag.OrderId;
+    var planColor = plan == "Pro" ? "primary" : "info";
+}
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6 col-lg-5 text-center">
+                <div class="card shadow">
+                    <div class="card-body py-5 px-4">
+                        <div class="mb-4">
+                            <span class="avatar avatar-xl bg-success-lt rounded-circle" style="width:80px;height:80px;font-size:2.5rem;">
+                                <i class="ti ti-circle-check text-success"></i>
+                            </span>
+                        </div>
+                        <h2 class="mb-1">Thanh toán thành công!</h2>
+                        <p class="text-muted mb-3">
+                            Gói <span class="badge bg-@planColor-lt text-@planColor fw-bold fs-6">@plan</span>
+                            đã được kích hoạt cho tài khoản của bạn.
+                        </p>
+                        @if (orderId != null)
+                        {
+                            <div class="text-muted small mb-4">
+                                Mã đơn hàng: <code>@orderId</code>
+                            </div>
+                        }
+                        <div class="row g-2">
+                            <div class="col">
+                                <a asp-controller="Home" asp-action="Index" class="btn btn-@planColor w-100">
+                                    <i class="ti ti-home me-1"></i>Về trang chủ
+                                </a>
+                            </div>
+                            <div class="col">
+                                <a asp-controller="Subscription" asp-action="Plans" class="btn btn-outline-secondary w-100">
+                                    Xem bảng giá
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

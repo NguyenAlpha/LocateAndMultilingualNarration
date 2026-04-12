@@ -81,6 +81,17 @@
 }
 
 /* ============================================
+   Subscription Plan Badges
+   Tabler solid bg-* classes không tự set text color,
+   cần đảm bảo contrast trên cả light và dark context.
+   ============================================ */
+.badge.bg-primary,
+.badge.bg-info,
+.badge.bg-success,
+.badge.bg-warning.text-dark { color: #fff; }
+.badge.bg-secondary          { color: #fff !important; }
+
+/* ============================================
    Utility Classes
    ============================================ */
 .text-truncate-2 {

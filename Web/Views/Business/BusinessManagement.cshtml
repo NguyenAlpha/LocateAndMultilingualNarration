@@ -71,6 +71,7 @@
                     <th scope="col" class="sortable">Contact Email</th>
                     <th scope="col" class="sortable">Contact Phone</th>
                     <th scope="col" class="sortable">Status</th>
+                    <th scope="col">Plan</th>
                     <th scope="col" class="sortable">Created At</th>
                     <th scope="col" class="no-export">Actions</th>
                 </tr>
@@ -79,7 +80,7 @@
                 @if (Model.Items.Count == 0)
                 {
                     <tr>
-                        <td colspan="7" class="text-center text-muted">Chưa có business nào.</td>
+                        <td colspan="8" class="text-center text-muted">Chưa có business nào.</td>
                     </tr>
                 }
                 else
@@ -97,6 +98,29 @@
                             <td>@(string.IsNullOrWhiteSpace(business.ContactEmail) ? "-" : business.ContactEmail)</td>
                             <td>@(string.IsNullOrWhiteSpace(business.ContactPhone) ? "-" : business.ContactPhone)</td>
                             <td><span class="badge bg-@statusClass">@statusText</span></td>
+                            <td>
+                                @{
+                                    var now = DateTimeOffset.UtcNow;
+                                    var planActive = business.Plan != "Free"
+                                        && business.PlanExpiresAt.HasValue
+                                        && business.PlanExpiresAt.Value > now;
+                                    var planBadge = business.Plan switch
+                                    {
+                                        "Pro"   => "bg-primary",
+                                        "Basic" => "bg-info",
+                                        _       => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @planBadge">@business.Plan</span>
+                                @if (planActive && business.PlanExpiresAt.HasValue)
+                                {
+                                    <small class="d-block text-muted">đến @business.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yy")</small>
+                                }
+                                @if (business.Plan != "Free" && !planActive)
+                                {
+                                    <small class="d-block text-danger">Hết hạn</small>
+                                }
+                            </td>
                             <td>@business.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>
                                 <div class="btn-group">
@@ -123,6 +147,11 @@
                                             onclick="openShowModal(this)">
                                         <i class="bi bi-eye"></i>
                                     </button>
+                                    <a class="btn btn-sm btn-outline-success btn-action"
+                                       href="@Url.Action("Plans", "Subscription", new { businessId = business.Id })"
+                                       data-bs-toggle="tooltip" title="Đổi gói">
+                                        <i class="ti ti-credit-card"></i>
+                                    </a>
                                     <form asp-action="Deactivate" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@business.Id" />

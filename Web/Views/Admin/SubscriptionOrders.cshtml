@@ -1,0 +1,180 @@
+@model Web.Models.SubscriptionOrdersViewModel
+@{
+    ViewData["Title"] = "Đơn đăng ký";
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Admin</div>
+                <h2 class="page-title">Đơn đăng ký Subscription</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible mb-3">
+                @Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Stats cards -->
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Doanh thu (trang này)</div>
+                        <div class="h1 mb-0 text-success">@Model.TotalRevenue.ToString("N0")đ</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Đơn thành công</div>
+                        <div class="h1 mb-0 text-primary">@Model.TotalCompleted</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Đơn thất bại</div>
+                        <div class="h1 mb-0 text-danger">@Model.TotalFailed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <!-- Filters -->
+                <div class="card-options">
+                    <form method="get" asp-action="SubscriptionOrders" class="d-flex gap-2 flex-wrap">
+                        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                        <select name="plan" class="form-select form-select-sm" style="width:auto">
+                            <option value="">Tất cả gói</option>
+                            <option value="Basic" selected="@(Model.FilterPlan == "Basic")">Basic</option>
+                            <option value="Pro" selected="@(Model.FilterPlan == "Pro")">Pro</option>
+                        </select>
+                        <select name="status" class="form-select form-select-sm" style="width:auto">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Completed" selected="@(Model.FilterStatus == "Completed")">Thành công</option>
+                            <option value="Failed" selected="@(Model.FilterStatus == "Failed")">Thất bại</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-secondary" type="submit">
+                            <i class="ti ti-filter"></i> Lọc
+                        </button>
+                        @if (!string.IsNullOrEmpty(Model.FilterPlan) || !string.IsNullOrEmpty(Model.FilterStatus))
+                        {
+                            <a class="btn btn-sm btn-ghost-secondary" asp-action="SubscriptionOrders">Xoá bộ lọc</a>
+                        }
+                    </form>
+                </div>
+                <div class="card-title">
+                    <span class="text-muted">@Model.TotalCount đơn</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Business</th>
+                            <th>Gói</th>
+                            <th>Số tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Thẻ</th>
+                            <th>Ngày thanh toán</th>
+                            <th>Hiệu lực đến</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Items.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Chưa có đơn đăng ký nào.</td>
+                            </tr>
+                        }
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.BusinessName</td>
+                                <td>
+                                    <span class="badge @(item.Plan == "Pro" ? "bg-primary-lt" : "bg-info-lt")">
+                                        @item.Plan
+                                    </span>
+                                </td>
+                                <td class="fw-medium">@item.Amount.ToString("N0")đ</td>
+                                <td>
+                                    @if (item.Status == "Completed")
+                                    {
+                                        <span class="badge bg-success-lt">Thành công</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-lt">Thất bại</span>
+                                    }
+                                </td>
+                                <td class="text-muted">
+                                    @if (!string.IsNullOrEmpty(item.CardLastFour))
+                                    {
+                                        <span>•••• @item.CardLastFour</span>
+                                    }
+                                    else
+                                    {
+                                        <span>–</span>
+                                    }
+                                </td>
+                                <td class="text-muted">
+                                    @(item.PaidAt?.ToString("dd/MM/yyyy HH:mm") ?? "–")
+                                </td>
+                                <td class="text-muted">
+                                    @item.PlanEndAt.ToString("dd/MM/yyyy")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer d-flex align-items-center">
+                    <p class="m-0 text-muted">Trang @Model.Page / @Model.TotalPages</p>
+                    <ul class="pagination m-0 ms-auto">
+                        <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="SubscriptionOrders"
+                               asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize"
+                               asp-route-plan="@Model.FilterPlan" asp-route-status="@Model.FilterStatus">
+                                <i class="ti ti-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int i = Math.Max(1, Model.Page - 2); i <= Math.Min(Model.TotalPages, Model.Page + 2); i++)
+                        {
+                            <li class="page-item @(i == Model.Page ? "active" : "")">
+                                <a class="page-link" asp-action="SubscriptionOrders"
+                                   asp-route-page="@i" asp-route-pageSize="@Model.PageSize"
+                                   asp-route-plan="@Model.FilterPlan" asp-route-status="@Model.FilterStatus">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="SubscriptionOrders"
+                               asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize"
+                               asp-route-plan="@Model.FilterPlan" asp-route-status="@Model.FilterStatus">
+                                <i class="ti ti-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+</div>

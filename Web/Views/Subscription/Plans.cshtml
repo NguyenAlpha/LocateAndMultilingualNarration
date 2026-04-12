@@ -1,0 +1,137 @@
+@model Web.Models.PlansViewModel
+@{
+    ViewData["Title"] = "Bảng giá";
+    Layout = "_Layout";
+
+    string CardCss(string plan) => plan == "Pro" ? "card shadow-lg border-primary" : "card shadow-sm";
+
+    // Tạo URL checkout kèm businessId nếu có
+    string CheckoutUrl(string plan)
+    {
+        var url = Url.Action("Checkout", "Subscription", new { plan })!;
+        if (Model.PreselectedBusinessId.HasValue)
+            url = Url.Action("Checkout", "Subscription", new { plan, businessId = Model.PreselectedBusinessId.Value })!;
+        return url;
+    }
+
+    string LoginUrl(string plan) => Model.PreselectedBusinessId.HasValue
+        ? Url.Action("Login", "Auth", new { returnUrl = Url.Action("Checkout", "Subscription", new { plan, businessId = Model.PreselectedBusinessId.Value }) })!
+        : Url.Action("Login", "Auth", new { returnUrl = Url.Action("Checkout", "Subscription", new { plan }) })!;
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col text-center">
+                <div class="page-pretitle">Subscription</div>
+                <h2 class="page-title">Chọn gói phù hợp với bạn</h2>
+                <p class="text-muted mt-1">Thanh toán hàng tháng, huỷ bất cứ lúc nào</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row row-cards justify-content-center g-4">
+
+            <!-- Free -->
+            <div class="col-md-4 col-lg-3">
+                <div class="@CardCss("Free") h-100">
+                    <div class="card-header text-center py-3">
+                        <div class="h3 mb-0">Free</div>
+                        <div class="text-muted small">Mãi mãi miễn phí</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="display-5 fw-bold text-center mb-3">0đ</div>
+                        <ul class="list-unstyled mb-4">
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i>1 gian hàng</li>
+                            <li class="mb-2 text-muted"><i class="ti ti-x text-danger me-2"></i>Không có TTS</li>
+                            <li class="mb-2 text-muted"><i class="ti ti-x text-danger me-2"></i>Không có đa ngôn ngữ</li>
+                            <li class="mb-2 text-muted"><i class="ti ti-x text-danger me-2"></i>Không hỗ trợ ưu tiên</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 pb-4 px-4">
+                        <a asp-controller="Auth" asp-action="Register" class="btn btn-outline-secondary w-100">
+                            Bắt đầu miễn phí
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Basic -->
+            <div class="col-md-4 col-lg-3">
+                <div class="@CardCss("Basic") h-100">
+                    <div class="card-header text-center py-3">
+                        <div class="h3 mb-0">Basic</div>
+                        <div class="text-muted small">Phù hợp cho cửa hàng nhỏ</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="display-5 fw-bold text-center mb-1">199.000đ</div>
+                        <div class="text-center text-muted small mb-3">/ tháng</div>
+                        <ul class="list-unstyled mb-4">
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i>Tối đa 3 gian hàng</li>
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i>TTS đầy đủ</li>
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i>Tất cả ngôn ngữ</li>
+                            <li class="mb-2 text-muted"><i class="ti ti-x text-danger me-2"></i>Không hỗ trợ ưu tiên</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 pb-4 px-4">
+                        @if (!Model.IsLoggedIn)
+                        {
+                            <a href="@LoginUrl("Basic")" class="btn btn-outline-primary w-100">Đăng ký Basic</a>
+                        }
+                        else
+                        {
+                            <a href="@CheckoutUrl("Basic")" class="btn btn-outline-primary w-100">Đăng ký Basic</a>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pro -->
+            <div class="col-md-4 col-lg-3">
+                <div class="@CardCss("Pro") h-100 position-relative">
+                    <div class="position-absolute top-0 start-50 translate-middle">
+                        <span class="badge bg-primary px-3 py-1">Phổ biến nhất</span>
+                    </div>
+                    <div class="card-header text-center py-3 border-primary">
+                        <div class="h3 mb-0 text-primary">Pro</div>
+                        <div class="text-muted small">Không giới hạn tăng trưởng</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="display-5 fw-bold text-center text-primary mb-1">499.000đ</div>
+                        <div class="text-center text-muted small mb-3">/ tháng</div>
+                        <ul class="list-unstyled mb-4">
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i><strong>Không giới hạn</strong> gian hàng</li>
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i>TTS đầy đủ</li>
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i>Tất cả ngôn ngữ</li>
+                            <li class="mb-2"><i class="ti ti-check text-success me-2"></i>Hỗ trợ ưu tiên</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 pb-4 px-4">
+                        @if (!Model.IsLoggedIn)
+                        {
+                            <a href="@LoginUrl("Pro")" class="btn btn-primary w-100">Đăng ký Pro</a>
+                        }
+                        else
+                        {
+                            <a href="@CheckoutUrl("Pro")" class="btn btn-primary w-100">Đăng ký Pro</a>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Test card hint -->
+        <div class="row mt-4">
+            <div class="col text-center">
+                <div class="alert alert-info d-inline-block px-4">
+                    <i class="ti ti-info-circle me-1"></i>
+                    <strong>Demo:</strong> Nhập bất kỳ số thẻ <strong>16 chữ số</strong> để thanh toán thành công.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
