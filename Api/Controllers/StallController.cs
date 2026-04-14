@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
+using Api.Infrastructure.Persistence.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -76,7 +77,7 @@ namespace Api.Controllers
                 return this.BadRequestResult("Slug không hợp lệ", "Slug");
             }
 
-            var slugExists = await _context.Stalls.AnyAsync(s => s.Slug == slug);
+            var slugExists = await _context.Stalls.SlugExistsAsync(slug);
             if (slugExists)
             {
                 _logger.LogWarning("Slug đã tồn tại khi tạo stall - Slug: {Slug}", slug);
@@ -153,7 +154,7 @@ namespace Api.Controllers
 
             if (!string.Equals(stall.Slug, normalizedSlug, StringComparison.OrdinalIgnoreCase))
             {
-                var slugExists = await _context.Stalls.AnyAsync(s => s.Slug == normalizedSlug && s.Id != id);
+                var slugExists = await _context.Stalls.SlugExistsAsync(normalizedSlug, excludeId: id);
                 if (slugExists)
                 {
                     _logger.LogWarning("Slug đã tồn tại khi cập nhật stall - Slug: {Slug}", normalizedSlug);

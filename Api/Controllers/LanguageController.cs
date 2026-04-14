@@ -1,6 +1,7 @@
 using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
+using Api.Infrastructure.Persistence.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -51,7 +52,7 @@ namespace Api.Controllers
                 return this.BadRequestResult("Language code không hợp lệ", "Code");
             }
 
-            var exists = await _context.Languages.AnyAsync(l => l.Code == code);
+            var exists = await _context.Languages.CodeExistsAsync(code);
             if (exists)
             {
                 _logger.LogWarning("Language code đã tồn tại - Code: {Code}", code);
@@ -105,7 +106,7 @@ namespace Api.Controllers
 
             if (!string.Equals(language.Code, code, StringComparison.OrdinalIgnoreCase))
             {
-                var exists = await _context.Languages.AnyAsync(l => l.Code == code && l.Id != id);
+                var exists = await _context.Languages.CodeExistsAsync(code, excludeId: id);
                 if (exists)
                 {
                     _logger.LogWarning("Language code đã tồn tại khi cập nhật - Code: {Code}", code);

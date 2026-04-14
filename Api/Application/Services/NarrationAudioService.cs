@@ -1,6 +1,7 @@
 using Api.Domain.Entities;
 using Api.Domain.Settings;
 using Api.Infrastructure.Persistence;
+using Api.Infrastructure.Persistence.Extensions;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.CognitiveServices.Speech;
@@ -11,17 +12,9 @@ namespace Api.Application.Services
 {
     /// <summary>
     /// Service nghiệp vụ xử lý tạo/cập nhật audio narration từ upload hoặc TTS.
-    /// </summary>
+    /// </summary>`
     public interface INarrationAudioService
     {
-        /// <summary>
-        /// Tạo mới bản ghi audio từ file do client upload (không TTS).
-        /// </summary>
-        Task<NarrationAudio> CreateFromUploadAsync(Guid narrationContentId, string? audioUrl, string? blobId, string? voice, string? provider, int? durationSeconds, bool isTts);
-        /// <summary>
-        /// Cập nhật bản ghi audio từ file upload.
-        /// </summary>
-        Task<NarrationAudio> UpdateFromUploadAsync(NarrationAudio audio, string? audioUrl, string? blobId, string? voice, string? provider, int? durationSeconds, bool isTts);
         /// <summary>
         /// Tạo hoặc cập nhật audio bằng TTS (Azure Speech).
         /// </summary>
@@ -42,14 +35,8 @@ namespace Api.Application.Services
         /// <summary>
         /// Khởi tạo service với DbContext, cấu hình Speech/Blob và logger.
         /// </summary>
-        public NarrationAudioService(
-            AppDbContext context,
-            IOptions<AzureSpeechSettings> speechSettings,
-            IOptions<BlobStorageSettings> blobSettings,
-            ITranslationService translationService,
-            ILogger<NarrationAudioService> logger)
+        public NarrationAudioService(AppDbContext context, IOptions<AzureSpeechSettings> speechSettings, IOptions<BlobStorageSettings> blobSettings, ITranslationService translationService, ILogger<NarrationAudioService> logger)
         {
-            // Inject DbContext + cấu hình + logger
             _context = context;
             _speechSettings = speechSettings.Value;
             _blobSettings = blobSettings.Value;
@@ -57,61 +44,11 @@ namespace Api.Application.Services
             _logger = logger;
         }
 
-        /// <summary>
-        /// Tạo mới bản ghi audio từ dữ liệu upload của client.
-        /// </summary>
-        public async Task<NarrationAudio> CreateFromUploadAsync(Guid narrationContentId, string? audioUrl, string? blobId, string? voice, string? provider, int? durationSeconds, bool isTts)
-        {
-            // Tạo bản ghi audio từ dữ liệu do client cung cấp
-            var audio = new NarrationAudio
-            {
-                NarrationContentId = narrationContentId,
-                AudioUrl = audioUrl,
-                BlobId = blobId,
-                Voice = voice,
-                Provider = provider,
-                DurationSeconds = durationSeconds,
-                IsTts = isTts,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-
-            // Lưu DB
-            _context.NarrationAudios.Add(audio);
-            await _context.SaveChangesAsync();
-
-            return audio;
-        }
-
-        /// <summary>
-        /// Cập nhật bản ghi audio từ dữ liệu upload của client.
-        /// </summary>
-        public async Task<NarrationAudio> UpdateFromUploadAsync(NarrationAudio audio, string? audioUrl, string? blobId, string? voice, string? provider, int? durationSeconds, bool isTts)
-        {
-            // Cập nhật các trường từ dữ liệu client gửi lên
-            audio.AudioUrl = audioUrl;
-            audio.BlobId = blobId;
-            audio.Voice = voice;
-            audio.Provider = provider;
-            audio.DurationSeconds = durationSeconds;
-            audio.IsTts = isTts;
-            audio.UpdatedAt = DateTimeOffset.UtcNow;
-
-            // Lưu thay đổi
-            await _context.SaveChangesAsync();
-
-            return audio;
-        }
-
-        /// <summary>
-        /// Tạo hoặc cập nhật audio bằng TTS dựa trên ScriptText.
-        /// </summary>
         public async Task<IReadOnlyList<NarrationAudio>> CreateOrUpdateFromTtsAsync(Guid narrationContentId, string scriptText, Guid languageId, string? voice, string? provider)
         {
             _logger.LogInformation("Bắt đầu tạo/cập nhật TTS cho NarrationContentId: {NarrationContentId}, LanguageId: {LanguageId}", narrationContentId, languageId);
 
-            // Bước 1: Kiểm tra dữ liệu đầu vào.
-            // TTS chỉ có ý nghĩa khi có nội dung văn bản hợp lệ để chuyển thành giọng nói.
-            // Nếu ScriptText rỗng hoặc chỉ chứa khoảng trắng thì dừng ngay để tránh gọi các bước xử lý phía sau.
+            // Bước 1: Kiểm tra dữ liệu đầu vào không được rỗng.
             if (string.IsNullOrWhiteSpace(scriptText))
             {
                 _logger.LogWarning("ScriptText rỗng khi tạo TTS cho NarrationContentId: {NarrationContentId}", narrationContentId);
@@ -119,13 +56,7 @@ namespace Api.Application.Services
             }
 
             // Bước 2: Lấy mã ngôn ngữ gốc của nội dung narration.
-            // languageId là khóa ngoại trỏ tới bảng Languages; từ đó lấy Code (ví dụ: vi-VN, en-US)
-            // để cấu hình cho Azure Speech và phục vụ việc dịch sang ngôn ngữ đích nếu cần.
-            var languageCode = await _context.Languages
-                .AsNoTracking()
-                .Where(l => l.Id == languageId)
-                .Select(l => l.Code)
-                .FirstOrDefaultAsync();
+            var languageCode = await _context.Languages.GetCodeByIdAsync(languageId);
 
             if (string.IsNullOrWhiteSpace(languageCode))
             {
@@ -134,13 +65,6 @@ namespace Api.Application.Services
             }
 
             // Bước 3: Lấy danh sách voice profile TTS đang hoạt động.
-            // Chỉ những profile có IsActive = true mới được phép tham gia luồng tạo audio.
-            // Việc sắp xếp theo Priority giúp xử lý profile quan trọng trước.
-            // ThenBy(Id) được dùng để đảm bảo thứ tự ổn định khi nhiều profile có cùng Priority.
-            // Lấy danh sách voice profile TTS đang được bật.
-            // Chỉ các profile có IsActive = true mới được dùng để tạo audio.
-            // Sắp xếp theo Priority trước để xử lý profile ưu tiên cao hơn trước,
-            // nếu Priority trùng nhau thì sắp xếp tiếp theo Id để kết quả ổn định.
             var voiceProfiles = await _context.TtsVoiceProfiles
                 .Where(v => v.IsActive)
                 .OrderBy(v => v.Priority)
@@ -170,10 +94,7 @@ namespace Api.Application.Services
 
             // Bước 6: Tải trước mã ngôn ngữ cho các profile đích.
             // Kết quả là một dictionary cho phép tra cứu nhanh LanguageId -> Code khi duyệt từng profile.
-            var targetLanguageCodes = await _context.Languages
-                .AsNoTracking()
-                .Where(l => targetLanguageIds.Contains(l.Id))
-                .ToDictionaryAsync(l => l.Id, l => l.Code);
+            var targetLanguageCodes = await _context.Languages.GetCodeDictionaryAsync(targetLanguageIds);
 
             // Bước 7: Duyệt từng profile để tạo/cập nhật audio tương ứng.
             // Với mỗi profile:
@@ -234,14 +155,7 @@ namespace Api.Application.Services
         /// <param name="voiceProfileId">Id voice profile nếu audio thuộc về profile cụ thể; null khi dùng fallback.</param>
         /// <param name="profileProvider">Nhà cung cấp ưu tiên lấy từ voice profile.</param>
         /// <returns>Bản ghi <see cref="NarrationAudio"/> đã được tạo hoặc cập nhật.</returns>
-        private async Task<NarrationAudio> CreateOrUpdateSingleAsync(
-            Guid narrationContentId,
-            string scriptText,
-            string languageCode,
-            string? voice,
-            string? provider,
-            Guid? voiceProfileId,
-            string? profileProvider)
+        private async Task<NarrationAudio> CreateOrUpdateSingleAsync(Guid narrationContentId, string scriptText, string languageCode, string? voice, string? provider, Guid? voiceProfileId, string? profileProvider)
         {
             // Sinh audio và upload lên Blob Storage trước, sau đó mới cập nhật metadata trong DB.
             var (audioUrl, blobId, durationSeconds, voiceName) = await SynthesizeAndUploadAsync(narrationContentId, scriptText, languageCode, voice);

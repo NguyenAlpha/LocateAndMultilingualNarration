@@ -1,6 +1,7 @@
 using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
+using Api.Infrastructure.Persistence.Extensions;
 using Api.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -73,9 +74,7 @@ namespace Api.Controllers
             }
 
             // Kiểm tra language tồn tại và đang active
-            var language = await _context.Languages
-                .AsNoTracking()
-                .FirstOrDefaultAsync(l => l.Id == request.LanguageId && l.IsActive);
+            var language = await _context.Languages.GetActiveByIdAsync(request.LanguageId);
 
             if (language == null)
             {
