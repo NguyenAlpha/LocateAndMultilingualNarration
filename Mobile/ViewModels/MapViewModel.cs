@@ -22,6 +22,8 @@ public class MapViewModel : INotifyPropertyChanged
     // Service điều khiển phát audio thuyết minh
     private readonly IAudioGuideService _audioGuideService;
 
+    private readonly ILocationLogService _locationLogService;
+
     private readonly ILogger<MapViewModel> _logger;
 
     // Cờ đánh dấu dữ liệu đã được tải lần đầu hay chưa — tránh gọi API trùng lặp
@@ -30,8 +32,12 @@ public class MapViewModel : INotifyPropertyChanged
     // CancellationTokenSource để dừng polling khi rời MapPage
     private CancellationTokenSource? _pollingCts;
 
-    // StallId đang được geofence tự động chọn (tránh retrigger)
-    private Guid? _geofenceTriggeredStallId;
+    // Tập hợp StallId đã được trigger trong lần ghé thăm hiện tại (đang phát hoặc đang chờ).
+    // Stall bị xóa khỏi set khi user thoát khỏi vùng geofence → cho phép trigger lại khi quay lại.
+    private readonly HashSet<Guid> _triggeredStallIds = [];
+
+    // Hàng chờ audio: stall gần nhất ở đầu, phát tuần tự khi audio trước kết thúc.
+    private Queue<GeoStallDto> _audioQueue = new();
 
     // ---- SỰ KIỆN (EVENTS) ----
 
@@ -126,11 +132,14 @@ public class MapViewModel : INotifyPropertyChanged
     /// Constructor nhận service qua Dependency Injection (đăng ký trong MauiProgram.cs).
     /// Khởi tạo tất cả Command ngay tại đây.
     /// </summary>
-    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService, ILogger<MapViewModel> logger)
+    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService, ILocationLogService locationLogService, ILogger<MapViewModel> logger)
     {
         _stallService = stallService;
         _audioGuideService = audioGuideService;
+        _locationLogService = locationLogService;
         _logger = logger;
+
+        _audioGuideService.PlaybackCompleted += OnPlaybackCompleted;
 
         // forceRefresh = true: bỏ qua cache, luôn gọi API mới
         RefreshCommand = new Command(async () => await LoadStallsAsync(true));
@@ -245,6 +254,21 @@ public class MapViewModel : INotifyPropertyChanged
         await _audioGuideService.PlayAsync(audioUrl);
     }
 
+    // ---- AUDIO QUEUE ----
+
+    /// <summary>
+    /// Gọi khi audio kết thúc tự nhiên — phát stall tiếp theo trong hàng chờ nếu có.
+    /// </summary>
+    private async void OnPlaybackCompleted()
+    {
+        if (_audioQueue.TryDequeue(out var next))
+        {
+            _logger.LogInformation("[Queue] Phát tiếp: {StallName}", next.StallName);
+            SelectedStall = next;
+            await _audioGuideService.PlayAsync(next.NarrationContent!.AudioUrl!);
+        }
+    }
+
     // ---- GEOFENCING ----
 
     /// <summary>
@@ -290,6 +314,7 @@ public class MapViewModel : INotifyPropertyChanged
                             tickCount, location.Latitude, location.Longitude);
                     LocationUpdated?.Invoke(location.Latitude, location.Longitude);
                     await CheckGeofencesAsync(location.Latitude, location.Longitude);
+                    _locationLogService.TrySample(location.Latitude, location.Longitude, location.Accuracy);
                 }
                 else
                 {
@@ -314,37 +339,55 @@ public class MapViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Kiểm tra xem vị trí hiện tại có nằm trong geofence của stall nào không.
-    /// Nếu có, tự động chọn stall và phát audio (nếu chưa phát).
+    /// Kiểm tra geofence mỗi tick GPS.
+    /// - Stall mới vào vùng → thêm vào hàng chờ (theo thứ tự gần nhất, không trùng lặp).
+    /// - Stall thoát vùng → xóa khỏi hàng chờ và triggered set.
+    /// - Nếu không đang phát → dequeue và phát ngay.
     /// </summary>
     private async Task CheckGeofencesAsync(double lat, double lng)
     {
-        foreach (var stall in Stalls)
+        // Bước 1: tìm tất cả stall đang trong vùng, sắp xếp theo khoảng cách gần nhất
+        var inRange = Stalls
+            .Select(s => (stall: s, dist: CalculateDistance(lat, lng, s.Latitude, s.Longitude)))
+            .Where(x => x.dist <= x.stall.RadiusMeters)
+            .OrderBy(x => x.dist)
+            .Select(x => x.stall)
+            .ToList();
+
+        var inRangeIds = inRange.Select(s => s.StallId).ToHashSet();
+
+        // Bước 2: stall vừa thoát vùng → xóa khỏi triggered set + dọn khỏi queue
+        var exited = _triggeredStallIds.Where(id => !inRangeIds.Contains(id)).ToList();
+        if (exited.Count > 0)
         {
-            var distance = CalculateDistance(lat, lng, stall.Latitude, stall.Longitude);
-            if (distance <= stall.RadiusMeters)
-            {
-                // Đã kích hoạt stall này rồi → bỏ qua
-                if (_geofenceTriggeredStallId == stall.StallId) return;
+            foreach (var id in exited)
+                _triggeredStallIds.Remove(id);
 
-                // Audio đang phát → không ngắt
-                if (_audioGuideService.IsPlaying) return;
+            // Queue<T> không hỗ trợ xóa theo điều kiện → rebuild bỏ stall đã thoát
+            _audioQueue = new Queue<GeoStallDto>(_audioQueue.Where(s => inRangeIds.Contains(s.StallId)));
 
-                _geofenceTriggeredStallId = stall.StallId;
-                SelectedStall = stall;
-
-                var audioUrl = stall.NarrationContent?.AudioUrl;
-                if (!string.IsNullOrWhiteSpace(audioUrl))
-                    await _audioGuideService.PlayAsync(audioUrl);
-
-                return; // chỉ kích hoạt 1 stall gần nhất
-            }
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[Geofence] {Count} stall thoát vùng", exited.Count);
         }
 
-        // Không còn trong geofence nào — reset để lần sau vào lại sẽ phát lại
-        if (_geofenceTriggeredStallId.HasValue)
+        // Bước 3: stall mới vào vùng → enqueue (nếu có audio và chưa trigger)
+        foreach (var stall in inRange)
         {
-            _geofenceTriggeredStallId = null;
+            if (_triggeredStallIds.Contains(stall.StallId)) continue;
+            if (string.IsNullOrWhiteSpace(stall.NarrationContent?.AudioUrl)) continue;
+
+            _triggeredStallIds.Add(stall.StallId);
+            _audioQueue.Enqueue(stall);
+            _logger.LogInformation("[Queue] Thêm vào hàng chờ: {StallName} (queue size: {Size})",
+                stall.StallName, _audioQueue.Count);
+        }
+
+        // Bước 4: nếu không đang phát → dequeue và phát ngay
+        if (!_audioGuideService.IsPlaying && _audioQueue.TryDequeue(out var next))
+        {
+            _logger.LogInformation("[Queue] Bắt đầu phát: {StallName}", next.StallName);
+            SelectedStall = next;
+            await _audioGuideService.PlayAsync(next.NarrationContent!.AudioUrl!);
         }
     }
 

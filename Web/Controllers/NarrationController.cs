@@ -12,12 +12,14 @@ namespace Web.Controllers
         private readonly StallNarrationContentApiClient _stallNarrationContentApiClient;
         private readonly StallApiClient _stallApiClient;
         private readonly LanguageApiClient _languageApiClient;
+        private readonly NarrationAudioApiClient _narrationAudioApiClient;
 
-        public NarrationController(StallNarrationContentApiClient stallNarrationContentApiClient, StallApiClient stallApiClient, LanguageApiClient languageApiClient)
+        public NarrationController(StallNarrationContentApiClient stallNarrationContentApiClient, StallApiClient stallApiClient, LanguageApiClient languageApiClient, NarrationAudioApiClient narrationAudioApiClient)
         {
             _stallNarrationContentApiClient = stallNarrationContentApiClient;
             _stallApiClient = stallApiClient;
             _languageApiClient = languageApiClient;
+            _narrationAudioApiClient = narrationAudioApiClient;
         }
 
         [HttpGet]
@@ -141,6 +143,27 @@ namespace Web.Controllers
 
             TempData["SuccessMessage"] = "Cập nhật narration content thành công.";
             return RedirectToAction(nameof(Show), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadAudio(Guid audioId, Guid narrationContentId, IFormFile? audioFile, CancellationToken cancellationToken = default)
+        {
+            if (audioFile == null || audioFile.Length == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng chọn file audio.";
+                return RedirectToAction(nameof(Show), new { id = narrationContentId });
+            }
+
+            var result = await _narrationAudioApiClient.UploadHumanAudioAsync(audioId, audioFile, cancellationToken);
+            if (result?.Success != true)
+            {
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không upload được audio.";
+                return RedirectToAction(nameof(Show), new { id = narrationContentId });
+            }
+
+            TempData["SuccessMessage"] = "Cập nhật audio giọng người thành công.";
+            return RedirectToAction(nameof(Show), new { id = narrationContentId });
         }
 
         private async Task<StallNarrationContentShowViewModel> BuildShowViewModel(Guid id, string? errorMessage, CancellationToken cancellationToken)

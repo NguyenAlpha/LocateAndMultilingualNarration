@@ -8,5 +8,6 @@ namespace Shared.DTOs.Geo
         public double Longitude { get; set; }
         public double RadiusMeters { get; set; }
         public GeoStallNarrationContentDto? NarrationContent { get; set; }
+        public List<GeoStallMediaDto> MediaImages { get; set; } = [];
     }
 }

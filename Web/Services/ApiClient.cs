@@ -13,6 +13,8 @@ namespace Web.Services
         public const string RefreshTokenExpiresAtSessionKey = "RefreshTokenExpiresAt";
         public const string UserNameSessionKey = "UserName";
         public const string UserRoleSessionKey = "UserRole";
+        public const string UserPlanSessionKey = "UserPlan";
+        public const string UserPlanExpiresAtSessionKey = "UserPlanExpiresAt";
 
         private readonly HttpClient _httpClient;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -65,6 +67,16 @@ namespace Web.Services
             session.Remove(RefreshTokenExpiresAtSessionKey);
             session.Remove(UserNameSessionKey);
             session.Remove(UserRoleSessionKey);
+            session.Remove(UserPlanSessionKey);
+            session.Remove(UserPlanExpiresAtSessionKey);
+        }
+
+        public void StoreUserPlan(string plan, DateTimeOffset? planExpiresAt)
+        {
+            var session = _httpContextAccessor.HttpContext?.Session;
+            if (session == null) return;
+            session.SetString(UserPlanSessionKey, plan);
+            session.SetString(UserPlanExpiresAtSessionKey, planExpiresAt?.ToString("O") ?? string.Empty);
         }
 
         public string? GetRefreshToken()

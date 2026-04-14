@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:geo="clr-namespace:Shared.DTOs.Geo;assembly=Shared"
     x:Class="Mobile.Pages.StallPopup"
     CanBeDismissedByTappingOutsideOfPopup="True"
     HorizontalOptions="Fill"
@@ -18,7 +19,7 @@
             <Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.12" />
         </Border.Shadow>
 
-        <Grid RowDefinitions="Auto,Auto,*">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
 
             <!-- Drag handle -->
             <BoxView Grid.Row="0"
@@ -51,11 +52,45 @@
                         Clicked="OnPlayClicked" />
             </Grid>
 
+            <!-- Row 2: Image Carousel (ẩn khi không có ảnh) -->
+            <CarouselView x:Name="ImageCarousel"
+                          Grid.Row="2"
+                          HeightRequest="180"
+                          IsVisible="False"
+                          IndicatorView="ImageIndicator">
+                <CarouselView.ItemTemplate>
+                    <DataTemplate x:DataType="geo:GeoStallMediaDto">
+                        <Grid>
+                            <Image Source="{Binding Url}"
+                                   Aspect="AspectFill" />
+                            <!-- Caption overlay — chỉ hiện khi có caption -->
+                            <Border BackgroundColor="#99000000"
+                                    VerticalOptions="End"
+                                    IsVisible="{Binding HasCaption}">
+                                <Label Text="{Binding Caption}"
+                                       TextColor="White"
+                                       FontSize="12"
+                                       Padding="12,6" />
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CarouselView.ItemTemplate>
+            </CarouselView>
+
+            <!-- Row 3: Indicator dots (ẩn khi chỉ có 1 ảnh) -->
+            <IndicatorView x:Name="ImageIndicator"
+                           Grid.Row="3"
+                           IndicatorColor="#D1D5DB"
+                           SelectedIndicatorColor="#2563EB"
+                           HorizontalOptions="Center"
+                           IsVisible="False"
+                           Margin="0,6,0,0" />
+
             <!-- Divider -->
-            <BoxView Grid.Row="2" HeightRequest="1" Color="#F3F4F6" VerticalOptions="Start" />
+            <BoxView Grid.Row="4" HeightRequest="1" Color="#F3F4F6" VerticalOptions="Start" />
 
             <!-- Body: Description + ScriptText cuộn được -->
-            <ScrollView Grid.Row="2" Padding="20,12">
+            <ScrollView Grid.Row="4" Padding="20,12">
                 <VerticalStackLayout Spacing="12">
 
                     <Label x:Name="DescriptionLabel"
@@ -72,7 +107,6 @@
 
                 </VerticalStackLayout>
             </ScrollView>
-
 
         </Grid>
     </Border>

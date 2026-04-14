@@ -1,0 +1,273 @@
+@model Web.Models.CheckoutViewModel
+@{
+    ViewData["Title"] = $"Thanh toán gói {Model.Plan}";
+    Layout = "_Layout";
+    var planColor = Model.Plan == "Pro" ? "primary" : "info";
+    int PlanRank(string? p) => p switch { "Pro" => 2, "Basic" => 1, _ => 0 };
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <a asp-controller="Subscription" asp-action="Plans" class="btn btn-ghost-secondary btn-sm mb-2">
+                    <i class="ti ti-arrow-left me-1"></i>Quay lại bảng giá
+                </a>
+                <h2 class="page-title">Thanh toán gói @Model.Plan</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible mb-4" role="alert">
+                <i class="ti ti-alert-circle me-2"></i>@Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="row g-4 justify-content-center">
+
+            <!-- Order Summary -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">Tóm tắt đơn hàng</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Gói</span>
+                            <span class="badge bg-@planColor-lt text-@planColor fw-bold">@Model.Plan</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Thời hạn</span>
+                            <span>1 tháng</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between fw-bold fs-4">
+                            <span>Tổng cộng</span>
+                            <span class="text-@planColor">@Model.Amount.ToString("N0")đ</span>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        <i class="ti ti-shield-check me-1 text-success"></i>
+                        Giao dịch được mã hoá an toàn
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <div class="text-muted small mb-2"><strong>Thẻ test (Demo):</strong></div>
+                        <code class="d-block mb-1">4242 4242 4242 4242</code>
+                        <div class="text-muted small">Bất kỳ ngày hết hạn trong tương lai và CVV 3 chữ số</div>
+                        <div class="text-muted small mt-2">
+                            <i class="ti ti-info-circle me-1"></i>Đủ 16 chữ số = thanh toán thành công
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Form -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title mb-0">
+                            <i class="ti ti-credit-card me-2"></i>Thông tin thẻ
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form asp-controller="Subscription" asp-action="ProcessPayment" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" asp-for="Plan" />
+                            <input type="hidden" asp-for="Amount" />
+
+                            @if (Model.Businesses.Count > 1)
+                            {
+                                <div class="mb-4">
+                                    <label class="form-label required">Business áp dụng</label>
+                                    <div class="form-selectgroup form-selectgroup-boxes d-flex flex-column gap-2">
+                                        @foreach (var b in Model.Businesses)
+                                        {
+                                            var badgeCss = b.ActivePlan switch
+                                            {
+                                                "Pro"   => "bg-primary",
+                                                "Basic" => "bg-info",
+                                                _       => ""
+                                            };
+                                            <label class="form-selectgroup-item">
+                                                <input type="radio" name="BusinessId" value="@b.Id"
+                                                       class="form-selectgroup-input"
+                                                       @(b.Id == Model.BusinessId ? "checked" : "") />
+                                                <div class="form-selectgroup-label d-flex align-items-center px-3 py-2">
+                                                    <i class="ti ti-building-store me-2 text-muted"></i>
+                                                    <span class="fw-medium">@b.Name</span>
+                                                    @if (b.ActivePlan != null)
+                                                    {
+                                                        <span class="badge @badgeCss text-white ms-2">@b.ActivePlan</span>
+                                                        @if (b.PlanExpiresAt.HasValue)
+                                                        {
+                                                            <span class="text-muted small ms-2">
+                                                                đến @b.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy")
+                                                            </span>
+                                                        }
+                                                    }
+                                                </div>
+                                            </label>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden" name="BusinessId" value="@Model.BusinessId" />
+                                @if (Model.Businesses.Count == 1)
+                                {
+                                    var sole = Model.Businesses[0];
+                                    var badgeCss = sole.ActivePlan switch { "Pro" => "bg-primary", "Basic" => "bg-info", _ => "" };
+                                    <div class="mb-4 d-flex align-items-center gap-2">
+                                        <i class="ti ti-building-store text-muted"></i>
+                                        <span class="fw-medium">@sole.Name</span>
+                                        @if (sole.ActivePlan != null)
+                                        {
+                                            <span class="badge @badgeCss text-white">@sole.ActivePlan</span>
+                                            @if (sole.PlanExpiresAt.HasValue)
+                                            {
+                                                <span class="text-muted small">đến @sole.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy")</span>
+                                            }
+                                        }
+                                    </div>
+                                }
+                            }
+
+                            @{
+                                var soleBlocked = Model.Businesses.Count == 1
+                                    && Model.Businesses[0].ActivePlan != null
+                                    && PlanRank(Model.Businesses[0].ActivePlan) > PlanRank(Model.Plan);
+                            }
+                            @if (soleBlocked)
+                            {
+                                var sole2 = Model.Businesses[0];
+                                <div class="alert alert-danger mb-4">
+                                    <i class="ti ti-ban me-2"></i>
+                                    Business này đang dùng gói <strong>@sole2.ActivePlan</strong>
+                                    @if (sole2.PlanExpiresAt.HasValue)
+                                    {
+                                        <span>(hết hạn @sole2.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy"))</span>
+                                    }.
+                                    Không thể đăng ký gói thấp hơn khi plan còn hạn.
+                                </div>
+                            }
+
+                            @if (Model.Businesses.Count > 1)
+                            {
+                                var businessData = System.Text.Json.JsonSerializer.Serialize(
+                                    Model.Businesses.Select(b => new { id = b.Id.ToString(), plan = b.ActivePlan ?? "" }));
+                                var currentPlanRank = PlanRank(Model.Plan);
+                                <div id="blockedAlert" class="alert alert-danger mb-4 d-none">
+                                    <i class="ti ti-ban me-2"></i>
+                                    Business này đang dùng gói cao hơn và còn hạn. Không thể đăng ký gói <strong>@Model.Plan</strong>.
+                                </div>
+                            }
+
+                            <div class="mb-3">
+                                <label asp-for="CardHolder" class="form-label">Tên chủ thẻ</label>
+                                <input asp-for="CardHolder" class="form-control" placeholder="NGUYEN VAN A" autocomplete="cc-name" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="CardNumber" class="form-label required">Số thẻ</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="ti ti-credit-card"></i></span>
+                                    <input id="cardNumberDisplay" class="form-control" type="text"
+                                           placeholder="0000 0000 0000 0000" maxlength="19"
+                                           autocomplete="cc-number" inputmode="numeric" />
+                                    <input asp-for="CardNumber" type="hidden" id="cardNumberHidden" />
+                                </div>
+                                <span asp-validation-for="CardNumber" class="text-danger small"></span>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-7">
+                                    <label asp-for="CardExpiry" class="form-label required">Ngày hết hạn</label>
+                                    <input asp-for="CardExpiry" class="form-control" placeholder="MM/YY"
+                                           maxlength="5" autocomplete="cc-exp" inputmode="numeric" />
+                                    <span asp-validation-for="CardExpiry" class="text-danger small"></span>
+                                </div>
+                                <div class="col-5">
+                                    <label asp-for="CardCvv" class="form-label required">CVV</label>
+                                    <input asp-for="CardCvv" class="form-control" placeholder="123"
+                                           maxlength="4" autocomplete="cc-csc" inputmode="numeric" type="password" />
+                                    <span asp-validation-for="CardCvv" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button id="submitBtn" type="submit" class="btn btn-@planColor btn-lg"
+                                        @(soleBlocked ? "disabled" : "")>
+                                    <i class="ti ti-lock me-2"></i>
+                                    Thanh toán @Model.Amount.ToString("N0")đ
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Format card number display: groups of 4
+        const display = document.getElementById('cardNumberDisplay');
+        const hidden = document.getElementById('cardNumberHidden');
+
+        display.addEventListener('input', function () {
+            let raw = this.value.replace(/\D/g, '').substring(0, 16);
+            let formatted = raw.replace(/(.{4})/g, '$1 ').trim();
+            this.value = formatted;
+            hidden.value = raw;
+        });
+
+        // Format expiry MM/YY
+        const expiry = document.querySelector('input[name="CardExpiry"]');
+        expiry.addEventListener('input', function () {
+            let raw = this.value.replace(/\D/g, '').substring(0, 4);
+            if (raw.length >= 3) raw = raw.substring(0, 2) + '/' + raw.substring(2);
+            this.value = raw;
+        });
+
+        // Block submit khi business bị chặn downgrade (nhiều business)
+        @if (Model.Businesses.Count > 1)
+        {
+            var businessData = System.Text.Json.JsonSerializer.Serialize(
+                Model.Businesses.Select(b => new { id = b.Id.ToString(), plan = b.ActivePlan ?? "" }));
+            var currentPlanRank = PlanRank(Model.Plan);
+            <text>
+        (function () {
+            var businesses = @Html.Raw(businessData);
+            var currentRank = @currentPlanRank;
+            function rank(p) { return p === 'Pro' ? 2 : p === 'Basic' ? 1 : 0; }
+            var blockedAlert = document.getElementById('blockedAlert');
+            var submitBtn   = document.getElementById('submitBtn');
+            function update() {
+                var checked = document.querySelector('input[name="BusinessId"]:checked');
+                if (!checked) return;
+                var biz = businesses.find(function(b) { return b.id === checked.value; });
+                var blocked = biz && rank(biz.plan) > currentRank;
+                blockedAlert.classList.toggle('d-none', !blocked);
+                submitBtn.disabled = blocked;
+            }
+            document.querySelectorAll('input[name="BusinessId"]').forEach(function(r) {
+                r.addEventListener('change', update);
+            });
+            update();
+        })();
+            </text>
+        }
+    </script>
+}

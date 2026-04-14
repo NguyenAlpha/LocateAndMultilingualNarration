@@ -47,6 +47,21 @@ builder.Services.AddHttpClient<StallMediaApiClient>(client =>
     client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 }).AddHttpMessageHandler<AuthTokenHandler>();
 
+builder.Services.AddHttpClient<SubscriptionApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
+builder.Services.AddHttpClient<SubscriptionOrderApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
+builder.Services.AddHttpClient<NarrationAudioApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
 //builder.Services.AddHttpClient<StallGeoFenceApiClient>(client =>
 //{
 //    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);

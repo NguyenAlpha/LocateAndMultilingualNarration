@@ -62,7 +62,7 @@ namespace Api.Controllers
                 ContactPhone = request.ContactPhone,
                 OwnerUserId = userId,
                 CreatedAt = DateTimeOffset.UtcNow,
-                IsActive = true
+                IsActive = false
             };
 
             _context.Businesses.Add(business);
@@ -239,8 +239,49 @@ namespace Api.Controllers
                 ContactPhone = business.ContactPhone,
                 OwnerUserId = business.OwnerUserId,
                 CreatedAt = ConvertFromUtc(business.CreatedAt, timeZone),
-                IsActive = business.IsActive
+                IsActive = business.IsActive,
+                Plan = business.Plan,
+                PlanExpiresAt = business.PlanExpiresAt
             };
+        }
+
+        /// <summary>
+        /// Cập nhật gói subscription của business (chỉ Admin)
+        /// </summary>
+        /// <param name="id">Id của business</param>
+        /// <param name="request">Gói mới và ngày hết hạn (tuỳ chọn)</param>
+        /// <returns>Business sau khi cập nhật plan</returns>
+        /// <response code="200">Cập nhật thành công</response>
+        /// <response code="400">Gói không hợp lệ</response>
+        /// <response code="404">Không tìm thấy business</response>
+        [HttpPut("{id:guid}/subscription")]
+        [Authorize(Policy = AppPolicies.AdminOnly)]
+        public async Task<IActionResult> UpdateSubscription(Guid id, [FromBody] SubscriptionUpdateDto request)
+        {
+            _logger.LogInformation("Bắt đầu cập nhật subscription - BusinessId: {BusinessId}, Plan: {Plan}", id, request.Plan);
+
+            var validPlans = new[] { Api.Domain.SubscriptionPlan.Free, Api.Domain.SubscriptionPlan.Basic, Api.Domain.SubscriptionPlan.Pro };
+            if (!validPlans.Contains(request.Plan))
+            {
+                _logger.LogWarning("Gói subscription không hợp lệ - Plan: {Plan}", request.Plan);
+                return this.BadRequestResult("Gói không hợp lệ. Chỉ chấp nhận: Free, Basic, Pro", "Plan");
+            }
+
+            var business = await _context.Businesses.FirstOrDefaultAsync(b => b.Id == id);
+            if (business == null)
+            {
+                _logger.LogWarning("Không tìm thấy business - Id: {BusinessId}", id);
+                return this.NotFoundResult("Không tìm thấy business");
+            }
+
+            business.Plan = request.Plan;
+            business.PlanExpiresAt = request.PlanExpiresAt;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Cập nhật subscription thành công - BusinessId: {BusinessId}, Plan: {Plan}", id, request.Plan);
+
+            var timeZone = GetTimeZone();
+            return this.OkResult(MapBusinessDetail(business, timeZone));
         }
 
     }

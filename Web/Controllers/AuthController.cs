@@ -8,10 +8,12 @@ namespace Web.Controllers
     public class AuthController : Controller
     {
         private readonly ApiClient _apiClient;
+        private readonly BusinessApiClient _businessApiClient;
 
-        public AuthController(ApiClient apiClient)
+        public AuthController(ApiClient apiClient, BusinessApiClient businessApiClient)
         {
             _apiClient = apiClient;
+            _businessApiClient = businessApiClient;
         }
 
         [HttpGet]
@@ -42,6 +44,16 @@ namespace Web.Controllers
             }
 
             _apiClient.StoreToken(result.Data);
+
+            // Nếu là BusinessOwner thì lấy plan của business đầu tiên để hiển thị trên sidebar
+            var role = result.Data.Roles.FirstOrDefault() ?? string.Empty;
+            if (role == "BusinessOwner")
+            {
+                var businesses = await _businessApiClient.GetBusinessesAsync(1, 1, null, cancellationToken);
+                var firstBusiness = businesses?.Data?.Items?.FirstOrDefault();
+                _apiClient.StoreUserPlan(firstBusiness?.Plan ?? "Free", firstBusiness?.PlanExpiresAt);
+            }
+
             return RedirectToAction("Index", "Home");
         }
 

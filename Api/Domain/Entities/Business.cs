@@ -10,6 +10,8 @@
         public Guid? OwnerUserId { get; set; }                    // FK -> Users(Id)
         public DateTimeOffset CreatedAt { get; set; }             // datetimeoffset(3) NOT NULL DEFAULT SYSUTCDATETIME()
         public bool IsActive { get; set; }                        // bit NOT NULL DEFAULT 1
+        public string Plan { get; set; } = Api.Domain.SubscriptionPlan.Free; // nvarchar(16) NOT NULL DEFAULT 'Free'
+        public DateTimeOffset? PlanExpiresAt { get; set; }        // datetimeoffset(3), null = không giới hạn
 
         // Navigation
         public User? OwnerUser { get; set; }

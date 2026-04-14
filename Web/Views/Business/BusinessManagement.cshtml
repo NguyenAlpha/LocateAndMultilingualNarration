@@ -3,6 +3,8 @@
     ViewData["Title"] = "Business Management";
     var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
     var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
+    var userRole = Context.Session.GetString("UserRole") ?? "";
+    var isAdmin = userRole == "Admin";
 }
 
 <!-- Page Header -->
@@ -71,6 +73,7 @@
                     <th scope="col" class="sortable">Contact Email</th>
                     <th scope="col" class="sortable">Contact Phone</th>
                     <th scope="col" class="sortable">Status</th>
+                    <th scope="col">Plan</th>
                     <th scope="col" class="sortable">Created At</th>
                     <th scope="col" class="no-export">Actions</th>
                 </tr>
@@ -79,7 +82,7 @@
                 @if (Model.Items.Count == 0)
                 {
                     <tr>
-                        <td colspan="7" class="text-center text-muted">Chưa có business nào.</td>
+                        <td colspan="8" class="text-center text-muted">Chưa có business nào.</td>
                     </tr>
                 }
                 else
@@ -97,6 +100,29 @@
                             <td>@(string.IsNullOrWhiteSpace(business.ContactEmail) ? "-" : business.ContactEmail)</td>
                             <td>@(string.IsNullOrWhiteSpace(business.ContactPhone) ? "-" : business.ContactPhone)</td>
                             <td><span class="badge bg-@statusClass">@statusText</span></td>
+                            <td>
+                                @{
+                                    var now = DateTimeOffset.UtcNow;
+                                    var planActive = business.Plan != "Free"
+                                        && business.PlanExpiresAt.HasValue
+                                        && business.PlanExpiresAt.Value > now;
+                                    var planBadge = business.Plan switch
+                                    {
+                                        "Pro"   => "bg-primary",
+                                        "Basic" => "bg-info",
+                                        _       => "bg-secondary"
+                                    };
+                                }
+                                <span class="badge @planBadge">@business.Plan</span>
+                                @if (planActive && business.PlanExpiresAt.HasValue)
+                                {
+                                    <small class="d-block text-muted">đến @business.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yy")</small>
+                                }
+                                @if (business.Plan != "Free" && !planActive)
+                                {
+                                    <small class="d-block text-danger">Hết hạn</small>
+                                }
+                            </td>
                             <td>@business.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>
                                 <div class="btn-group">
@@ -123,18 +149,35 @@
                                             onclick="openShowModal(this)">
                                         <i class="bi bi-eye"></i>
                                     </button>
-                                    <form asp-action="Deactivate" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@business.Id" />
-                                        <input type="hidden" name="page" value="@Model.Page" />
-                                        <input type="hidden" name="pageSize" value="@Model.PageSize" />
-                                        <input type="hidden" name="search" value="@Model.Search" />
-                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-action"
-                                                data-bs-toggle="tooltip" title="Deactivate"
-                                                onclick="return confirm('Bạn chắc chắn muốn vô hiệu hóa business này?');">
-                                            <i class="bi bi-slash-circle"></i>
-                                        </button>
-                                    </form>
+                                    @if (!isAdmin)
+                                    {
+                                        <a class="btn btn-sm btn-outline-success btn-action"
+                                           href="@Url.Action("Plans", "Subscription", new { businessId = business.Id })"
+                                           data-bs-toggle="tooltip" title="Đổi gói">
+                                            <i class="ti ti-credit-card"></i>
+                                        </a>
+                                    }
+                                    @if (isAdmin)
+                                    {
+                                        var toggleTitle = business.IsActive ? "Vô hiệu hóa" : "Kích hoạt";
+                                        var toggleIcon = business.IsActive ? "bi bi-slash-circle" : "bi bi-check-circle";
+                                        var toggleCss = business.IsActive ? "btn btn-sm btn-outline-danger btn-action" : "btn btn-sm btn-outline-success btn-action";
+                                        var toggleConfirm = business.IsActive
+                                            ? "Bạn chắc chắn muốn vô hiệu hóa business này?"
+                                            : "Bạn chắc chắn muốn kích hoạt business này?";
+                                        <form asp-action="ToggleActive" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@business.Id" />
+                                            <input type="hidden" name="page" value="@Model.Page" />
+                                            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <button type="submit" class="@toggleCss"
+                                                    data-bs-toggle="tooltip" title="@toggleTitle"
+                                                    onclick="return confirm('@toggleConfirm');">
+                                                <i class="@toggleIcon"></i>
+                                            </button>
+                                        </form>
+                                    }
                                 </div>
                             </td>
                         </tr>
@@ -209,9 +252,9 @@
                             <span asp-validation-for="Create.ContactPhone" class="text-danger"></span>
                         </div>
                     </div>
-                    <div class="form-check">
-                        <input asp-for="Create.IsActive" class="form-check-input" />
-                        <label asp-for="Create.IsActive" class="form-check-label">Active</label>
+                    <div class="alert alert-info py-2 mb-0">
+                        <i class="ti ti-info-circle me-1"></i>
+                        Business mới sẽ ở trạng thái <strong>chờ duyệt</strong> cho đến khi Admin kích hoạt.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -266,15 +309,22 @@
                             <span asp-validation-for="Edit.ContactPhone" class="text-danger"></span>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="Edit.IsActive" class="form-label">Status</label>
-                            <select asp-for="Edit.IsActive" class="form-select" id="editBusinessStatus">
-                                <option value="true">Active</option>
-                                <option value="false">Inactive</option>
-                            </select>
+                    @if (isAdmin)
+                    {
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Edit.IsActive" class="form-label">Status</label>
+                                <select asp-for="Edit.IsActive" class="form-select" id="editBusinessStatus">
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <input asp-for="Edit.IsActive" type="hidden" id="editBusinessStatus" />
+                    }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

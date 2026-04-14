@@ -10,5 +10,7 @@ namespace Shared.DTOs.Businesses
         public Guid? OwnerUserId { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public bool IsActive { get; set; }
+        public string Plan { get; set; } = "Free";
+        public DateTimeOffset? PlanExpiresAt { get; set; }
     }
 }
