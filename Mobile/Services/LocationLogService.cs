@@ -1,0 +1,102 @@
+using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
+using Shared.DTOs.DeviceLocationLogs;
+
+namespace Mobile.Services;
+
+/// <summary>
+/// Thu thập tọa độ GPS định kỳ vào buffer, gom gửi lên API theo batch.
+/// </summary>
+public interface ILocationLogService
+{
+    /// <summary>
+    /// Thử lấy mẫu vị trí hiện tại. Bỏ qua nếu chưa đủ khoảng thời gian lấy mẫu hoặc buffer đầy.
+    /// </summary>
+    void TrySample(double lat, double lon, double? accuracy);
+
+    /// <summary>
+    /// Gửi toàn bộ điểm trong buffer lên API rồi xóa buffer (chỉ khi gửi thành công).
+    /// </summary>
+    Task FlushAsync();
+}
+
+/// <summary>
+/// Lấy mẫu GPS mỗi 10 giây, buffer tối đa 500 điểm.
+/// Flush được trigger từ SyncBackgroundService (mỗi 3 phút) và App.OnSleep.
+/// </summary>
+public class LocationLogService : ILocationLogService
+{
+    private static readonly TimeSpan SampleInterval = TimeSpan.FromSeconds(10);
+    private const int MaxBufferSize = 500;
+    private const string BatchEndpoint = "api/device-location-log/batch";
+
+    private readonly List<LocationPointDto> _buffer = [];
+    private readonly IDeviceService _deviceService;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<LocationLogService> _logger;
+
+    private DateTimeOffset _lastSampleAt = DateTimeOffset.MinValue;
+
+    public LocationLogService(
+        IDeviceService deviceService,
+        IHttpClientFactory httpClientFactory,
+        ILogger<LocationLogService> logger)
+    {
+        _deviceService = deviceService;
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
+    }
+
+    public void TrySample(double lat, double lon, double? accuracy)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastSampleAt < SampleInterval) return;
+        if (_buffer.Count >= MaxBufferSize) return;
+
+        _buffer.Add(new LocationPointDto
+        {
+            Latitude = lat,
+            Longitude = lon,
+            AccuracyMeters = accuracy,
+            CapturedAt = now
+        });
+        _lastSampleAt = now;
+
+        _logger.LogDebug("[LocationLog] Sample #{Count} — lat={Lat:F6}, lng={Lng:F6}", _buffer.Count, lat, lon);
+    }
+
+    public async Task FlushAsync()
+    {
+        if (_buffer.Count == 0) return;
+
+        var deviceId = _deviceService.GetOrCreateDeviceId();
+        var snapshot = _buffer.ToList();
+
+        var dto = new DeviceLocationLogBatchDto
+        {
+            DeviceId = deviceId,
+            Points = snapshot
+        };
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient(string.Empty);
+            var response = await client.PostAsJsonAsync(BatchEndpoint, dto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _buffer.RemoveRange(0, snapshot.Count);
+                _logger.LogInformation("[LocationLog] Flush thành công: {Count} điểm", snapshot.Count);
+            }
+            else
+            {
+                _logger.LogWarning("[LocationLog] Flush thất bại: HTTP {Status}", (int)response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Analytics là best-effort — không throw, giữ buffer để thử lại lần sau
+            _logger.LogWarning("[LocationLog] Flush lỗi: {Message}", ex.Message);
+        }
+    }
+}

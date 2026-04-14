@@ -18,6 +18,11 @@ public interface IAudioGuideService
     string? CurrentUrl { get; }
 
     /// <summary>
+    /// Phát sinh khi audio kết thúc tự nhiên (không phát sinh khi dừng thủ công bằng StopAsync).
+    /// </summary>
+    event Action? PlaybackCompleted;
+
+    /// <summary>
     /// Phát audio từ URL hoặc đường dẫn local.
     /// </summary>
     /// <param name="url">URL mạng hoặc đường dẫn file local.</param>
@@ -58,6 +63,12 @@ public class AudioGuideService : IAudioGuideService
     /// URL hoặc đường dẫn của audio đang được phát.
     /// </summary>
     public string? CurrentUrl { get; private set; }
+
+    /// <summary>
+    /// Phát sinh khi audio kết thúc tự nhiên.
+    /// Không phát sinh khi gọi StopAsync() thủ công.
+    /// </summary>
+    public event Action? PlaybackCompleted;
 
     /// <summary>
     /// Khởi tạo service với audio manager của plugin.
@@ -108,6 +119,7 @@ public class AudioGuideService : IAudioGuideService
 
             // Tạo player từ buffer trong bộ nhớ và phát ngay.
             _player = _audioManager.CreatePlayer(_buffer);
+            _player.PlaybackEnded += OnPlayerPlaybackEnded;
             _player.Play();
         }
         finally
@@ -138,10 +150,21 @@ public class AudioGuideService : IAudioGuideService
     }
 
     /// <summary>
+    /// Xử lý sự kiện kết thúc audio tự nhiên từ plugin.
+    /// Chạy trên background thread — dispatch về main thread trước khi fire event ra ngoài.
+    /// </summary>
+    private void OnPlayerPlaybackEnded(object? sender, EventArgs e)
+        => MainThread.BeginInvokeOnMainThread(() => PlaybackCompleted?.Invoke());
+
+    /// <summary>
     /// Dừng audio hiện tại và giải phóng bộ nhớ.
     /// </summary>
     public Task StopAsync()
     {
+        // Unsubscribe trước khi Stop để tránh fire PlaybackCompleted khi dừng thủ công.
+        if (_player != null)
+            _player.PlaybackEnded -= OnPlayerPlaybackEnded;
+
         // Dừng và giải phóng player hiện tại nếu có.
         _player?.Stop();
         _player?.Dispose();

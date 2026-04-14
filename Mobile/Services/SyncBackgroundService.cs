@@ -24,14 +24,16 @@ public interface ISyncBackgroundService
 public class SyncBackgroundService : ISyncBackgroundService
 {
     private readonly ISyncService _syncService;
+    private readonly ILocationLogService _locationLogService;
     private readonly ILogger<SyncBackgroundService> _logger;
 
     private CancellationTokenSource? _cts;
     private static readonly TimeSpan SyncInterval = TimeSpan.FromMinutes(3);
 
-    public SyncBackgroundService(ISyncService syncService, ILogger<SyncBackgroundService> logger)
+    public SyncBackgroundService(ISyncService syncService, ILocationLogService locationLogService, ILogger<SyncBackgroundService> logger)
     {
         _syncService = syncService;
+        _locationLogService = locationLogService;
         _logger = logger;
     }
 
@@ -97,6 +99,7 @@ public class SyncBackgroundService : ISyncBackgroundService
                 // Có mạng thì đồng bộ dữ liệu.
                 _logger.LogInformation("SyncBackgroundService: periodic tick → sync");
                 await _syncService.SyncAsync(ct);
+                await _locationLogService.FlushAsync();
             }
         }
         catch (OperationCanceledException) { /* normal stop */ }
@@ -117,5 +120,6 @@ public class SyncBackgroundService : ISyncBackgroundService
         // Khi có mạng trở lại, đồng bộ ngay để giảm độ trễ dữ liệu.
         _logger.LogInformation("SyncBackgroundService: mạng kết nối lại → sync ngay");
         _ = _syncService.SyncAsync(_cts.Token);
+        _ = _locationLogService.FlushAsync();
     }
 }
