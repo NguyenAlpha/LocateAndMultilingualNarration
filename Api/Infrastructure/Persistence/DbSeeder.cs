@@ -10,8 +10,11 @@ namespace Api.Infrastructure.Persistence
     {
         public static async Task SeedAsync(AppDbContext db)
         {
-            await RoleSeeder.SeedAsync(db);  // phải chạy trước UserSeeder
+            await RoleSeeder.SeedAsync(db);                  // phải chạy trước UserSeeder
             await UserSeeder.SeedAsync(db);
+            await BusinessOwnerSeeder.SeedAsync(db);         // 100 business owner mẫu
+            await SubscriptionOrderSeeder.SeedAsync(db);     // orders + plan cho các business
+            await StallSeeder.SeedAsync(db);                 // stalls quanh phố ẩm thực
         }
     }
 }
