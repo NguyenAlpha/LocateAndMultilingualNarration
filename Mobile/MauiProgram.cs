@@ -42,15 +42,21 @@ public static class MauiProgram
         // ---- HTTPCLIENT ----
         // Đăng ký HttpClient mặc định với timeout 10 giây — tránh treo UI khi server chậm hoặc không phản hồi.
         // OLD CODE (kept for reference): ServiceCollectionServiceExtensions.AddHttpClient(builder.Services, string.Empty, client => ...)
+
         builder.Services.AddHttpClient(string.Empty, client =>
         {
-            client.BaseAddress = new Uri(DevApiBaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+
+        // Cấu hình named HttpClient mà các service đang sử dụng (ApiHttp)
+        builder.Services.AddHttpClient("ApiHttp", client =>
+        {
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 
         builder.Services.AddTransient<ProfileViewModel>();
         builder.Services.AddTransient<LanguagePage>();
-        builder.Services.AddTransient<LanguageSelectionViewModel>();
+        builder.Services.AddTransient<LanguageViewModel>();
         builder.Services.AddTransient<ProfileViewModel>();
         builder.Services.AddTransient<IVoiceService, VoiceService>();
         // === Đăng ký ScanService ===
@@ -58,8 +64,7 @@ public static class MauiProgram
         builder.Services.AddTransient<IDevicePreferenceApiService, DevicePreferenceApiService>();
         // OLD CODE (kept for reference): builder.Services.AddTransient<ProfileViewModel>();
         // ProfileViewModel đã được đăng ký ở section VIEWMODELS bên dưới để tránh đăng ký trùng.
-=======
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
+
 
         // ---- SERVICES (Singleton — tạo 1 lần, dùng xuyên suốt app) ----
         // Singleton phù hợp cho service cần giữ state lâu dài hoặc dùng chung toàn app
