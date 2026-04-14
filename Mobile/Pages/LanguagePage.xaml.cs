@@ -6,7 +6,7 @@ namespace Mobile;
 [QueryProperty(nameof(Token), "token")]
 public partial class LanguagePage : ContentPage
 {
-    private readonly LanguageSelectionViewModel _viewModel;
+    private readonly LanguageViewModel _viewModel;
 
     public string? StallId { get; set; }
     public string? Token { get; set; }
@@ -15,7 +15,7 @@ public partial class LanguagePage : ContentPage
     /// Khởi tạo trang và gán ViewModel qua DI.
     /// </summary>
     /// <param name="viewModel">ViewModel xử lý logic chọn ngôn ngữ/giọng đọc.</param>
-    public LanguagePage(LanguageSelectionViewModel viewModel)
+    public LanguagePage(LanguageViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;

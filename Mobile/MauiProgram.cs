@@ -124,7 +124,7 @@ public static class MauiProgram
         // OLD CODE (kept for reference): ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         // Tạm comment do class chưa tồn tại/đang chưa sẵn sàng trong workspace hiện tại.
         // ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<LanguageSelectionViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
 

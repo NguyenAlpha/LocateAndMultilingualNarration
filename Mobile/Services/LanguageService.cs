@@ -6,17 +6,11 @@ namespace Mobile.Services;
 /// <summary>
 /// Cung cấp dữ liệu ngôn ngữ và đồng bộ lựa chọn ngôn ngữ của người dùng lên API.
 /// </summary>
-public interface ILanguageService
-{
-    /// <summary>
-    /// Lấy danh sách ngôn ngữ đang hoạt động.
-    /// </summary>
-    /// <param name="forceRefresh">Giá trị <c>true</c> để bỏ qua cache và tải lại từ API.</param>
-    /// <param name="cancellationToken">Token hủy tác vụ.</param>
-    /// <returns>Danh sách ngôn ngữ.</returns>
-    Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
-
-}
+// OLD CODE (kept for reference):
+// public interface ILanguageService
+// {
+//     Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
+// }
 
 /// <summary>
 /// Triển khai logic lấy danh sách ngôn ngữ và cập nhật lựa chọn ngôn ngữ của người dùng.
@@ -38,12 +32,23 @@ public class LanguageService : ILanguageService
     }
 
     /// <summary>
-    /// Lấy danh sách ngôn ngữ đang hoạt động, ưu tiên dùng cache trong bộ nhớ nếu còn hạn.
+    /// Lấy tất cả ngôn ngữ. Mobile hiện dùng endpoint public active để đảm bảo không cần quyền admin.
     /// </summary>
     /// <param name="forceRefresh">Giá trị <c>true</c> để bỏ qua cache và tải lại từ API.</param>
     /// <param name="cancellationToken">Token hủy tác vụ.</param>
-    /// <returns>Danh sách ngôn ngữ đang hoạt động.</returns>
-    public async Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
+    /// <returns>Danh sách ngôn ngữ.</returns>
+    public Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
+        => GetActiveLanguagesCoreAsync(forceRefresh, cancellationToken);
+
+    /// <summary>
+    /// Lấy danh sách ngôn ngữ đang active từ API.
+    /// </summary>
+    /// <param name="cancellationToken">Token hủy tác vụ.</param>
+    /// <returns>Danh sách ngôn ngữ active.</returns>
+    public Task<IReadOnlyList<LanguageDetailDto>> GetActiveLanguagesAsync(CancellationToken cancellationToken = default)
+        => GetActiveLanguagesCoreAsync(false, cancellationToken);
+
+    private async Task<IReadOnlyList<LanguageDetailDto>> GetActiveLanguagesCoreAsync(bool forceRefresh, CancellationToken cancellationToken)
     {
         // Cache để tránh gọi API lặp lại gây lag UI.
         // Nếu cache còn hiệu lực thì trả về ngay, không cần gọi mạng.

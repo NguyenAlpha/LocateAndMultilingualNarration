@@ -51,4 +51,9 @@
         Title="Profile"
         Route="profile"
         ContentTemplate="{DataTemplate pages:ProfilePage}"/>
+    <!-- StallListPage Route -->
+    <ShellContent 
+    Title="Gian hàng"
+    Route="StallListPage"
+    ContentTemplate="{DataTemplate pages:StallListPage}" />
 </Shell>

@@ -34,12 +34,12 @@ namespace Mobile
             Routing.RegisterRoute(nameof(LanguagePage), typeof(LanguagePage));
 
             // Tạm thời tắt route này vì class LanguageSelectionPage không tồn tại trong workspace hiện tại.
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
+
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
+
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
->>>>>>> eed37226a2365895a81e35582e612a8d4d6e5224
+
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
             // Trang chọn giọng đọc — hiển thị sau khi chọn ngôn ngữ
             Routing.RegisterRoute(nameof(VoicePage), typeof(VoicePage));

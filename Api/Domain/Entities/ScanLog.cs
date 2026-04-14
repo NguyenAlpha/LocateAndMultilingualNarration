@@ -13,8 +13,6 @@ namespace Api.Domain.Entities
 
         public DateTime LastQrScanAt { get; set; }
 
-        public Guid? LastScannedStallId { get; set; }
-
         public string? LastScannedSlug { get; set; }
 
         public DateTime QrSessionExpiry { get; set; }

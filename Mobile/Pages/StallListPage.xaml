@@ -1,0 +1,99 @@
+﻿<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Mobile.Pages.StallListPage"
+             Title="Danh sách Gian hàng"
+             BackgroundColor="#F8FAFC">
+
+	<Grid RowDefinitions="Auto,Auto,*,Auto">
+
+		<!-- Search Bar -->
+		<SearchBar Grid.Row="0"
+                   Placeholder="Tìm gian hàng theo tên..."
+                   Text="{Binding SearchText}"
+                   Margin="16,12,16,8"
+                   HeightRequest="48"/>
+
+		<!-- Filter đơn giản (chỉ giữ Tất cả vì chưa có khoảng cách) -->
+		<HorizontalStackLayout Grid.Row="1"
+                               Margin="16,0,16,12"
+                               Spacing="8">
+			<Button Text="Tất cả gian hàng"
+                    Command="{Binding FilterCommand}"
+                    CommandParameter="All"
+                    BackgroundColor="#4F46E5"
+                    TextColor="White"
+                    CornerRadius="20"
+                    Padding="16,8"/>
+		</HorizontalStackLayout>
+
+		<!-- Danh sách gian hàng -->
+		<CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Stalls}"
+                        SelectionMode="None"
+                        Margin="16,0"
+                        RemainingItemsThreshold="5"
+                        RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+
+			<CollectionView.ItemTemplate>
+				<DataTemplate>
+					<Frame CornerRadius="18" Padding="14" Margin="0,8" BackgroundColor="White" HasShadow="True">
+						<VerticalStackLayout Spacing="8">
+							<Label Text="{Binding Name}"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   TextColor="#1F2937"/>
+
+							<Label Text="{Binding Description}"
+                                   FontSize="14"
+                                   TextColor="#64748B"
+                                   MaxLines="3"
+                                   LineBreakMode="TailTruncation"/>
+
+							<!-- Ẩn Rating và Distance vì chưa có cột -->
+							<!-- 
+                            <HorizontalStackLayout Spacing="12">
+                                <Label Text="⭐" FontSize="14" TextColor="#F59E0B"/>
+                                <Label Text="{Binding RatingText}" FontSize="14" TextColor="#1F2937"/>
+                                <Label Text="{Binding DistanceText}" FontSize="13" TextColor="#10B981"/>
+                            </HorizontalStackLayout>
+                            -->
+						</VerticalStackLayout>
+					</Frame>
+				</DataTemplate>
+			</CollectionView.ItemTemplate>
+		</CollectionView>
+
+		<!-- Phân trang -->
+		<Grid Grid.Row="3" Margin="16,12" ColumnDefinitions="Auto,*,Auto">
+			<Button Text="← Trước"
+                    Command="{Binding PreviousPageCommand}"
+                    IsEnabled="{Binding CanGoPrevious}"
+                    BackgroundColor="White"
+                    TextColor="#64748B"
+                    Padding="12,8"/>
+
+			<Label Text="{Binding CurrentPageDisplay}"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   FontSize="15"
+                   TextColor="#475569"/>
+
+			<Button Text="Sau →"
+                    Command="{Binding NextPageCommand}"
+                    IsEnabled="{Binding CanGoNext}"
+                    BackgroundColor="White"
+                    TextColor="#64748B"
+                    Padding="12,8"/>
+		</Grid>
+
+		<!-- Empty State -->
+		<Label Grid.Row="2"
+               Text="Không tìm thấy gian hàng nào"
+               IsVisible="{Binding HasNoStalls}"
+               FontSize="16"
+               TextColor="#94A3B8"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               Margin="0,100,0,0"/>
+	</Grid>
+</ContentPage>

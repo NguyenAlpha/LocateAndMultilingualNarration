@@ -24,6 +24,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ProfileCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand LoadDataCommand { get; }
+    public ICommand StallListCommand { get; }
 
     string userName = "Guest";
     public string UserName
@@ -81,8 +82,13 @@ public class MainViewModel : INotifyPropertyChanged
         ProfileCommand = new Command(async () => await ShowProfileAsync());
         LogoutCommand = new Command(async () => await LogoutAsync());
         LoadDataCommand = new Command(async () => await LoadFeaturedStallsAsync());
+        StallListCommand = new Command(async () => await NavigateToStallListAsync());
 
         _ = LoadFeaturedStallsAsync();
+    }
+    private async Task GoToStallListAsync()
+    {
+        await Shell.Current.GoToAsync("StallListPage");
     }
 
     public void LoadUserName()
@@ -181,4 +187,16 @@ public class MainViewModel : INotifyPropertyChanged
 
     void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    private async Task NavigateToStallListAsync()
+    {
+        try
+        {
+            await Shell.Current.GoToAsync("StallListPage");
+        }
+        catch (Exception ex)
+        {
+            // Log lỗi nếu cần
+            Console.WriteLine($"Navigate to StallListPage failed: {ex.Message}");
+        }
+    }
 }

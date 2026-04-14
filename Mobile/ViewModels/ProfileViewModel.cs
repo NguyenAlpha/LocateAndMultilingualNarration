@@ -245,7 +245,7 @@ namespace Mobile.ViewModels
                 {
                     LanguageId = SelectedLanguage.Id,
                     LanguageCode = SelectedLanguage.Code,
-                    Voice = SelectedVoice?.Id,
+                    VoiceId = SelectedVoice?.Id,
                     SpeechRate = SpeechRate,
                     AutoPlay = AutoPlay
                 };
@@ -318,7 +318,8 @@ namespace Mobile.ViewModels
         // Class hỗ trợ hiển thị giọng đọc trong Picker
         public class VoiceOption
         {
-            public string Id { get; set; } = string.Empty;
+            // OLD CODE (kept for reference): public string Id { get; set; } = string.Empty;
+            public Guid Id { get; set; }
             public string DisplayName { get; set; } = string.Empty;
             public string? Description { get; set; }
             public bool IsDefault { get; set; }
