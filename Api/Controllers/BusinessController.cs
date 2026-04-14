@@ -62,7 +62,7 @@ namespace Api.Controllers
                 ContactPhone = request.ContactPhone,
                 OwnerUserId = userId,
                 CreatedAt = DateTimeOffset.UtcNow,
-                IsActive = true
+                IsActive = false
             };
 
             _context.Businesses.Add(business);

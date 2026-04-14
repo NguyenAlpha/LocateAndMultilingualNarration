@@ -475,6 +475,7 @@ namespace Api.Controllers
                 Id = audio.Id,
                 NarrationContentId = audio.NarrationContentId,
                 TtsVoiceProfileId = audio.TtsVoiceProfileId,
+                TtsVoiceProfileDisplayName = audio.TtsVoiceProfile?.DisplayName,
                 TtsVoiceProfileDescription = audio.TtsVoiceProfile?.Description,
                 TtsVoiceProfileLanguageName = audio.TtsVoiceProfile?.Language?.Name,
                 AudioUrl = audio.AudioUrl,
