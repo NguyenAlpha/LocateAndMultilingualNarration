@@ -137,16 +137,17 @@ Luồng D - Profile:
 ----------------------------------------------------------------------
 Đã hoàn thành:
 - Map hiển thị pin gian hàng.
-- QR flow cơ bản.
+- QR flow + lưu session quét 24h (ScanService).
 - Audio play/pause/stop.
 - Load ngôn ngữ động từ API.
-- Upsert DevicePreference.
+- Upsert DevicePreference theo DeviceId.
 - Kiến trúc MVVM + DI cho module chính.
+- Chuẩn hóa gọi API bằng named HttpClient "ApiHttp" cho các service chính.
 
 Đang hoàn thiện:
 - Xử lý tập trung 401 (token hết hạn).
 - Quản lý lifecycle audio khi app chuyển trạng thái.
-- Chuẩn hóa cấu hình BaseUrl toàn app.
+- Dọn đồng bộ DTO cũ/mới để tránh lỗi compile khi merge nhánh.
 
 
 9) TEST CASES KHUYẾN NGHỊ
@@ -182,20 +183,30 @@ Nhóm test quan trọng:
 10) TODO / ROADMAP
 ----------------------------------------------------------------------
 P1 (ưu tiên cao):
-1. 401 Global Handler cho toàn bộ API calls.
-2. Ổn định audio lifecycle (foreground/background/navigation).
-3. Chuẩn hóa BaseUrl từ cấu hình tập trung.
+1. Hoàn tất fix compile còn lại sau merge (DTO, Guid/string, interface signatures).
+2. 401 Global Handler cho toàn bộ API calls.
+3. Ổn định audio lifecycle (foreground/background/navigation).
 
 P2 (ưu tiên trung bình):
 4. Hoàn thiện UX khi thiếu quyền (Camera/Location + Settings shortcut).
 5. Chính sách sync offline->online rõ ràng.
+6. Chuẩn hóa BaseUrl/config theo môi trường (dev/staging/prod).
 
 P3 (mở rộng):
-6. Web Admin (Razor Pages/MVC) cho CRUD + Generate QR.
-7. Tinh chỉnh zoom map theo DPI thiết bị thật.
+7. Web Admin (Razor Pages/MVC) cho CRUD + Generate QR.
+8. Tinh chỉnh zoom map theo DPI thiết bị thật.
 
 
-11) LƯU Ý QUAN TRỌNG
+11) KNOWN ISSUES
+----------------------------------------------------------------------
+- Một số file sau merge có thể còn khác biệt naming giữa DTO cũ và DTO mới
+  (ví dụ: LanguageCode/Voice vs LanguageId/VoiceId).
+- Nếu API không chạy profile HTTP (5299), mobile emulator sẽ không gọi được dữ liệu.
+- Trong môi trường dev, cần ưu tiên endpoint HTTP cho Android Emulator
+  (http://10.0.2.2:<port>) để tránh lỗi chứng chỉ HTTPS cục bộ.
+
+
+12) LƯU Ý QUAN TRỌNG
 ----------------------------------------------------------------------
 - Cần chạy API trước khi mở Mobile để tránh lỗi dữ liệu ban đầu.
 - BaseUrl khác nhau giữa emulator và thiết bị thật.
@@ -212,11 +223,139 @@ Các tình huống có thể diễn ra trong vận hành thực tế:
 
 
 
-12) VERSION
+13) VERSION
 ----------------------------------------------------------------------
 - Phiên bản: v1.0
 - Trạng thái: Core features completed, continuing stabilization
 - Ngày cập nhật README: .....................................
+
+
+14) TỔNG HỢP CHỨC NĂNG (HIỆN TRẠNG THỰC TẾ)
+----------------------------------------------------------------------
+A. Nhóm chức năng Mobile (.NET MAUI):
+- Xác thực và session người dùng (login + lưu trạng thái).
+- Bản đồ gian hàng (MapPage + MapViewModel):
+  + Tải danh sách gian hàng theo geodata từ API.
+  + Hiển thị pin và chọn gian hàng để focus.
+  + Polling GPS + kiểm tra geofence để trigger tự động.
+- Quét QR (ScanPage + ScanService):
+  + Đọc QR, parse context stall/token.
+  + Chống navigate lặp và có session 24h.
+- Ngôn ngữ và giọng đọc:
+  + Load language active từ API.
+  + Load voice active theo language.
+  + Lưu cấu hình theo DevicePreference (DeviceId-based).
+- Audio guide:
+  + Play/Pause/Stop qua Plugin.Maui.Audio.
+  + Tích hợp cache/local audio trong luồng sync.
+- Offline/cache-first:
+  + Stall data ưu tiên SQLite local.
+  + Fallback local khi API lỗi hoặc mất mạng.
+
+B. Nhóm chức năng API (ASP.NET Core Web API):
+- Auth + token/refresh token.
+- Geo API cho mobile map.
+- Language API (admin CRUD + public active).
+- TTS voice API (public active theo language).
+- DevicePreference API (get/upsert theo DeviceId).
+- Các module nghiệp vụ mở rộng:
+  + Stall, StallLocation, StallGeoFence, StallMedia, StallNarrationContent.
+  + VisitorProfile, VisitorPreference, VisitorLocationLog.
+
+
+15) API CHÍNH MOBILE ĐANG DÙNG (TÓM TẮT NHANH)
+----------------------------------------------------------------------
+1. Map/Geo:
+- GET api/geo/stalls?deviceId={deviceId}
+  -> Trả về danh sách GeoStallDto cho MapPage.
+
+2. Language:
+- GET api/languages/active
+  -> Trả về danh sách ngôn ngữ đang active (public).
+
+3. Voice:
+- GET api/tts-voice-profiles/active?languageId={guid}
+  -> Trả về voice profile active theo language.
+
+4. Device preference:
+- GET api/device-preference/{deviceId}
+  -> Lấy cấu hình hiện tại theo thiết bị.
+- POST api/device-preference
+  -> Upsert cấu hình language/voice/speechRate/autoPlay.
+- POST api/device-preferences
+  -> Endpoint lưu preference theo request mở rộng.
+
+5. Stalls public:
+- GET api/stalls
+- GET api/stalls/{id}
+
+
+16) THƯ MỤC VÀ VAI TRÒ CHI TIẾT HƠN
+----------------------------------------------------------------------
+Mobile/Pages
+- UI thuần XAML + code-behind cho lifecycle/navigation.
+
+Mobile/ViewModels
+- Chứa toàn bộ state + command + xử lý nghiệp vụ phía UI theo MVVM.
+
+Mobile/Services
+- Gọi API qua named HttpClient "ApiHttp".
+- Chứa logic cache-first, sync, session, language/voice/device/audio.
+
+Mobile/LocalDb
+- SQLite model + repository phục vụ offline.
+
+Mobile/Models
+- DTO/model phục vụ binding UI mobile.
+
+Api/Controllers
+- Expose REST endpoints cho mobile + web.
+
+Api/Infrastructure + Domain
+- EF Core DbContext, entity mapping/config, seed dữ liệu, settings.
+
+Shared/DTOs
+- Contract DTO dùng chung để giảm sai khác giữa tầng mobile và API.
+
+
+17) CÔNG DỤNG CHỨC NĂNG (THEO NGHIỆP VỤ)
+----------------------------------------------------------------------
+- Giảm rào cản ngôn ngữ cho khách quốc tế.
+- Tăng tốc điều hướng tham quan bằng QR + map.
+- Tạo trải nghiệm cá nhân hóa theo thiết bị (voice/language/speech rate).
+- Đảm bảo app vẫn có ích khi mạng yếu nhờ cache-first + offline fallback.
+- Hỗ trợ vận hành sự kiện đông người nhờ geofence + audio tự động.
+
+
+18) NHỮNG PHẦN CÒN THIẾU / CẦN HOÀN THIỆN
+----------------------------------------------------------------------
+Mức bắt buộc để ổn định production:
+1. Global 401 handler cho toàn bộ service gọi API.
+2. Chuẩn hóa triệt để DTO giữa Mobile/Shared (tránh drift tên field).
+3. Ổn định audio lifecycle khi app background/foreground/navigate nhanh.
+4. Hoàn thiện flow quyền Camera/Location khi người dùng từ chối vĩnh viễn.
+5. Chuẩn hóa cấu hình môi trường (dev/staging/prod) cho BaseUrl + secrets.
+
+Mức nâng cao:
+6. Kịch bản sync offline -> online rõ chiến lược conflict.
+7. Bổ sung telemetry tập trung (error rate, API latency, audio fail rate).
+8. Bổ sung test tự động cho QR/session/device-preference/map offline.
+
+
+19) CHECKLIST NỘP ĐỒ ÁN / DEMO
+----------------------------------------------------------------------
+- API chạy ổn định đúng port và mobile gọi được từ emulator.
+- DB đã migrate + seed data cơ bản (language, voice, stalls).
+- Demo đủ 4 flow: Map / QR / Language-Voice / Profile.
+- Có kịch bản offline (có cache và không cache).
+- Có kịch bản lỗi quyền (camera/location denied).
+- Có kịch bản token hết hạn (401).
+
+
+20) CẬP NHẬT PHIÊN BẢN README
+----------------------------------------------------------------------
+- Bản cập nhật: v1.1 (bổ sung tổng hợp chức năng + API + gap analysis)
+- Ngày cập nhật: .....................................
 
 ======================================================================
 GHI CHÚ
