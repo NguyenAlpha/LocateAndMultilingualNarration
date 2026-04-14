@@ -40,6 +40,13 @@ public partial class StallPopup : Popup
             }
             ScriptTextLabel.Text = narration.ScriptText;
         }
+
+        if (stall.MediaImages.Count > 0)
+        {
+            ImageCarousel.ItemsSource = stall.MediaImages;
+            ImageCarousel.IsVisible = true;
+            ImageIndicator.IsVisible = stall.MediaImages.Count > 1;
+        }
     }
 
     private async void OnPlayClicked(object? sender, EventArgs e)
