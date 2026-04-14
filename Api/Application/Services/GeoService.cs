@@ -89,7 +89,11 @@ namespace Api.Application.Services
                     .Include(l => l.Stall)
                         .ThenInclude(s => s.StallNarrationContents
                             .Where(c => c.IsActive))
-                        .ThenInclude(c => c.NarrationAudios);
+                        .ThenInclude(c => c.NarrationAudios)
+                    .Include(l => l.Stall)
+                        .ThenInclude(s => s.StallMedia
+                            .Where(m => m.IsActive && m.MediaType == "image")
+                            .OrderBy(m => m.SortOrder));
             }
             else
             {
@@ -99,7 +103,11 @@ namespace Api.Application.Services
                     .Include(l => l.Stall)
                         .ThenInclude(s => s.StallNarrationContents
                             .Where(c => c.IsActive))
-                        .ThenInclude(c => c.NarrationAudios);
+                        .ThenInclude(c => c.NarrationAudios)
+                    .Include(l => l.Stall)
+                        .ThenInclude(s => s.StallMedia
+                            .Where(m => m.IsActive && m.MediaType == "image")
+                            .OrderBy(m => m.SortOrder));
             }
 
             var locations = await locationsQuery.ToListAsync(cancellationToken);
@@ -126,7 +134,10 @@ namespace Api.Application.Services
                         ScriptText  = c.ScriptText,
                         UpdatedAt   = c.UpdatedAt,
                         AudioUrl    = PickAudioUrl(c.NarrationAudios, preferredVoice)
-                    }).FirstOrDefault()
+                    }).FirstOrDefault(),
+                    MediaImages = l.Stall.StallMedia
+                        .Select(m => new GeoStallMediaDto { Url = m.MediaUrl, Caption = m.Caption })
+                        .ToList()
                 };
             }).ToList();
 
