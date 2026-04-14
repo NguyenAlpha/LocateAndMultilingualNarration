@@ -61,7 +61,7 @@ namespace Web.Controllers
 
         [HttpGet]
         public async Task<IActionResult> SubscriptionOrders(
-            int page = 1, int pageSize = 20,
+            int page = 1, int pageSize = 30,
             string? plan = null, string? status = null,
             CancellationToken cancellationToken = default)
         {

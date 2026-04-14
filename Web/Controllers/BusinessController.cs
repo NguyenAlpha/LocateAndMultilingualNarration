@@ -15,7 +15,7 @@ namespace Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10, string? search = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 20, string? search = null, CancellationToken cancellationToken = default)
         {
             var viewModel = await BuildViewModel(page, pageSize, search, cancellationToken);
             viewModel.SuccessMessage = TempData["SuccessMessage"] as string;
@@ -25,7 +25,7 @@ namespace Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind(Prefix = "Create")] BusinessFormViewModel model, int page = 1, int pageSize = 10, string? search = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Create([Bind(Prefix = "Create")] BusinessFormViewModel model, int page = 1, int pageSize = 20, string? search = null, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
@@ -51,7 +51,7 @@ namespace Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Update([Bind(Prefix = "Edit")] BusinessFormViewModel model, int page = 1, int pageSize = 10, string? search = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Update([Bind(Prefix = "Edit")] BusinessFormViewModel model, int page = 1, int pageSize = 20, string? search = null, CancellationToken cancellationToken = default)
         {
             if (model.Id == null)
             {
@@ -83,7 +83,7 @@ namespace Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Deactivate(Guid id, int page = 1, int pageSize = 10, string? search = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ToggleActive(Guid id, int page = 1, int pageSize = 20, string? search = null, CancellationToken cancellationToken = default)
         {
             var detailResult = await _businessApiClient.GetBusinessAsync(id, cancellationToken);
             if (detailResult?.Success != true || detailResult.Data == null)
@@ -93,22 +93,24 @@ namespace Web.Controllers
             }
 
             var detail = detailResult.Data;
+            var newActive = !detail.IsActive;
+
             var updateResult = await _businessApiClient.UpdateBusinessAsync(id, new BusinessUpdateDto
             {
                 Name = detail.Name,
                 TaxCode = detail.TaxCode,
                 ContactEmail = detail.ContactEmail,
                 ContactPhone = detail.ContactPhone,
-                IsActive = false
+                IsActive = newActive
             }, cancellationToken);
 
             if (updateResult?.Success != true)
             {
-                TempData["ErrorMessage"] = updateResult?.Error?.Message ?? "Không thể vô hiệu hóa business.";
+                TempData["ErrorMessage"] = updateResult?.Error?.Message ?? "Không thể cập nhật trạng thái business.";
                 return RedirectToAction(nameof(Index), new { page, pageSize, search });
             }
 
-            TempData["SuccessMessage"] = "Business đã được vô hiệu hóa.";
+            TempData["SuccessMessage"] = newActive ? "Business đã được kích hoạt." : "Business đã được vô hiệu hóa.";
             return RedirectToAction(nameof(Index), new { page, pageSize, search });
         }
 

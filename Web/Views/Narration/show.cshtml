@@ -261,18 +261,20 @@
                 <thead>
                     <tr>
                         <th>Ngôn ngữ</th>
+                        <th>Display Name</th>
                         <th>TtsVoiceProfile</th>
                         <th>Duration (s)</th>
                         <th>Is TTS</th>
                         <th>Updated</th>
                         <th>Audio Url</th>
+                        <th>Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model.Audios.Count == 0)
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-muted">Chưa có narration audio.</td>
+                            <td colspan="8" class="text-center text-muted">Chưa có narration audio.</td>
                         </tr>
                     }
                     else
@@ -286,7 +288,7 @@
                         {
                             var groupId = $"audio-group-{groupIndex}";
                             <tr class="language-group-row" data-group-id="@groupId">
-                                <td colspan="6">
+                                <td colspan="8">
                                     <button type="button" class="toggle-group-btn collapsed" data-group-target="@groupId" aria-expanded="false"></button>
                                     <strong>@group.Key</strong> (@group.Count() giọng)
                                 </td>
@@ -295,9 +297,19 @@
                             {
                                 <tr class="voice-row" data-group-id="@groupId">
                                     <td>@group.Key</td>
+                                    <td>@(audio.TtsVoiceProfileDisplayName ?? "-")</td>
                                     <td>@(audio.TtsVoiceProfileDescription ?? "-")</td>
                                     <td>@(audio.DurationSeconds?.ToString() ?? "-")</td>
-                                    <td>@(audio.IsTts ? "Yes" : "No")</td>
+                                    <td>
+                                        @if (audio.IsTts)
+                                        {
+                                            <span class="badge bg-info text-white">TTS</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success text-white">Người thật</span>
+                                        }
+                                    </td>
                                     <td>@(audio.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(audio.AudioUrl))
@@ -309,6 +321,13 @@
                                             <span class="text-muted">-</span>
                                         }
                                     </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#uploadAudioModal-@audio.Id">
+                                            <i class="bi bi-upload me-1"></i>Tải audio
+                                        </button>
+                                    </td>
                                 </tr>
                             }
                             groupIndex++;
@@ -319,6 +338,54 @@
         </div>
     </div>
 </div>
+
+@if (Model.Audios.Count > 0)
+{
+    foreach (var audio in Model.Audios)
+    {
+        <div class="modal fade" id="uploadAudioModal-@audio.Id" tabindex="-1" aria-labelledby="uploadAudioModalLabel-@audio.Id" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form asp-action="UploadAudio" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="audioId" value="@audio.Id" />
+                        <input type="hidden" name="narrationContentId" value="@Model.Content!.Id" />
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="uploadAudioModalLabel-@audio.Id">
+                                <i class="bi bi-upload me-2"></i>Tải lên audio giọng người thật
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <div class="text-muted small mb-2">
+                                    <strong>Giọng đọc:</strong> @(audio.TtsVoiceProfileDescription ?? "-")
+                                    &nbsp;|&nbsp;
+                                    <strong>Ngôn ngữ:</strong> @(audio.TtsVoiceProfileLanguageName ?? "-")
+                                </div>
+                                <p class="text-warning small">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    Sau khi tải lên, audio hiện tại sẽ bị thay thế và <strong>Is TTS</strong> sẽ được đổi thành <strong>Người thật</strong>.
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">File audio <span class="text-danger">*</span></label>
+                                <input type="file" name="audioFile" accept="audio/*" class="form-control" required />
+                                <div class="form-text">Chấp nhận: mp3, wav, ogg, aac, flac, webm</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload me-1"></i>Tải lên
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}
 
 @section Scripts {
     <script>
