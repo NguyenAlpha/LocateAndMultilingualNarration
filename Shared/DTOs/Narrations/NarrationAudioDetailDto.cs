@@ -5,6 +5,7 @@ namespace Shared.DTOs.Narrations
         public Guid Id { get; set; }
         public Guid NarrationContentId { get; set; }
         public Guid? TtsVoiceProfileId { get; set; }
+        public string? TtsVoiceProfileDisplayName { get; set; }
         public string? TtsVoiceProfileDescription { get; set; }
         public string? TtsVoiceProfileLanguageName { get; set; }
         public string? AudioUrl { get; set; }
