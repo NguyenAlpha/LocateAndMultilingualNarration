@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Api.Infrastructure.Persistence;
 using Api.Application.Services;
@@ -134,8 +135,23 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     if (!string.IsNullOrEmpty(builder.Configuration.GetConnectionString("default")))
     {
-        db.Database.Migrate();
-        await DbSeeder.SeedAsync(db);
+        try
+        {
+            db.Database.Migrate();
+            await DbSeeder.SeedAsync(db);
+        }
+        catch (SqlException ex)
+        {
+            // OLD CODE (kept for reference): db.Database.Migrate(); await DbSeeder.SeedAsync(db);
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning(ex, "Không thể kết nối SQL Server khi startup. API vẫn chạy, hãy kiểm tra DB rồi chạy migration lại.");
+        }
+        catch (Exception ex)
+        {
+            // OLD CODE (kept for reference): chỉ bắt SqlException.
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning(ex, "Migration khi startup thất bại (ví dụ PendingModelChanges). API vẫn chạy để phục vụ debug.");
+        }
     }
 }
 

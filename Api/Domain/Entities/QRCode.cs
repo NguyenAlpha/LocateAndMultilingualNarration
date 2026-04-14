@@ -1,65 +1,52 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace Api.Domain.Entities;
+namespace LocateAndMultilingualNarration.Domain.Entities;
 
-public class QRCode
+/// <summary>
+/// Bảng quản lý mã QR độc lập.
+/// Mỗi mã QR được Admin tạo ra và chỉ cho phép sử dụng một lần.
+/// Không liên kết trực tiếp với StallId.
+/// </summary>
+public class QrCode
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// Giá trị thực tế của QR Code (chuỗi ngẫu nhiên, thường 8-32 ký tự)
-    /// Đây là thứ mà mobile app sẽ quét được và gửi lên server
+    /// Mã QR thực tế mà người dùng sẽ quét (có thể là chuỗi ngẫu nhiên hoặc Guid.ToString())
     /// </summary>
     [Required]
     [MaxLength(100)]
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Loại QR (ví dụ: "AppEntry", "DownloadLink", "Onboarding", ...)
+    /// Thời điểm tạo mã QR
     /// </summary>
-    [MaxLength(50)]
-    public string Type { get; set; } = "AppEntry";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Thời điểm tạo QR
+    /// Thời hạn sử dụng của mã QR (ví dụ: 7 ngày)
     /// </summary>
-    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiryAt { get; set; }
 
     /// <summary>
-    /// Thời hạn sử dụng (nếu NULL thì vĩnh viễn)
-    /// </summary>
-    public DateTime? ExpiresAt { get; set; }
-
-    /// <summary>
-    /// QR này đã được quét và sử dụng chưa (dùng cho one-time QR)
+    /// Đã được sử dụng chưa
     /// </summary>
     public bool IsUsed { get; set; } = false;
 
     /// <summary>
-    /// Thời điểm quét lần cuối
+    /// Thời điểm mã QR được quét và sử dụng
     /// </summary>
-    public DateTime? LastUsedAt { get; set; }
+    public DateTime? UsedAt { get; set; }
 
     /// <summary>
-    /// Số lần đã quét (nếu cho phép tái sử dụng)
+    /// DeviceId của người dùng đã quét mã này (dùng để traceability)
     /// </summary>
-    public int ScanCount { get; set; } = 0;
+    [MaxLength(100)]
+    public string? UsedByDeviceId { get; set; }
 
     /// <summary>
-    /// Trạng thái hoạt động
-    /// </summary>
-    public bool IsActive { get; set; } = true;
-
-    /// <summary>
-    /// Ghi chú (tùy chọn)
+    /// Ghi chú hoặc mô tả (nếu Admin muốn thêm thông tin)
     /// </summary>
     [MaxLength(500)]
-    public string? Description { get; set; }
-
-    /// <summary>
-    /// URL ảnh QR (nếu bạn muốn lưu hình QR lên Azure Blob để in ấn hoặc hiển thị)
-    /// </summary>
-    [MaxLength(500)]
-    public string? QrImageUrl { get; set; }
+    public string? Note { get; set; }
 }

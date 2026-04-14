@@ -1,4 +1,5 @@
 ﻿using Api.Domain.Entities;
+using LocateAndMultilingualNarration.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -27,12 +28,29 @@ namespace Api.Infrastructure.Persistence
         public DbSet<VisitorLocationLog> VisitorLocationLogs => Set<VisitorLocationLog>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<DevicePreference> DevicePreferences => Set<DevicePreference>();
+        public DbSet<ScanLog> ScanLogs => Set<ScanLog>();
 
+        //protected override void OnModelCreating(ModelBuilder modelBuilder)
+        //{
+        //    // Áp dụng toàn bộ configuration trong assembly hiện tại
+        //    modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+        //    base.OnModelCreating(modelBuilder);
+        //}
+        // Thêm DbSet
+        public DbSet<QrCode> QrCodes { get; set; } = null!;
+
+        // Trong OnModelCreating:
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Áp dụng toàn bộ configuration trong assembly hiện tại
-            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
             base.OnModelCreating(modelBuilder);
+
+            // Khôi phục apply toàn bộ EntityTypeConfiguration để tránh thiếu key mapping (ví dụ UserRole).
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+            // OLD CODE (kept for reference): modelBuilder.ApplyConfiguration(new QrCodeConfiguration());
+            // QrCodeConfiguration đã được apply khi quét assembly.
+
+            // Các ApplyConfiguration khác...
         }
     }
 }
