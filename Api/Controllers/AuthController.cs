@@ -189,7 +189,8 @@ namespace Api.Controllers
                 var user = await _context.Users
                     .Include(u => u.UserRoles)
                         .ThenInclude(ur => ur.Role)
-                    .FirstOrDefaultAsync(u => u.NormalizedEmail == request.Email.ToUpper());
+                    .FirstOrDefaultAsync(u => u.NormalizedEmail == request.Email.ToUpper()
+                                          || u.NormalizedUserName == request.Email.ToUpper());
 
                 if (user == null)
                 {
