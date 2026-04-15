@@ -1,14 +1,17 @@
-﻿
+@model Web.Models.UserRoleManagementViewModel
 @{
-    ViewData["Title"] = "UserRoleManagement";
+    ViewData["Title"] = "User & Role Management";
+    var totalPages = Model.PageSize > 0 ? (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize) : 1;
+    var startItem = Model.TotalCount == 0 ? 0 : (Model.Page - 1) * Model.PageSize + 1;
+    var endItem = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
 }
 
 <!-- Page Header -->
 <div class="page-header">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="/Pages/Home/Index.html">Home</a></li>
-            <li class="breadcrumb-item"><a href="#">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item">Admin</li>
             <li class="breadcrumb-item active" aria-current="page">User & Role Management</li>
         </ol>
     </nav>
@@ -20,431 +23,306 @@
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <!-- Tabs -->
 <ul class="nav nav-tabs mb-4" id="userManagementTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true">
+        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
             <i class="bi bi-people me-1"></i>Users
+            <span class="badge bg-secondary ms-1">@Model.TotalCount</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab" aria-controls="roles" aria-selected="false">
+        <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab">
             <i class="bi bi-shield-lock me-1"></i>Roles
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab" aria-controls="permissions" aria-selected="false">
+        <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab">
             <i class="bi bi-key me-1"></i>Permissions
         </button>
     </li>
 </ul>
 
 <div class="tab-content" id="userManagementTabContent">
+
     <!-- Users Tab -->
-    <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
-        <!-- Search/Filter -->
-        <div class="search-filter-bar">
+    <div class="tab-pane fade show active" id="users" role="tabpanel">
+
+        <!-- Search/Filter Form -->
+        <form method="get" asp-action="UserRoleManagement" asp-controller="Admin" class="mb-3">
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label for="userSearch" class="form-label visually-hidden">Search users</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control table-search" id="userSearch" placeholder="Search users...">
+                        <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="Tìm email hoặc username...">
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label for="roleFilter" class="form-label visually-hidden">Filter by role</label>
-                    <select class="form-select status-filter" id="roleFilter" aria-label="Filter by role">
-                        <option value="">All Roles</option>
-                        <option value="admin">Administrator</option>
-                        <option value="manager">Manager</option>
-                        <option value="operator">Operator</option>
-                        <option value="viewer">Viewer</option>
+                    <select class="form-select" name="roleFilter">
+                        <option value="">Tất cả Role</option>
+                        <option value="Admin" selected="@(Model.RoleFilter == "Admin")">Admin</option>
+                        <option value="BusinessOwner" selected="@(Model.RoleFilter == "BusinessOwner")">BusinessOwner</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label for="statusFilter" class="form-label visually-hidden">Filter by status</label>
-                    <select class="form-select status-filter" id="statusFilter" aria-label="Filter by status">
-                        <option value="">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="pending">Pending</option>
+                    <select class="form-select" name="isActiveFilter">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="true" selected="@(Model.IsActiveFilter == true)">Active</option>
+                        <option value="false" selected="@(Model.IsActiveFilter == false)">Inactive</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button class="btn btn-outline-secondary w-100" type="button">
-                        <i class="bi bi-funnel me-1"></i>More Filters
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-funnel me-1"></i>Lọc
                     </button>
                 </div>
             </div>
-        </div>
+        </form>
 
         <!-- Users Table -->
         <div class="table-container">
             <div class="table-responsive">
-                <table class="table table-hover" id="usersTable" aria-label="Users list">
+                <table class="table table-hover" id="usersTable">
                     <thead>
                         <tr>
-                            <th scope="col" class="no-export" style="width: 40px;">
-                                <input type="checkbox" class="form-check-input select-all" aria-label="Select all users">
-                            </th>
-                            <th scope="col" class="sortable">Name</th>
-                            <th scope="col" class="sortable">Email</th>
-                            <th scope="col" class="sortable">Role</th>
-                            <th scope="col" class="sortable">Status</th>
-                            <th scope="col" class="sortable">Last Login</th>
-                            <th scope="col" class="no-export">Actions</th>
+                            <th scope="col">User</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Role</th>
+                            <th scope="col">Trạng thái</th>
+                            <th scope="col">Đăng nhập cuối</th>
+                            <th scope="col">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input row-select" aria-label="Select user"></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">JD</div>
-                                    <div>John Doe</div>
-                                </div>
-                            </td>
-                            <td>john.doe@example.com</td>
-                            <td><span class="badge bg-danger">Administrator</span></td>
-                            <td><span class="badge bg-success">Active</span></td>
-                            <td>Mar 16, 2026 14:32</td>
-                            <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="John Doe" data-bs-toggle="tooltip" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input row-select" aria-label="Select user"></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">JS</div>
-                                    <div>Jane Smith</div>
-                                </div>
-                            </td>
-                            <td>jane.smith@example.com</td>
-                            <td><span class="badge bg-primary">Manager</span></td>
-                            <td><span class="badge bg-success">Active</span></td>
-                            <td>Mar 16, 2026 11:20</td>
-                            <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Jane Smith" data-bs-toggle="tooltip" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input row-select" aria-label="Select user"></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">MW</div>
-                                    <div>Mike Wilson</div>
-                                </div>
-                            </td>
-                            <td>mike.wilson@example.com</td>
-                            <td><span class="badge bg-info">Operator</span></td>
-                            <td><span class="badge bg-success">Active</span></td>
-                            <td>Mar 15, 2026 16:45</td>
-                            <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Mike Wilson" data-bs-toggle="tooltip" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input row-select" aria-label="Select user"></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">SJ</div>
-                                    <div>Sarah Jones</div>
-                                </div>
-                            </td>
-                            <td>sarah.jones@example.com</td>
-                            <td><span class="badge bg-secondary">Viewer</span></td>
-                            <td><span class="badge bg-warning text-dark">Pending</span></td>
-                            <td>Mar 15, 2026 11:00</td>
-                            <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Sarah Jones" data-bs-toggle="tooltip" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input row-select" aria-label="Select user"></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">RB</div>
-                                    <div>Robert Brown</div>
-                                </div>
-                            </td>
-                            <td>robert.brown@example.com</td>
-                            <td><span class="badge bg-info">Operator</span></td>
-                            <td><span class="badge bg-danger">Inactive</span></td>
-                            <td>Feb 28, 2026 09:15</td>
-                            <td>
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="tooltip" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-info btn-action" data-bs-toggle="tooltip" title="View">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger btn-action btn-delete" data-item-name="Robert Brown" data-bs-toggle="tooltip" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+                        @foreach (var u in Model.Users)
+                        {
+                            var initial = u.UserName?.Length > 0 ? u.UserName.Substring(0, 1).ToUpper() : "?";
+                            var primaryRole = u.Roles.FirstOrDefault() ?? "";
+                            var roleBadge = primaryRole == "Admin" ? "bg-danger" : "bg-primary";
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2"
+                                             style="width:32px;height:32px;font-size:14px;flex-shrink:0;">
+                                            @initial
+                                        </div>
+                                        <div>@u.UserName</div>
+                                    </div>
+                                </td>
+                                <td>@u.Email</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(primaryRole))
+                                    {
+                                        <span class="badge @roleBadge">@primaryRole</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">–</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (u.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    @(u.LastLoginAt.HasValue ? u.LastLoginAt.Value.ToString("dd/MM/yyyy HH:mm") : "–")
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        <!-- Toggle Active -->
+                                        <form method="post" asp-action="ToggleUserActive" asp-controller="Admin"
+                                              asp-route-id="@u.Id"
+                                              asp-route-page="@Model.Page" asp-route-pageSize="@Model.PageSize"
+                                              asp-route-search="@Model.Search" asp-route-roleFilter="@Model.RoleFilter"
+                                              asp-route-isActiveFilter="@Model.IsActiveFilter"
+                                              style="display:inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="btn btn-sm @(u.IsActive ? "btn-outline-warning" : "btn-outline-success")"
+                                                    title="@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt")"
+                                                    onclick="return confirm('@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt") user @u.UserName?')">
+                                                <i class="bi @(u.IsActive ? "bi-person-slash" : "bi-person-check")"></i>
+                                            </button>
+                                        </form>
+
+                                        <!-- Change Role -->
+                                        <form method="post" asp-action="UpdateUserRole" asp-controller="Admin"
+                                              asp-route-id="@u.Id"
+                                              asp-route-page="@Model.Page" asp-route-pageSize="@Model.PageSize"
+                                              asp-route-search="@Model.Search" asp-route-roleFilter="@Model.RoleFilter"
+                                              asp-route-isActiveFilter="@Model.IsActiveFilter"
+                                              class="d-flex gap-1">
+                                            @Html.AntiForgeryToken()
+                                            <select name="roleName" class="form-select form-select-sm" style="width:auto;">
+                                                <option value="Admin" selected="@(primaryRole == "Admin")">Admin</option>
+                                                <option value="BusinessOwner" selected="@(primaryRole == "BusinessOwner")">BusinessOwner</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Đổi role">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Users.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>Không có user nào.
+                                </td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
+
             <!-- Pagination -->
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="text-muted">
-                    Showing 1-5 of 248 users
+            @if (Model.TotalCount > 0)
+            {
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Hiển thị @startItem–@endItem trong @Model.TotalCount users
+                    </div>
+                    @if (totalPages > 1)
+                    {
+                        <nav>
+                            <ul class="pagination mb-0">
+                                <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                                    <a class="page-link" asp-action="UserRoleManagement" asp-controller="Admin"
+                                       asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize"
+                                       asp-route-search="@Model.Search" asp-route-roleFilter="@Model.RoleFilter"
+                                       asp-route-isActiveFilter="@Model.IsActiveFilter">&laquo;</a>
+                                </li>
+                                @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(totalPages, Model.Page + 2); p++)
+                                {
+                                    <li class="page-item @(p == Model.Page ? "active" : "")">
+                                        <a class="page-link" asp-action="UserRoleManagement" asp-controller="Admin"
+                                           asp-route-page="@p" asp-route-pageSize="@Model.PageSize"
+                                           asp-route-search="@Model.Search" asp-route-roleFilter="@Model.RoleFilter"
+                                           asp-route-isActiveFilter="@Model.IsActiveFilter">@p</a>
+                                    </li>
+                                }
+                                <li class="page-item @(Model.Page >= totalPages ? "disabled" : "")">
+                                    <a class="page-link" asp-action="UserRoleManagement" asp-controller="Admin"
+                                       asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize"
+                                       asp-route-search="@Model.Search" asp-route-roleFilter="@Model.RoleFilter"
+                                       asp-route-isActiveFilter="@Model.IsActiveFilter">&raquo;</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    }
                 </div>
-                <nav aria-label="Users pagination">
-                    <ul class="pagination mb-0">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" aria-label="Previous">
-                                <span aria-hidden="true">&laquo;</span>
-                            </a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link" href="#">3</a></li>
-                        <li class="page-item"><a class="page-link" href="#">...</a></li>
-                        <li class="page-item"><a class="page-link" href="#">50</a></li>
-                        <li class="page-item">
-                            <a class="page-link" href="#" aria-label="Next">
-                                <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
+            }
         </div>
     </div>
 
     <!-- Roles Tab -->
-    <div class="tab-pane fade" id="roles" role="tabpanel" aria-labelledby="roles-tab">
+    <div class="tab-pane fade" id="roles" role="tabpanel">
         <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-danger text-white">
-                        <h5 class="mb-0"><i class="bi bi-shield-fill-check me-2"></i>Administrator</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">Full system access with all permissions enabled.</p>
-                        <p class="text-muted small mb-2">Assigned Users: 3</p>
-                        <div class="d-flex gap-1 flex-wrap">
-                            <span class="badge bg-light text-dark">All Permissions</span>
+            @foreach (var r in Model.Roles)
+            {
+                var headerClass = r.Name == "Admin" ? "bg-danger" : "bg-primary";
+                var icon = r.Name == "Admin" ? "bi-shield-fill-check" : "bi-person-badge";
+                var description = r.Name == "Admin"
+                    ? "Toàn quyền truy cập hệ thống, quản lý tất cả users và dữ liệu."
+                    : "Quản lý business, stalls, narration và subscription của mình.";
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header @headerClass text-white">
+                            <h5 class="mb-0"><i class="bi @icon me-2"></i>@r.Name</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">@description</p>
+                            <p class="text-muted small mb-2">Số user: <strong>@r.UserCount</strong></p>
+                        </div>
+                        <div class="card-footer">
+                            <a asp-action="UserRoleManagement" asp-controller="Admin"
+                               asp-route-roleFilter="@r.Name"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-people me-1"></i>Xem Users
+                            </a>
                         </div>
                     </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary">Edit Role</button>
-                        <button class="btn btn-sm btn-outline-secondary">View Users</button>
-                    </div>
                 </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Manager</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">Can manage businesses, stalls, and view reports.</p>
-                        <p class="text-muted small mb-2">Assigned Users: 12</p>
-                        <div class="d-flex gap-1 flex-wrap">
-                            <span class="badge bg-light text-dark">Business</span>
-                            <span class="badge bg-light text-dark">Stalls</span>
-                            <span class="badge bg-light text-dark">Reports</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary">Edit Role</button>
-                        <button class="btn btn-sm btn-outline-secondary">View Users</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="bi bi-person-gear me-2"></i>Operator</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">Can create and edit stalls and content.</p>
-                        <p class="text-muted small mb-2">Assigned Users: 45</p>
-                        <div class="d-flex gap-1 flex-wrap">
-                            <span class="badge bg-light text-dark">Stalls</span>
-                            <span class="badge bg-light text-dark">Content</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary">Edit Role</button>
-                        <button class="btn btn-sm btn-outline-secondary">View Users</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0"><i class="bi bi-eye me-2"></i>Viewer</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text">Read-only access to view data and reports.</p>
-                        <p class="text-muted small mb-2">Assigned Users: 188</p>
-                        <div class="d-flex gap-1 flex-wrap">
-                            <span class="badge bg-light text-dark">View Only</span>
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn btn-sm btn-outline-primary">Edit Role</button>
-                        <button class="btn btn-sm btn-outline-secondary">View Users</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 border-dashed">
-                    <div class="card-body d-flex flex-column align-items-center justify-content-center text-center">
-                        <i class="bi bi-plus-circle fs-1 text-muted mb-3"></i>
-                        <h5>Create New Role</h5>
-                        <p class="text-muted">Define custom permissions for specific user groups</p>
-                        <button class="btn btn-outline-primary">Add Role</button>
-                    </div>
-                </div>
-            </div>
+            }
         </div>
     </div>
 
-    <!-- Permissions Tab -->
-    <div class="tab-pane fade" id="permissions" role="tabpanel" aria-labelledby="permissions-tab">
+    <!-- Permissions Tab (static) -->
+    <div class="tab-pane fade" id="permissions" role="tabpanel">
         <div class="table-container">
             <div class="table-responsive">
-                <table class="table table-bordered" aria-label="Permissions matrix">
+                <table class="table table-bordered">
                     <thead>
                         <tr>
                             <th scope="col">Permission</th>
-                            <th scope="col" class="text-center">Administrator</th>
-                            <th scope="col" class="text-center">Manager</th>
-                            <th scope="col" class="text-center">Operator</th>
-                            <th scope="col" class="text-center">Viewer</th>
+                            <th scope="col" class="text-center">Admin</th>
+                            <th scope="col" class="text-center">BusinessOwner</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="table-light">
-                            <td colspan="5"><strong>Business Management</strong></td>
+                        <tr class="table-light"><td colspan="3"><strong>Business Management</strong></td></tr>
+                        <tr>
+                            <td>Xem tất cả Business</td>
+                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+                            <td class="text-center"><i class="bi bi-dash-circle text-muted" title="Chỉ business của mình"></i></td>
                         </tr>
                         <tr>
-                            <td>View Businesses</td>
+                            <td>Tạo / Sửa / Kích hoạt Business</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+                            <td class="text-center"><i class="bi bi-dash-circle text-muted" title="Chỉ business của mình"></i></td>
                         </tr>
+                        <tr class="table-light"><td colspan="3"><strong>Stall Management</strong></td></tr>
                         <tr>
-                            <td>Create Business</td>
+                            <td>Xem / Tạo / Sửa Stall</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
+                            <td class="text-center"><i class="bi bi-dash-circle text-muted" title="Chỉ stall thuộc business của mình"></i></td>
                         </tr>
+                        <tr class="table-light"><td colspan="3"><strong>Subscription</strong></td></tr>
                         <tr>
-                            <td>Edit Business</td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                        </tr>
-                        <tr>
-                            <td>Delete Business</td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                        </tr>
-                        <tr class="table-light">
-                            <td colspan="5"><strong>Stall Management</strong></td>
-                        </tr>
-                        <tr>
-                            <td>View Stalls</td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                        </tr>
-                        <tr>
-                            <td>Create Stall</td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
+                            <td>Nâng cấp / Xem tất cả đơn đăng ký</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
                             <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
                         </tr>
                         <tr>
-                            <td>Edit Stall</td>
+                            <td>Đăng ký gói (Basic/Pro)</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
                         </tr>
-                        <tr class="table-light">
-                            <td colspan="5"><strong>User Management</strong></td>
-                        </tr>
+                        <tr class="table-light"><td colspan="3"><strong>User Management</strong></td></tr>
                         <tr>
-                            <td>View Users</td>
+                            <td>Xem / Tạo / Đổi role / Toggle active</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                        </tr>
-                        <tr>
-                            <td>Create User</td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                        </tr>
-                        <tr>
-                            <td>Manage Roles</td>
-                            <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
-                            <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
                             <td class="text-center"><i class="bi bi-x-circle-fill text-danger"></i></td>
                         </tr>
                     </tbody>
                 </table>
+                <p class="text-muted small mt-2">
+                    <i class="bi bi-dash-circle me-1"></i> = chỉ truy cập dữ liệu của mình
+                </p>
             </div>
         </div>
     </div>
@@ -455,96 +333,49 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addUserModalLabel"><i class="bi bi-person-plus me-2"></i>Add New User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="addUserModalLabel"><i class="bi bi-person-plus me-2"></i>Thêm User Mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addUserForm">
+            <form method="post" asp-action="AdminCreateUser" asp-controller="Admin">
+                @Html.AntiForgeryToken()
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="firstName" name="FirstName"
-                                   data-val="true"
-                                   data-val-required="First name is required"
-                                   placeholder="Enter first name">
-                            <span class="field-validation-valid" data-valmsg-for="FirstName" data-valmsg-replace="true"></span>
+                            <label for="userName" class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="userName" name="UserName"
+                                   placeholder="Nhập username" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="lastName" name="LastName"
-                                   data-val="true"
-                                   data-val-required="Last name is required"
-                                   placeholder="Enter last name">
-                            <span class="field-validation-valid" data-valmsg-for="LastName" data-valmsg-replace="true"></span>
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="Email"
+                                   placeholder="Nhập email" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="email" name="Email"
-                               data-val="true"
-                               data-val-required="Email is required"
-                               data-val-email="Please enter a valid email address"
-                               placeholder="Enter email address">
-                        <span class="field-validation-valid" data-valmsg-for="Email" data-valmsg-replace="true"></span>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                            <label for="password" class="form-label">Mật khẩu <span class="text-danger">*</span></label>
                             <input type="password" class="form-control" id="password" name="Password"
-                                   data-val="true"
-                                   data-val-required="Password is required"
-                                   data-val-length="Password must be at least 8 characters"
-                                   data-val-length-min="8"
-                                   placeholder="Enter password">
-                            <span class="field-validation-valid" data-valmsg-for="Password" data-valmsg-replace="true"></span>
+                                   placeholder="Tối thiểu 6 ký tự" required minlength="6">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword"
-                                   data-val="true"
-                                   data-val-required="Please confirm password"
-                                   data-val-equalto="Passwords must match"
-                                   data-val-equalto-other="Password"
-                                   placeholder="Confirm password">
-                            <span class="field-validation-valid" data-valmsg-for="ConfirmPassword" data-valmsg-replace="true"></span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
-                            <select class="form-select" id="role" name="Role"
-                                    data-val="true"
-                                    data-val-required="Please select a role">
-                                <option value="">Select a role</option>
-                                <option value="admin">Administrator</option>
-                                <option value="manager">Manager</option>
-                                <option value="operator">Operator</option>
-                                <option value="viewer">Viewer</option>
-                            </select>
-                            <span class="field-validation-valid" data-valmsg-for="Role" data-valmsg-replace="true"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status" name="Status">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="pending">Pending Verification</option>
-                            </select>
+                            <label for="phoneNumber" class="form-label">Số điện thoại</label>
+                            <input type="tel" class="form-control" id="phoneNumber" name="PhoneNumber"
+                                   placeholder="+84 xxx xxx xxx">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="sendWelcome" checked>
-                            <label class="form-check-label" for="sendWelcome">
-                                Send welcome email with login credentials
-                            </label>
-                        </div>
+                        <label for="roleName" class="form-label">Role <span class="text-danger">*</span></label>
+                        <select class="form-select" id="roleName" name="RoleName" required>
+                            <option value="">-- Chọn role --</option>
+                            <option value="Admin">Admin</option>
+                            <option value="BusinessOwner">BusinessOwner</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-person-plus me-1"></i>Create User
+                        <i class="bi bi-person-plus me-1"></i>Tạo User
                     </button>
                 </div>
             </form>

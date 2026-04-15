@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.DTOs.Businesses;
+using Shared.DTOs.Users;
 using Web.Models;
 using Web.Services;
 
@@ -13,6 +14,7 @@ namespace Web.Controllers
         private readonly StallNarrationContentApiClient _narrationContentApiClient;
         private readonly SubscriptionApiClient _subscriptionApiClient;
         private readonly SubscriptionOrderApiClient _subscriptionOrderApiClient;
+        private readonly UserApiClient _userApiClient;
 
         public AdminController(
             BusinessApiClient businessApiClient,
@@ -20,7 +22,8 @@ namespace Web.Controllers
             LanguageApiClient languageApiClient,
             StallNarrationContentApiClient narrationContentApiClient,
             SubscriptionApiClient subscriptionApiClient,
-            SubscriptionOrderApiClient subscriptionOrderApiClient)
+            SubscriptionOrderApiClient subscriptionOrderApiClient,
+            UserApiClient userApiClient)
         {
             _businessApiClient = businessApiClient;
             _stallApiClient = stallApiClient;
@@ -28,6 +31,7 @@ namespace Web.Controllers
             _narrationContentApiClient = narrationContentApiClient;
             _subscriptionApiClient = subscriptionApiClient;
             _subscriptionOrderApiClient = subscriptionOrderApiClient;
+            _userApiClient = userApiClient;
         }
 
         public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
@@ -86,7 +90,90 @@ namespace Web.Controllers
             return View(vm);
         }
 
-        public IActionResult UserRoleManagement() => View();
+        [HttpGet]
+        public async Task<IActionResult> UserRoleManagement(
+            int page = 1, int pageSize = 20,
+            string? search = null, string? roleFilter = null, bool? isActiveFilter = null,
+            CancellationToken cancellationToken = default)
+        {
+            var usersTask = _userApiClient.GetUsersAsync(page, pageSize, search, roleFilter, isActiveFilter, cancellationToken);
+            var rolesTask = _userApiClient.GetRolesAsync(cancellationToken);
+            await Task.WhenAll(usersTask, rolesTask);
+
+            var usersResult = await usersTask;
+            var rolesResult = await rolesTask;
+
+            var vm = new UserRoleManagementViewModel
+            {
+                Users = usersResult?.Data?.Items?.ToList() ?? [],
+                Roles = rolesResult?.Data ?? [],
+                Page = usersResult?.Data?.Page ?? page,
+                PageSize = usersResult?.Data?.PageSize ?? pageSize,
+                TotalCount = usersResult?.Data?.TotalCount ?? 0,
+                Search = search,
+                RoleFilter = roleFilter,
+                IsActiveFilter = isActiveFilter,
+                SuccessMessage = TempData["SuccessMessage"] as string,
+                ErrorMessage = TempData["ErrorMessage"] as string
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdminCreateUser(
+            [Bind("UserName,Email,Password,PhoneNumber,RoleName")] AdminCreateUserDto model,
+            CancellationToken cancellationToken = default)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "Dữ liệu không hợp lệ.";
+                return RedirectToAction(nameof(UserRoleManagement));
+            }
+
+            var result = await _userApiClient.AdminCreateUserAsync(model, cancellationToken);
+            if (result?.Success != true)
+            {
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Tạo user thất bại.";
+                return RedirectToAction(nameof(UserRoleManagement));
+            }
+
+            TempData["SuccessMessage"] = $"Đã tạo user \"{model.UserName}\" thành công.";
+            return RedirectToAction(nameof(UserRoleManagement));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleUserActive(
+            Guid id, int page = 1, int pageSize = 20,
+            string? search = null, string? roleFilter = null, bool? isActiveFilter = null,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _userApiClient.ToggleUserActiveAsync(id, cancellationToken);
+            if (result?.Success != true)
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không thể thay đổi trạng thái.";
+            else
+                TempData["SuccessMessage"] = "Đã cập nhật trạng thái user.";
+
+            return RedirectToAction(nameof(UserRoleManagement), new { page, pageSize, search, roleFilter, isActiveFilter });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateUserRole(
+            Guid id, string roleName, int page = 1, int pageSize = 20,
+            string? search = null, string? roleFilter = null, bool? isActiveFilter = null,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _userApiClient.UpdateUserRoleAsync(id, new UserRoleUpdateDto { RoleName = roleName }, cancellationToken);
+            if (result?.Success != true)
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không thể đổi role.";
+            else
+                TempData["SuccessMessage"] = "Đã cập nhật role.";
+
+            return RedirectToAction(nameof(UserRoleManagement), new { page, pageSize, search, roleFilter, isActiveFilter });
+        }
 
         public IActionResult Statistics() => View();
 
