@@ -27,9 +27,6 @@ namespace Mobile
             // chỉ có thể điều hướng đến bằng: await Shell.Current.GoToAsync(nameof(XxxPage))
             // nameof() trả về tên lớp dưới dạng string, tránh lỗi typo và hỗ trợ refactor
 
-            // Trang đăng nhập — hiển thị khi người dùng chưa xác thực
-            Routing.RegisterRoute(nameof(LoginPage), typeof(LoginPage));
-
             // Trang chọn ngôn ngữ thuyết minh — hiển thị sau khi quét thành công
             Routing.RegisterRoute(nameof(LanguagePage), typeof(LanguagePage));
 

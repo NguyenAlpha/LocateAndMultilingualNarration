@@ -19,7 +19,6 @@ public class StartViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ICommand ScanCommand { get; }
-    public ICommand LoginCommand { get; }
 
     public StartViewModel(
         IDeviceService deviceService,
@@ -31,7 +30,6 @@ public class StartViewModel : INotifyPropertyChanged
         _logger = logger;
 
         ScanCommand = new Command(async () => await Shell.Current.GoToAsync($"//{nameof(ScanPage)}"));
-        LoginCommand = new Command(async () => await Shell.Current.GoToAsync(nameof(LoginPage)));
     }
 
     public async Task InitializeAsync()

@@ -12,7 +12,7 @@ namespace Mobile.ViewModels
         private readonly ILanguageService _languageService;
         private readonly IVoiceService _voiceService;
         private readonly IDevicePreferenceApiService _devicePreferenceService;
-        private readonly SessionService _sessionService;
+        private readonly IQrAccessService _qrAccessService;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -127,12 +127,12 @@ namespace Mobile.ViewModels
             ILanguageService languageService,
             IVoiceService voiceService,
             IDevicePreferenceApiService devicePreferenceService,
-            SessionService sessionService)
+            IQrAccessService qrAccessService)
         {
             _languageService = languageService;
             _voiceService = voiceService;
             _devicePreferenceService = devicePreferenceService;
-            _sessionService = sessionService;
+            _qrAccessService = qrAccessService;
 
             SaveProfileCommand = new Command(async () => await SaveProfileAsync());
             LogoutCommand = new Command(async () => await LogoutAsync());
@@ -149,7 +149,7 @@ namespace Mobile.ViewModels
                 IsBusy = true;
                 StatusMessage = "Đang tải thông tin hồ sơ...";
 
-                UserName = _sessionService.GetUserName() ?? "Du khách";
+                UserName = "Du khách";
 
                 // Load danh sách ngôn ngữ
                 var languages = await _languageService.GetLanguagesAsync(forceRefresh: true);
@@ -296,8 +296,8 @@ namespace Mobile.ViewModels
 
             if (!confirm) return;
 
-            _sessionService.ClearSession();
-            await Shell.Current.GoToAsync("//StartPage");
+            _qrAccessService.ClearAccess();
+            await Shell.Current.GoToAsync("//ScanPage");
         }
 
         private static string ConvertFlagToEmoji(string? flagCode)

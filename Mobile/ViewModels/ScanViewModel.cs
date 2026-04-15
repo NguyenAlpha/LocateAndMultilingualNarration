@@ -8,6 +8,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.ApplicationModel;
 using Mobile.Services;
+using Shared.DTOs.QrCodes;
 using SkiaSharp;
 using ZXing;
 using ZXing.Common;
@@ -16,15 +17,22 @@ namespace Mobile.ViewModels;
 
 public class ScanViewModel : INotifyPropertyChanged
 {
-    private readonly IQrSessionService _qrSessionService;
+    private readonly IQrAccessService _qrAccessService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDeviceService _deviceService;
     private readonly ILogger<ScanViewModel> _logger;
+
+    // Guard chặn nhiều luồng quét đồng thời cùng gọi GoToAsync —
+    // camera có thể detect liên tiếp nhiều frame trong 1 giây,
+    // nếu không chặn sẽ push nhiều trang lên navigation stack và gây crash.
     private int _navigationGuard;
+
+    // URL cứng cho Android emulator: 10.0.2.2 là alias trỏ về localhost của máy host.
     private const string ApiBaseUrl = "http://10.0.2.2:5299";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    // true khi đang gọi API hoặc xử lý ảnh — dùng để disable nút và hiện spinner.
     bool _isBusy;
     public bool IsBusy
     {
@@ -37,6 +45,8 @@ public class ScanViewModel : INotifyPropertyChanged
         }
     }
 
+    // Bật/tắt camera detect — tắt ngay khi bắt đầu xử lý QR để camera không
+    // tiếp tục fire sự kiện OnQrDetected trong lúc đang navigate.
     bool _isDetecting = true;
     public bool IsDetecting
     {
@@ -49,6 +59,7 @@ public class ScanViewModel : INotifyPropertyChanged
         }
     }
 
+    // Chuỗi nhập tay — fallback khi camera không quét được (môi trường tối, QR nhỏ…).
     string _manualQrInput = string.Empty;
     public string ManualQrInput
     {
@@ -61,6 +72,7 @@ public class ScanViewModel : INotifyPropertyChanged
         }
     }
 
+    // Thông báo lỗi hiển thị trực tiếp trên UI — rỗng nghĩa là không có lỗi.
     string _errorMessage = string.Empty;
     public string ErrorMessage
     {
@@ -70,44 +82,52 @@ public class ScanViewModel : INotifyPropertyChanged
             if (_errorMessage == value) return;
             _errorMessage = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(HasError));
+            OnPropertyChanged(nameof(HasError)); // HasError phụ thuộc vào ErrorMessage
         }
     }
 
+    // Computed property — XAML dùng để ẩn/hiện khung lỗi mà không cần converter.
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
+    // Lệnh nhận kết quả từ ZXing camera — ScanPage gọi khi camera detect được QR.
     public ICommand ScanResultCommand { get; }
+
+    // Lệnh xử lý QR nhập tay — giữ nguyên flow verify như camera.
     public ICommand SubmitManualQrCommand { get; }
+
+    // Lệnh mở thư viện ảnh, giải mã QR từ ảnh rồi đưa vào flow verify như camera.
     public ICommand PickImageFromGalleryCommand { get; }
 
     public ScanViewModel(
-        IQrSessionService qrSessionService,
+        IQrAccessService qrAccessService,
         IHttpClientFactory httpClientFactory,
         IDeviceService deviceService,
         ILogger<ScanViewModel> logger)
     {
-        _qrSessionService = qrSessionService;
+        _qrAccessService = qrAccessService;
         _httpClientFactory = httpClientFactory;
         _deviceService = deviceService;
         _logger = logger;
 
-        // Lệnh xử lý kết quả quét từ camera.
         ScanResultCommand = new Command<string>(async text => await HandleQrResultAsync(text));
-
-        // Lệnh xử lý nhập tay (giữ lại flow cũ để không mất logic hiện tại).
         SubmitManualQrCommand = new Command(async () => await HandleQrResultAsync(ManualQrInput));
-
-        // Lệnh mở thư viện và giải mã QR từ ảnh.
         PickImageFromGalleryCommand = new Command(async () => await PickAndDecodeQrAsync());
     }
 
+    /// <summary>
+    /// Gọi khi user quay lại ScanPage — reset camera và xóa lỗi cũ
+    /// để tránh thấy trạng thái lỗi của lần quét trước.
+    /// </summary>
     public void ResetScanner()
     {
-        // Cho phép camera tiếp tục detect khi quay lại trang.
         IsDetecting = true;
         ErrorMessage = string.Empty;
     }
 
+    /// <summary>
+    /// Mở MediaPicker để chọn ảnh, giải mã QR bằng ZXing, rồi chuyển sang flow verify.
+    /// Dùng khi camera không tiếp cận được mã QR (in trên giấy, màn hình xa…).
+    /// </summary>
     private async Task PickAndDecodeQrAsync()
     {
         if (IsBusy) return;
@@ -122,10 +142,8 @@ public class ScanViewModel : INotifyPropertyChanged
                 Title = "Chọn ảnh chứa mã QR"
             });
 
-            if (fileResult is null)
-            {
-                return;
-            }
+            // User hủy picker — không làm gì thêm.
+            if (fileResult is null) return;
 
             await using var stream = await fileResult.OpenReadAsync();
             var decodedText = await DecodeQrFromImageAsync(stream);
@@ -138,7 +156,7 @@ public class ScanViewModel : INotifyPropertyChanged
                 return;
             }
 
-            // Kết thúc trạng thái xử lý bước decode trước khi chuyển sang flow điều hướng QR.
+            // Reset IsBusy trước khi gọi HandleQrResultAsync vì method đó có guard `if (IsBusy) return`.
             IsBusy = false;
             await HandleQrResultAsync(decodedText);
         }
@@ -155,46 +173,49 @@ public class ScanViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Giải mã QR từ stream ảnh bằng SkiaSharp + ZXing.
+    /// Chạy trên background thread (Task.Run) vì decode ảnh lớn tốn CPU,
+    /// không được chặn UI thread.
+    /// </summary>
     private async Task<string?> DecodeQrFromImageAsync(Stream imageStream)
     {
         return await Task.Run(() =>
         {
+            // Copy stream vào MemoryStream để đọc lại nhiều lần (stream gốc không seekable).
             using var managed = new MemoryStream();
             imageStream.CopyTo(managed);
             managed.Position = 0;
 
             using var bitmap = SKBitmap.Decode(managed);
-            if (bitmap is null)
-            {
-                return null;
-            }
+            if (bitmap is null) return null;
 
-            // Profile dữ liệu lớn có thể kéo theo ảnh QR rất lớn; bọc kiểm tra để tránh cấp phát quá mức.
+            // Giới hạn ảnh 128 MB (width × height × 4 bytes/pixel) để tránh OOM
+            // khi user chọn ảnh RAW hoặc ảnh panorama siêu lớn.
             var estimatedBytes = (long)bitmap.Width * bitmap.Height * 4;
             if (estimatedBytes > 128L * 1024L * 1024L)
-            {
                 throw new InvalidOperationException("Ảnh quá lớn để giải mã QR an toàn.");
-            }
 
+            // Chuyển pixel SKColor → mảng byte RGBA thô mà ZXing RGBLuminanceSource cần.
             var rawBytes = new byte[bitmap.Width * bitmap.Height * 4];
             var colors = bitmap.Pixels;
-
             for (var i = 0; i < colors.Length; i++)
             {
                 var offset = i * 4;
-                rawBytes[offset] = colors[i].Red;
+                rawBytes[offset]     = colors[i].Red;
                 rawBytes[offset + 1] = colors[i].Green;
                 rawBytes[offset + 2] = colors[i].Blue;
                 rawBytes[offset + 3] = colors[i].Alpha;
             }
 
-            var luminance = new RGBLuminanceSource(rawBytes, bitmap.Width, bitmap.Height, RGBLuminanceSource.BitmapFormat.RGBA32);
+            // ZXing pipeline: raw bytes → luminance → binary → decode
+            var luminance    = new RGBLuminanceSource(rawBytes, bitmap.Width, bitmap.Height, RGBLuminanceSource.BitmapFormat.RGBA32);
             var binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminance));
 
             var reader = new MultiFormatReader();
-            var hints = new Dictionary<DecodeHintType, object>
+            var hints  = new Dictionary<DecodeHintType, object>
             {
-                { DecodeHintType.TRY_HARDER, true },
+                { DecodeHintType.TRY_HARDER, true }, // thử nhiều góc xoay, scale hơn — chậm hơn nhưng chính xác hơn
                 { DecodeHintType.POSSIBLE_FORMATS, new List<BarcodeFormat> { BarcodeFormat.QR_CODE } }
             };
 
@@ -203,6 +224,10 @@ public class ScanViewModel : INotifyPropertyChanged
         });
     }
 
+    /// <summary>
+    /// Điểm xử lý trung tâm — nhận chuỗi QR từ bất kỳ nguồn nào (camera, nhập tay, ảnh),
+    /// gọi API verify, lưu quyền truy cập nếu hợp lệ, rồi điều hướng.
+    /// </summary>
     private async Task HandleQrResultAsync(string? result)
     {
         if (IsBusy) return;
@@ -215,18 +240,18 @@ public class ScanViewModel : INotifyPropertyChanged
 
         try
         {
-            // Chặn nhiều luồng quét cùng điều hướng, nguyên nhân phổ biến gây crash loop khi camera detect liên tiếp.
-            if (Interlocked.CompareExchange(ref _navigationGuard, 1, 0) == 1)
-            {
-                return;
-            }
+            // Dùng Interlocked thay lock vì method này async — lock thông thường không hoạt động đúng với await.
+            // So sánh-và-đổi: nếu _navigationGuard đang là 0 thì đổi thành 1 và tiếp tục,
+            // ngược lại (đã là 1) nghĩa là luồng khác đang xử lý → thoát ngay.
+            if (Interlocked.CompareExchange(ref _navigationGuard, 1, 0) == 1) return;
 
             IsBusy = true;
             ErrorMessage = string.Empty;
-            IsDetecting = false;
+            IsDetecting = false; // dừng camera ngay để không fire thêm sự kiện trong lúc đang xử lý
 
-            // Verify mã QR với API trước khi cho phép vào app.
             var verifyResult = await VerifyQrCodeAsync(result);
+
+            // null = không kết nối được server (timeout, network lỗi…)
             if (verifyResult is null)
             {
                 ErrorMessage = "Không thể kết nối máy chủ. Vui lòng thử lại.";
@@ -234,6 +259,7 @@ public class ScanViewModel : INotifyPropertyChanged
                 return;
             }
 
+            // isValid = false = QR đã dùng, hết hạn, hoặc không tồn tại
             if (!verifyResult.Value.isValid)
             {
                 ErrorMessage = verifyResult.Value.message;
@@ -241,7 +267,9 @@ public class ScanViewModel : INotifyPropertyChanged
                 return;
             }
 
-            _qrSessionService.SaveSession(verifyResult.Value.expiryAt);
+            // Lưu vào Preferences — giúp LoadingPage skip ScanPage khi mở lại app
+            // miễn là QR chưa hết hạn (kiểm tra bằng expiryAt > UtcNow).
+            _qrAccessService.SaveAccess(verifyResult.Value.expiryAt);
 
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.GoToAsync(nameof(LanguagePage)));
@@ -255,29 +283,38 @@ public class ScanViewModel : INotifyPropertyChanged
         finally
         {
             IsBusy = false;
-            Interlocked.Exchange(ref _navigationGuard, 0);
+            Interlocked.Exchange(ref _navigationGuard, 0); // mở khóa để lần quét tiếp theo có thể vào
         }
     }
 
+    /// <summary>
+    /// Gửi mã QR lên API để xác thực.
+    /// Trả về null nếu không kết nối được hoặc response không hợp lệ.
+    /// Trả về tuple (isValid, message, expiryAt) theo dữ liệu API trả về.
+    /// </summary>
     private async Task<(bool isValid, string message, DateTime expiryAt)?> VerifyQrCodeAsync(string code)
     {
         try
         {
             var deviceId = _deviceService.GetOrCreateDeviceId();
-            var client = _httpClientFactory.CreateClient("ApiHttp");
-            var request = new QrCodeVerifyRequestDto { Code = code, DeviceId = deviceId };
+            var client   = _httpClientFactory.CreateClient("ApiHttp");
+            var request  = new QrCodeVerifyRequestDto { Code = code, DeviceId = deviceId };
+
             var response = await client.PostAsJsonAsync($"{ApiBaseUrl}/api/qrcodes/verify", request);
             if (!response.IsSuccessStatusCode) return null;
 
             var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
+            using var doc  = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
+            // Cấu trúc response: { success: bool, data: { isValid, message, expiryAt? } }
             if (!root.GetProperty("success").GetBoolean()) return null;
 
-            var data = root.GetProperty("data");
-            var isValid = data.GetProperty("isValid").GetBoolean();
-            var message = data.GetProperty("message").GetString() ?? string.Empty;
+            var data     = root.GetProperty("data");
+            var isValid  = data.GetProperty("isValid").GetBoolean();
+            var message  = data.GetProperty("message").GetString() ?? string.Empty;
+
+            // expiryAt chỉ có trong response khi isValid = true.
             var expiryAt = isValid && data.TryGetProperty("expiryAt", out var expiryProp)
                 ? expiryProp.GetDateTime()
                 : DateTime.MinValue;

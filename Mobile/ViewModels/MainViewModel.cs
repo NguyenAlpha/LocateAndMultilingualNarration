@@ -11,7 +11,7 @@ namespace Mobile.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
-    readonly SessionService sessionService;
+    readonly IQrAccessService _qrAccessService;
     readonly IStallService stallService;
     private int _quickActionNavigationGuard;
 
@@ -67,9 +67,9 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public MainViewModel(SessionService sessionService, IStallService stallService)
+    public MainViewModel(IQrAccessService qrAccessService, IStallService stallService)
     {
-        this.sessionService = sessionService;
+        _qrAccessService = qrAccessService;
         this.stallService = stallService;
         LoadUserName();
 
@@ -93,7 +93,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void LoadUserName()
     {
-        UserName = sessionService.GetUserName();
+        UserName = "Du khách";
     }
 
     public async Task LoadFeaturedStallsAsync()
@@ -157,8 +157,8 @@ public class MainViewModel : INotifyPropertyChanged
 
     async Task LogoutAsync()
     {
-        sessionService.ClearSession();
-        await Shell.Current.GoToAsync("//StartPage");
+        _qrAccessService.ClearAccess();
+        await Shell.Current.GoToAsync("//ScanPage");
     }
 
     private async Task NavigateQuickActionAsync(string route)
