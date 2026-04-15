@@ -105,7 +105,6 @@ public static class MauiProgram
 
 
         // OLD CODE (kept for reference): dùng builder.Services.AddTransient<T>() trực tiếp gây ambiguous extension trong một số context.
-        ServiceCollectionServiceExtensions.AddTransient<StartViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
@@ -118,7 +117,6 @@ public static class MauiProgram
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<VoicePage>();
-        builder.Services.AddTransient<StartPage>();
         builder.Services.AddTransient<StallPopup>();
         builder.Services.AddTransient<ProfilePage>();
 

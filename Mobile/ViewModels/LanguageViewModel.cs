@@ -6,7 +6,6 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
 using Mobile.Models;
-using Mobile.Pages;
 using Mobile.Services;
 
 namespace Mobile.ViewModels;
@@ -26,8 +25,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
     public ObservableCollection<LanguageOption> Languages { get; } = new();
     public ObservableCollection<LanguageOption> FilteredLanguages { get; } = new();
-    public ObservableCollection<LanguageOption> PopularLanguages { get; } = new();
-    public ObservableCollection<LanguageOption> RecentLanguages { get; } = new();
     public ObservableCollection<VoiceOption> Voices { get; } = new();
 
     public ObservableCollection<LanguageOption> AvailableLanguages => FilteredLanguages;
@@ -130,9 +127,6 @@ public class LanguageViewModel : INotifyPropertyChanged
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool IsReadyToContinue => SelectedLanguage != null && SelectedVoice != null && !IsBusy;
 
-    public string? StallId { get; private set; }
-    public string? Token { get; private set; }
-
     public ICommand LoadDataCommand { get; }
     public ICommand ConfirmSelectionCommand { get; }
 
@@ -153,12 +147,6 @@ public class LanguageViewModel : INotifyPropertyChanged
         ConfirmSelectionCommand = new Command(async () => await ConfirmSelectionAsync());
     }
 
-    public void SetScanContext(string? stallId, string? token)
-    {
-        StallId = stallId;
-        Token = token;
-    }
-
     public async Task LoadLanguagesAsync()
     {
         if (IsBusy) return;
@@ -171,7 +159,6 @@ public class LanguageViewModel : INotifyPropertyChanged
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            // SỬA Ở ĐÂY: Gọi đúng method GetActiveLanguagesAsync()
             var languages = await _languageService.GetActiveLanguagesAsync();
 
             _allLanguages.Clear();
@@ -198,11 +185,6 @@ public class LanguageViewModel : INotifyPropertyChanged
                 return;
             }
 
-            PopularLanguages.Clear();
-            foreach (var lang in _allLanguages.Take(8))
-                PopularLanguages.Add(lang);
-
-            await LoadRecentLanguagesAsync();
             FilterLanguages();
 
             SelectedLanguage = Languages.FirstOrDefault();
@@ -306,13 +288,7 @@ public class LanguageViewModel : INotifyPropertyChanged
             if (result.Success)
             {
                 LanguageHelper.SetLanguage(SelectedLanguage.Code);
-                SaveToRecentLanguages(SelectedLanguage);
-
-                var route = "//MapPage";
-                if (!string.IsNullOrWhiteSpace(StallId))
-                    route += $"?stallId={Uri.EscapeDataString(StallId)}";
-
-                await Shell.Current.GoToAsync(route);
+                await Shell.Current.GoToAsync("//MapPage");
             }
             else
             {
@@ -340,17 +316,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
         return char.ConvertFromUtf32(0x1F1E6 + (code[0] - 'A'))
              + char.ConvertFromUtf32(0x1F1E6 + (code[1] - 'A'));
-    }
-
-    private async Task LoadRecentLanguagesAsync()
-    {
-        RecentLanguages.Clear();
-        await Task.CompletedTask; // TODO: implement later
-    }
-
-    private void SaveToRecentLanguages(LanguageOption selectedLanguage)
-    {
-        // TODO: implement later
     }
 
     void OnPropertyChanged([CallerMemberName] string? name = null)
