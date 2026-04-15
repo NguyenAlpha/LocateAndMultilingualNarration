@@ -5,7 +5,6 @@ namespace LocateAndMultilingualNarration.Domain.Entities;
 /// <summary>
 /// Bảng quản lý mã QR độc lập.
 /// Mỗi mã QR được Admin tạo ra và chỉ cho phép sử dụng một lần.
-/// Không liên kết trực tiếp với StallId.
 /// </summary>
 public class QrCode
 {
