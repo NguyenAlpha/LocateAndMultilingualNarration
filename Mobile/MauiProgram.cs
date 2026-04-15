@@ -116,7 +116,6 @@ public static class MauiProgram
         builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<LanguagePage>();
-        builder.Services.AddTransient<VoicePage>();
         builder.Services.AddTransient<StallPopup>();
         builder.Services.AddTransient<ProfilePage>();
 

@@ -20,7 +20,6 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand StartCommand { get; }
     public ICommand MapCommand { get; }
     public ICommand LanguageCommand { get; }
-    public ICommand AudioCommand { get; }
     public ICommand ProfileCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand LoadDataCommand { get; }
@@ -78,7 +77,6 @@ public class MainViewModel : INotifyPropertyChanged
         // OLD CODE (kept for reference): MapCommand = new Command(async () => await NavigateQuickActionAsync($"//{nameof(MapPage)}"));
         MapCommand = new Command(async () => await NavigateQuickActionAsync("//MapPage"));
         LanguageCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
-        AudioCommand = new Command(async () => await NavigateQuickActionAsync("AudioPage"));
         ProfileCommand = new Command(async () => await ShowProfileAsync());
         LogoutCommand = new Command(async () => await LogoutAsync());
         LoadDataCommand = new Command(async () => await LoadFeaturedStallsAsync());
