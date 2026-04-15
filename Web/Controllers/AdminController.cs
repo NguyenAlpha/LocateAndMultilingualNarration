@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.DTOs.Businesses;
+using Shared.DTOs.QrCodes;
 using Shared.DTOs.Users;
 using Web.Models;
 using Web.Services;
@@ -15,6 +16,7 @@ namespace Web.Controllers
         private readonly SubscriptionApiClient _subscriptionApiClient;
         private readonly SubscriptionOrderApiClient _subscriptionOrderApiClient;
         private readonly UserApiClient _userApiClient;
+        private readonly QrCodeApiClient _qrCodeApiClient;
 
         public AdminController(
             BusinessApiClient businessApiClient,
@@ -23,7 +25,8 @@ namespace Web.Controllers
             StallNarrationContentApiClient narrationContentApiClient,
             SubscriptionApiClient subscriptionApiClient,
             SubscriptionOrderApiClient subscriptionOrderApiClient,
-            UserApiClient userApiClient)
+            UserApiClient userApiClient,
+            QrCodeApiClient qrCodeApiClient)
         {
             _businessApiClient = businessApiClient;
             _stallApiClient = stallApiClient;
@@ -32,6 +35,7 @@ namespace Web.Controllers
             _subscriptionApiClient = subscriptionApiClient;
             _subscriptionOrderApiClient = subscriptionOrderApiClient;
             _userApiClient = userApiClient;
+            _qrCodeApiClient = qrCodeApiClient;
         }
 
         public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
@@ -176,6 +180,87 @@ namespace Web.Controllers
         }
 
         public IActionResult Statistics() => View();
+
+        [HttpGet]
+        public async Task<IActionResult> QrCodes(
+            int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+        {
+            var result = await _qrCodeApiClient.GetQrCodesAsync(page, pageSize, ct: cancellationToken);
+            var items = result?.Data?.Items?.ToList() ?? [];
+
+            var vm = new AdminQrCodesViewModel
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = result?.Data?.TotalCount ?? 0,
+                TotalUsed = items.Count(q => q.IsUsed),
+                SuccessMessage = TempData["SuccessMessage"] as string,
+                ErrorMessage = TempData["ErrorMessage"] as string
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateQrCode(
+            QrCodeCreateDto model, int page = 1, int pageSize = 20,
+            CancellationToken cancellationToken = default)
+        {
+            if (!ModelState.IsValid || model.ExpiryAt <= DateTime.UtcNow)
+            {
+                var result = await _qrCodeApiClient.GetQrCodesAsync(page, pageSize, ct: cancellationToken);
+                var items = result?.Data?.Items?.ToList() ?? [];
+                var vm = new AdminQrCodesViewModel
+                {
+                    Items = items,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = result?.Data?.TotalCount ?? 0,
+                    TotalUsed = items.Count(q => q.IsUsed),
+                    Create = model,
+                    ShowCreateModal = true,
+                    ErrorMessage = "Ngày hết hạn không hợp lệ."
+                };
+                return View("QrCodes", vm);
+            }
+
+            var apiResult = await _qrCodeApiClient.CreateQrCodeAsync(model, cancellationToken);
+            if (apiResult?.Success != true)
+            {
+                TempData["ErrorMessage"] = apiResult?.Error?.Message ?? "Tạo mã QR thất bại.";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Đã tạo mã QR thành công.";
+            }
+
+            return RedirectToAction(nameof(QrCodes), new { page, pageSize });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteQrCode(
+            Guid id, int page = 1, int pageSize = 20,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _qrCodeApiClient.DeleteQrCodeAsync(id, cancellationToken);
+            if (response?.Success != true)
+                TempData["ErrorMessage"] = response?.Error?.Message ?? "Xoá mã QR thất bại.";
+            else
+                TempData["SuccessMessage"] = "Đã xoá mã QR.";
+
+            return RedirectToAction(nameof(QrCodes), new { page, pageSize });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetQrImage(Guid id, CancellationToken cancellationToken = default)
+        {
+            var bytes = await _qrCodeApiClient.GetQrCodeImageAsync(id, cancellationToken);
+            if (bytes is null) return NotFound();
+            return File(bytes, "image/png", $"qr-{id}.png");
+        }
 
         [HttpGet]
         public async Task<IActionResult> Subscription(

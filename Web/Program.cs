@@ -67,6 +67,11 @@ builder.Services.AddHttpClient<UserApiClient>(client =>
     client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 }).AddHttpMessageHandler<AuthTokenHandler>();
 
+builder.Services.AddHttpClient<QrCodeApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
 //builder.Services.AddHttpClient<StallGeoFenceApiClient>(client =>
 //{
 //    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
