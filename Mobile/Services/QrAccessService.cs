@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Mobile.Services;
 
 /// <summary>
@@ -25,6 +27,13 @@ public class QrAccessService : IQrAccessService
     private const string VerifiedKey = "qr_verified"; // bool   – đã quét QR thành công chưa
     private const string ExpiryKey   = "qr_expiry";   // string – thời điểm QR hết hạn (ISO-8601)
 
+    private readonly ILogger<QrAccessService> _logger;
+
+    public QrAccessService(ILogger<QrAccessService> logger)
+    {
+        _logger = logger;
+    }
+
     /// <summary>
     /// Gọi sau khi API verify trả về isValid=true.
     /// Lưu cờ đã xác nhận và thời hạn của mã QR vừa quét.
@@ -33,6 +42,7 @@ public class QrAccessService : IQrAccessService
     {
         Preferences.Set(VerifiedKey, true);
         Preferences.Set(ExpiryKey, expiryAt.ToString("O")); // "O" = ISO-8601 round-trip format
+        _logger.LogInformation("[QrAccess] Đã lưu quyền truy cập. ExpiryAt={ExpiryAt:O}", expiryAt);
     }
 
     /// <summary>
@@ -42,11 +52,27 @@ public class QrAccessService : IQrAccessService
     public bool IsAccessValid()
     {
         // Chưa từng quét QR thành công
-        if (!Preferences.Get(VerifiedKey, false)) return false;
+        if (!Preferences.Get(VerifiedKey, false))
+        {
+            _logger.LogInformation("[QrAccess] Chưa có QR được verify.");
+            return false;
+        }
 
         // Đọc và parse thời hạn — nếu lỗi parse thì coi như hết hạn
         var raw = Preferences.Get(ExpiryKey, string.Empty);
-        return DateTime.TryParse(raw, out var expiry) && expiry > DateTime.UtcNow;
+        if (!DateTime.TryParse(raw, out var expiry))
+        {
+            _logger.LogWarning("[QrAccess] Không parse được ExpiryAt='{Raw}' → coi như hết hạn.", raw);
+            return false;
+        }
+
+        var valid = expiry > DateTime.UtcNow;
+        if (valid)
+            _logger.LogInformation("[QrAccess] Quyền truy cập còn hiệu lực. ExpiryAt={ExpiryAt:O}", expiry);
+        else
+            _logger.LogInformation("[QrAccess] QR đã hết hạn. ExpiryAt={ExpiryAt:O}, Now={Now:O}", expiry, DateTime.UtcNow);
+
+        return valid;
     }
 
     /// <summary>
@@ -56,5 +82,6 @@ public class QrAccessService : IQrAccessService
     {
         Preferences.Remove(VerifiedKey);
         Preferences.Remove(ExpiryKey);
+        _logger.LogInformation("[QrAccess] Đã xoá quyền truy cập.");
     }
 }
