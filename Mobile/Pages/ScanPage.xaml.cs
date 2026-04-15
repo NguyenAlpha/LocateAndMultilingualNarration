@@ -1,6 +1,5 @@
 ﻿using Microsoft.Maui.ApplicationModel;
 using Mobile.Helpers;
-using Mobile.Services;
 using Mobile.ViewModels;
 using ZXing.Net.Maui;
 
@@ -8,24 +7,17 @@ namespace Mobile.Pages;
 
 public partial class ScanPage : ContentPage
 {
-    // OLD CODE (kept for reference):
-    // private bool _isScanning;
-    // private bool _isTorchOn;
-
     // Biến để chặn scan lặp nhiều lần khi camera detect liên tục.
     private bool isScanning = true;
     private bool _isTorchOn;
 
     private readonly ScanViewModel _viewModel;
-    private readonly SessionService _sessionService;
 
     public ScanPage()
     {
         InitializeComponent();
 
-        // Giữ tương thích logic cũ: page vẫn bind ScanViewModel để dùng command chọn ảnh.
         _viewModel = ServiceHelper.GetService<ScanViewModel>();
-        _sessionService = ServiceHelper.GetService<SessionService>();
         BindingContext = _viewModel;
     }
 
@@ -104,51 +96,11 @@ public partial class ScanPage : ContentPage
         isScanning = false;
         cameraView.IsDetecting = false;
 
-        // Đưa về MainThread để thao tác UI/navigation an toàn.
-        MainThread.BeginInvokeOnMainThread(async () =>
+        // Route qua ViewModel để verify QR với API trước khi điều hướng.
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            await HandleQrSuccess(value);
+            _viewModel.ScanResultCommand.Execute(value);
         });
-    }
-
-    // Xử lý khi scan thành công: chuyển sang LanguagePage và truyền stallId.
-    private async Task HandleQrSuccess(string qrValue)
-    {
-        try
-        {
-            // OLD CODE (kept for reference): kiểm tra định dạng GUID trước khi điều hướng.
-            // if (!Guid.TryParse(value, out _))
-            // {
-            //     await DisplayAlertAsync("QR", "Mã QR không hợp lệ. Vui lòng quét lại.", "OK");
-            //     isScanning = true;
-            //     cameraView.IsDetecting = true;
-            //     return;
-            // }
-
-            string stallId = qrValue;
-
-            if (!Guid.TryParse(stallId, out _))
-            {
-                await DisplayAlertAsync("QR", "Mã QR không hợp lệ. Vui lòng quét lại.", "OK");
-                isScanning = true;
-                cameraView.IsDetecting = true;
-                return;
-            }
-
-            _sessionService.SetGuestMode(true);
-
-            // OLD CODE (kept for reference): LocalStorageService.SaveStallId(value);
-            await LocalStorageService.SaveStallId(stallId);
-
-            Console.WriteLine($"[DEBUG] Navigating to LanguagePage after scan with StallId: {stallId}");
-            await Shell.Current.GoToAsync($"//LanguagePage?stallId={Uri.EscapeDataString(stallId)}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[ERROR] {ex.Message}");
-            isScanning = true;
-            cameraView.IsDetecting = true;
-        }
     }
 
     private async void OnBackClicked(object? sender, TappedEventArgs e)

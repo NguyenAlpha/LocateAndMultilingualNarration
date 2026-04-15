@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Input;
@@ -14,9 +16,12 @@ namespace Mobile.ViewModels;
 
 public class ScanViewModel : INotifyPropertyChanged
 {
-    private readonly SessionService _sessionService;
+    private readonly IQrSessionService _qrSessionService;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IDeviceService _deviceService;
     private readonly ILogger<ScanViewModel> _logger;
     private int _navigationGuard;
+    private const string ApiBaseUrl = "http://10.0.2.2:5299";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -75,9 +80,15 @@ public class ScanViewModel : INotifyPropertyChanged
     public ICommand SubmitManualQrCommand { get; }
     public ICommand PickImageFromGalleryCommand { get; }
 
-    public ScanViewModel(SessionService sessionService, ILogger<ScanViewModel> logger)
+    public ScanViewModel(
+        IQrSessionService qrSessionService,
+        IHttpClientFactory httpClientFactory,
+        IDeviceService deviceService,
+        ILogger<ScanViewModel> logger)
     {
-        _sessionService = sessionService;
+        _qrSessionService = qrSessionService;
+        _httpClientFactory = httpClientFactory;
+        _deviceService = deviceService;
         _logger = logger;
 
         // Lệnh xử lý kết quả quét từ camera.
@@ -214,13 +225,26 @@ public class ScanViewModel : INotifyPropertyChanged
             ErrorMessage = string.Empty;
             IsDetecting = false;
 
-            // Giữ nguyên hành vi guest mode của logic cũ.
-            _sessionService.SetGuestMode(true);
+            // Verify mã QR với API trước khi cho phép vào app.
+            var verifyResult = await VerifyQrCodeAsync(result);
+            if (verifyResult is null)
+            {
+                ErrorMessage = "Không thể kết nối máy chủ. Vui lòng thử lại.";
+                IsDetecting = true;
+                return;
+            }
 
-            var stallId = ExtractStallId(result);
-            var route = BuildLanguageRoute(stallId, result);
+            if (!verifyResult.Value.isValid)
+            {
+                ErrorMessage = verifyResult.Value.message;
+                IsDetecting = true;
+                return;
+            }
 
-            await MainThread.InvokeOnMainThreadAsync(async () => await Shell.Current.GoToAsync(route));
+            _qrSessionService.SaveSession(verifyResult.Value.expiryAt);
+
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+                await Shell.Current.GoToAsync(nameof(LanguagePage)));
         }
         catch (Exception ex)
         {
@@ -235,39 +259,36 @@ public class ScanViewModel : INotifyPropertyChanged
         }
     }
 
-    private static string BuildLanguageRoute(string? stallId, string rawToken)
+    private async Task<(bool isValid, string message, DateTime expiryAt)?> VerifyQrCodeAsync(string code)
     {
-        var route = nameof(LanguagePage);
-
-        if (!string.IsNullOrWhiteSpace(stallId))
+        try
         {
-            route += $"?stallId={Uri.EscapeDataString(stallId)}";
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var client = _httpClientFactory.CreateClient("ApiHttp");
+            var request = new QrCodeVerifyRequestDto { Code = code, DeviceId = deviceId };
+            var response = await client.PostAsJsonAsync($"{ApiBaseUrl}/api/qrcodes/verify", request);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            if (!root.GetProperty("success").GetBoolean()) return null;
+
+            var data = root.GetProperty("data");
+            var isValid = data.GetProperty("isValid").GetBoolean();
+            var message = data.GetProperty("message").GetString() ?? string.Empty;
+            var expiryAt = isValid && data.TryGetProperty("expiryAt", out var expiryProp)
+                ? expiryProp.GetDateTime()
+                : DateTime.MinValue;
+
+            return (isValid, message, expiryAt);
         }
-        else
+        catch (Exception ex)
         {
-            route += $"?token={Uri.EscapeDataString(rawToken)}";
+            _logger.LogError(ex, "Lỗi khi verify mã QR");
+            return null;
         }
-
-        return route;
-    }
-
-    private static string? ExtractStallId(string result)
-    {
-        // OLD CODE (kept for reference): logic tách boothId đã từng nằm trong ScanPage.xaml.cs.
-        if (Guid.TryParse(result, out var guid))
-            return guid.ToString();
-
-        if (int.TryParse(result, out _))
-            return result;
-
-        var queryMatch = Regex.Match(result, @"(boothId|stallId)=(?<id>[^&\s]+)", RegexOptions.IgnoreCase);
-        if (queryMatch.Success)
-            return queryMatch.Groups["id"].Value;
-
-        if (result.StartsWith("stall:", StringComparison.OrdinalIgnoreCase))
-            return result.Split(':', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-
-        return null;
     }
 
     void OnPropertyChanged([CallerMemberName] string? name = null)
