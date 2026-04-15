@@ -23,12 +23,11 @@ public class LanguageService : ILanguageService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private const string ApiClientName = "ApiHttp";
+    private const string BaseUrl = "http://10.0.2.2:5299";
 
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
     private List<LanguageDetailDto>? _cachedLanguages;
     private DateTime _lastFetchUtc;
-
-    // OLD CODE (kept for reference): private const string BaseUrl = "http://10.0.2.2:5299";
 
     public LanguageService(IHttpClientFactory httpClientFactory)
     {
@@ -70,7 +69,7 @@ public class LanguageService : ILanguageService
             // Tạo HttpClient từ factory để gọi API ngôn ngữ.
             var client = _httpClientFactory.CreateClient(ApiClientName);
             // Gọi endpoint lấy danh sách ngôn ngữ đang active.
-            var response = await client.GetAsync("api/languages/active", cancellationToken);
+            var response = await client.GetAsync($"{BaseUrl}/api/languages/active", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 // Nếu API lỗi thì trả lại dữ liệu cache hiện có, hoặc danh sách rỗng.

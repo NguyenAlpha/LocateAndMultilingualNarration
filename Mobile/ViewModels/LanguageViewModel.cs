@@ -338,4 +338,6 @@ public class VoiceOption
     public string DisplayName { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsDefault { get; set; }
+
+    public string DisplayText => IsDefault ? $"{DisplayName} (Mặc định)" : DisplayName;
 }
