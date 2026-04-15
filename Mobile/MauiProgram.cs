@@ -97,7 +97,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ILocationLogService, LocationLogService>();
 
         // Lưu trạng thái QR đã verify vào Preferences để skip ScanPage khi mở lại app
-        builder.Services.AddSingleton<IQrAccessService, QrAccessService>();
+        builder.Services.AddSingleton<IQrService, QrService>();
 
         // ---- VIEWMODELS (Transient — tạo mới mỗi khi được resolve) ----
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,

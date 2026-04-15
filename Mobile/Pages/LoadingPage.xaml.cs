@@ -8,13 +8,13 @@ public partial class LoadingPage : ContentPage
 {
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
     private readonly ILocalPreferenceService _localPreference;
-    private readonly IQrAccessService _qrAccessService;
+    private readonly IQrService _qrAccessService;
     private readonly ILogger<LoadingPage> _logger;
 
     public LoadingPage(
         IDevicePreferenceApiService devicePreferenceApiService,
         ILocalPreferenceService localPreference,
-        IQrAccessService qrAccessService,
+        IQrService qrAccessService,
         ILogger<LoadingPage> logger)
     {
         InitializeComponent();

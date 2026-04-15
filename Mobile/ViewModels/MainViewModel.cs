@@ -11,7 +11,7 @@ namespace Mobile.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
-    readonly IQrAccessService _qrAccessService;
+    readonly IQrService _qrAccessService;
     readonly IStallService stallService;
     private int _quickActionNavigationGuard;
 
@@ -66,7 +66,7 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public MainViewModel(IQrAccessService qrAccessService, IStallService stallService)
+    public MainViewModel(IQrService qrAccessService, IStallService stallService)
     {
         _qrAccessService = qrAccessService;
         this.stallService = stallService;

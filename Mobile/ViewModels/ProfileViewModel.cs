@@ -12,7 +12,7 @@ namespace Mobile.ViewModels
         private readonly ILanguageService _languageService;
         private readonly IVoiceService _voiceService;
         private readonly IDevicePreferenceApiService _devicePreferenceService;
-        private readonly IQrAccessService _qrAccessService;
+        private readonly IQrService _qrAccessService;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -127,7 +127,7 @@ namespace Mobile.ViewModels
             ILanguageService languageService,
             IVoiceService voiceService,
             IDevicePreferenceApiService devicePreferenceService,
-            IQrAccessService qrAccessService)
+            IQrService qrAccessService)
         {
             _languageService = languageService;
             _voiceService = voiceService;
