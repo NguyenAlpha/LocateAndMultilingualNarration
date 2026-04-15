@@ -21,7 +21,8 @@
                    HorizontalOptions="Center"/>
         </VerticalStackLayout>
 
-        <!-- Search Bar -->
+        <!-- SỬA Ở ĐÂY: OLD CODE (kept for reference): Search Bar nằm ở ngoài popup. -->
+        <!--
         <Frame Grid.Row="1"
                CornerRadius="25"
                BackgroundColor="White"
@@ -34,8 +35,37 @@
                    ClearButtonVisibility="WhileEditing"
                    TextChanged="OnSearchTextChanged"/>
         </Frame>
+        -->
 
-        <!-- Chọn ngôn ngữ -->
+        <!-- SỬA Ở ĐÂY: Vùng hiển thị ngôn ngữ đã chọn + nút mở Popup -->
+        <Frame Grid.Row="1"
+               CornerRadius="16"
+               BackgroundColor="White"
+               HasShadow="True"
+               Padding="14">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Ngôn ngữ đang chọn"
+                           FontSize="13"
+                           TextColor="#6B7280"/>
+                    <Label Text="{Binding SelectedLanguage.Name, TargetNullValue='Chưa chọn ngôn ngữ'}"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#111827"/>
+                </VerticalStackLayout>
+
+                <Button Grid.Column="1"
+                        Text="Chọn"
+                        Clicked="OnOpenLanguagePopupClicked"
+                        BackgroundColor="#4F46E5"
+                        TextColor="White"
+                        CornerRadius="14"
+                        Padding="16,8"/>
+            </Grid>
+        </Frame>
+
+        <!-- SỬA Ở ĐÂY: OLD CODE (kept for reference): chọn ngôn ngữ bằng Picker. -->
+        <!--
         <VerticalStackLayout Grid.Row="2" Spacing="8">
             <Label Text="Ngôn ngữ thuyết minh"
                    FontSize="16"
@@ -47,22 +77,43 @@
                     Title="Chọn ngôn ngữ"
                     FontSize="16"/>
         </VerticalStackLayout>
+        -->
 
-        <!-- Chọn giọng đọc (tự động cập nhật theo ngôn ngữ) -->
-        <VerticalStackLayout Grid.Row="3" Spacing="8">
+        <!-- SỬA Ở ĐÂY: Hiển thị danh sách giọng đọc ngay bên dưới ngôn ngữ -->
+        <VerticalStackLayout Grid.Row="2" Spacing="8">
             <Label Text="Giọng đọc"
                    FontSize="16"
                    FontAttributes="Bold"
                    TextColor="#374151"/>
+
+            <!-- SỬA Ở ĐÂY: OLD CODE (kept for reference): dùng Picker cho giọng đọc. -->
+            <!--
             <Picker ItemsSource="{Binding AvailableVoices}"
                     SelectedItem="{Binding SelectedVoice}"
                     ItemDisplayBinding="{Binding DisplayText}"
                     Title="Chọn giọng đọc"
                     FontSize="16"/>
+            -->
+
+            <CollectionView ItemsSource="{Binding Voices}"
+                            SelectedItem="{Binding SelectedVoice, Mode=TwoWay}"
+                            SelectionMode="Single"
+                            HeightRequest="180">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Margin="0,4" Padding="10" CornerRadius="12" HasShadow="False" BorderColor="#E5E7EB">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{Binding DisplayName}" FontAttributes="Bold" TextColor="#111827"/>
+                                <Label Text="{Binding Description}" FontSize="12" TextColor="#6B7280"/>
+                            </VerticalStackLayout>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         </VerticalStackLayout>
 
         <!-- Cài đặt bổ sung -->
-        <VerticalStackLayout Grid.Row="4" Spacing="16">
+        <VerticalStackLayout Grid.Row="3" Spacing="16">
             <Label Text="Cài đặt thuyết minh"
                    FontSize="16"
                    FontAttributes="Bold"
@@ -88,9 +139,16 @@
             </Frame>
         </VerticalStackLayout>
 
+        <!-- SỬA Ở ĐÂY: Hiển thị lỗi trên trang chính -->
+        <Label Grid.Row="4"
+               Text="{Binding ErrorMessage}"
+               IsVisible="{Binding HasError}"
+               TextColor="#DC2626"
+               FontSize="13"/>
+
         <!-- Button Tiếp tục -->
         <Button Grid.Row="5"
-                Text="Tiếp tục đến bản đồ"
+                Text="Xác nhận &amp; Tiếp tục"
                 BackgroundColor="#4F46E5"
                 TextColor="White"
                 CornerRadius="18"
@@ -99,5 +157,57 @@
                 FontAttributes="Bold"
                 Command="{Binding ConfirmSelectionCommand}"
                 IsEnabled="{Binding IsReadyToContinue}"/>
+
+        <!-- SỬA Ở ĐÂY: Giữ nguyên Popup và hiển thị danh sách ngôn ngữ bên trong Popup -->
+        <Grid Grid.RowSpan="6"
+              IsVisible="{Binding IsLanguagePopupOpen}"
+              BackgroundColor="#80000000"
+              ZIndex="10"
+              InputTransparent="False">
+            <Frame VerticalOptions="Center"
+                   HorizontalOptions="Center"
+                   WidthRequest="340"
+                   MaximumHeightRequest="520"
+                   CornerRadius="18"
+                   Padding="14"
+                   BackgroundColor="White">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+                    <Label Text="Chọn ngôn ngữ"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#111827"/>
+
+                    <SearchBar Grid.Row="1"
+                               Placeholder="Tìm ngôn ngữ..."
+                               Text="{Binding SearchText, Mode=TwoWay}"
+                               TextChanged="OnSearchTextChanged"/>
+
+                    <CollectionView Grid.Row="2"
+                                    ItemsSource="{Binding FilteredLanguages}"
+                                    SelectionMode="Single"
+                                    SelectionChanged="OnLanguagePopupSelectionChanged">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="8" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                    <Label Text="{Binding FlagEmoji}" FontSize="20" VerticalOptions="Center"/>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="0">
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" TextColor="#111827"/>
+                                        <Label Text="{Binding NativeName}" FontSize="12" TextColor="#6B7280"/>
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="2" Text="›" FontSize="22" TextColor="#9CA3AF" VerticalOptions="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <Button Grid.Row="3"
+                            Text="Đóng"
+                            Clicked="OnCloseLanguagePopupClicked"
+                            BackgroundColor="#EEF2FF"
+                            TextColor="#3730A3"
+                            CornerRadius="12"/>
+                </Grid>
+            </Frame>
+        </Grid>
     </Grid>
 </ContentPage>
