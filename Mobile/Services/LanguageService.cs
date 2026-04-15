@@ -3,17 +3,21 @@ using Shared.DTOs.Languages;
 
 namespace Mobile.Services;
 
-/// <summary>
-/// Cung cấp dữ liệu ngôn ngữ và đồng bộ lựa chọn ngôn ngữ của người dùng lên API.
-/// </summary>
-// OLD CODE (kept for reference):
-// public interface ILanguageService
-// {
-//     Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
-// }
+public interface ILanguageService
+{
+    /// <summary>
+    /// Lấy danh sách ngôn ngữ đang active từ API.
+    /// </summary>
+    Task<IReadOnlyList<LanguageDetailDto>> GetActiveLanguagesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lấy tất cả ngôn ngữ (có thể dùng cho admin hoặc cache).
+    /// </summary>
+    Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
+}
 
 /// <summary>
-/// Triển khai logic lấy danh sách ngôn ngữ và cập nhật lựa chọn ngôn ngữ của người dùng.
+/// Cung cấp dữ liệu ngôn ngữ và đồng bộ lựa chọn ngôn ngữ của người dùng lên API.
 /// </summary>
 public class LanguageService : ILanguageService
 {
