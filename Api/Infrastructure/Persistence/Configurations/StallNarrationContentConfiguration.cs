@@ -1,6 +1,7 @@
 using Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using static Api.Domain.Entities.TtsJobStatus;
 
 namespace Api.Infrastructure.Persistence.Configurations
 {
@@ -26,6 +27,16 @@ namespace Api.Infrastructure.Persistence.Configurations
 
             b.Property(x => x.IsActive)
              .HasDefaultValue(true);
+
+            b.Property(x => x.TtsStatus)
+             .HasMaxLength(32)
+             .IsRequired()
+             .HasDefaultValue(TtsJobStatus.None);
+
+            b.Property(x => x.TtsError)
+             .HasMaxLength(512);
+
+            b.HasIndex(x => x.TtsStatus);
 
             b.Property(x => x.UpdatedAt)
              .HasColumnType("datetimeoffset");

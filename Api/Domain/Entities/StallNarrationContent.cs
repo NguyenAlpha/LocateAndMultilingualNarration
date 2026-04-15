@@ -9,6 +9,8 @@ namespace Api.Domain.Entities
         public string? Description { get; set; }          // nvarchar(256)
         public string ScriptText { get; set; } = null!;   // nvarchar(max) NOT NULL
         public bool IsActive { get; set; }                // bit NOT NULL DEFAULT 1
+        public string TtsStatus { get; set; } = TtsJobStatus.None; // nvarchar(32) NOT NULL DEFAULT 'None'
+        public string? TtsError { get; set; }             // nvarchar(512)
         public DateTimeOffset? UpdatedAt { get; set; }    // datetimeoffset
 
         // Navigation
