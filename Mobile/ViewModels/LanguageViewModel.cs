@@ -6,7 +6,6 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
 using Mobile.Models;
-using Mobile.Pages;
 using Mobile.Services;
 
 namespace Mobile.ViewModels;
@@ -27,9 +26,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
     public ObservableCollection<LanguageOption> Languages { get; } = new();
     public ObservableCollection<LanguageOption> FilteredLanguages { get; } = new();
-    public ObservableCollection<LanguageOption> PopularLanguages { get; } = new();
-    public ObservableCollection<LanguageOption> RecentLanguages { get; } = new();
-
     public ObservableCollection<VoiceOption> Voices { get; } = new();
 
     private string _searchText = string.Empty;
@@ -45,7 +41,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    private LanguageOption? _selectedLanguage;
+    LanguageOption? _selectedLanguage;
     public LanguageOption? SelectedLanguage
     {
         get => _selectedLanguage;
@@ -113,7 +109,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    private string _errorMessage = string.Empty;
+    string _errorMessage = string.Empty;
     public string ErrorMessage
     {
         get => _errorMessage;
@@ -128,9 +124,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool IsReadyToContinue => SelectedLanguage != null && SelectedVoice != null && !IsBusy;
-
-    public string? StallId { get; private set; }
-    public string? Token { get; private set; }
 
     public ICommand LoadDataCommand { get; }
     public ICommand ConfirmSelectionCommand { get; }
@@ -150,12 +143,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
         LoadDataCommand = new Command(async () => await LoadLanguagesAsync());
         ConfirmSelectionCommand = new Command(async () => await ConfirmSelectionAsync());
-    }
-
-    public void SetScanContext(string? stallId, string? token)
-    {
-        StallId = stallId;
-        Token = token;
     }
 
     public async Task LoadLanguagesAsync()
@@ -197,24 +184,14 @@ public class LanguageViewModel : INotifyPropertyChanged
                 return;
             }
 
-            PopularLanguages.Clear();
-            foreach (var lang in _allLanguages.Take(8))
-                PopularLanguages.Add(lang);
-
-            await LoadRecentLanguagesAsync();
             FilterLanguages();
 
             SelectedLanguage = Languages.FirstOrDefault();
         }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Lỗi khi gọi API languages/active");
-            ErrorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra mạng.";
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Không thể tải danh sách ngôn ngữ");
-            ErrorMessage = "Tải danh sách ngôn ngữ thất bại. Vui lòng thử lại sau.";
+            ErrorMessage = "Tải danh sách ngôn ngữ thất bại. Vui lòng kiểm tra kết nối.";
         }
         finally
         {
@@ -308,13 +285,7 @@ public class LanguageViewModel : INotifyPropertyChanged
             if (result.Success)
             {
                 LanguageHelper.SetLanguage(SelectedLanguage.Code);
-                SaveToRecentLanguages(SelectedLanguage);
-
-                var route = "//MapPage";
-                if (!string.IsNullOrWhiteSpace(StallId))
-                    route += $"?stallId={Uri.EscapeDataString(StallId)}";
-
-                await Shell.Current.GoToAsync(route);
+                await Shell.Current.GoToAsync("//MapPage");
             }
             else
             {
@@ -347,21 +318,8 @@ public class LanguageViewModel : INotifyPropertyChanged
         return "🌐";
     }
 
-    private async Task LoadRecentLanguagesAsync()
-    {
-        RecentLanguages.Clear();
-        await Task.CompletedTask;
-    }
-
-    private void SaveToRecentLanguages(LanguageOption selectedLanguage)
-    {
-        // TODO later
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? name = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    }
+    void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 // Hai class hỗ trợ UI
@@ -380,4 +338,6 @@ public class VoiceOption
     public string DisplayName { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsDefault { get; set; }
+
+    public string DisplayText => IsDefault ? $"{DisplayName} (Mặc định)" : DisplayName;
 }

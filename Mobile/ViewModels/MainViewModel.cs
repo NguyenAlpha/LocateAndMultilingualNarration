@@ -11,7 +11,7 @@ namespace Mobile.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged
 {
-    readonly SessionService sessionService;
+    readonly IQrService _qrAccessService;
     readonly IStallService stallService;
     private int _quickActionNavigationGuard;
 
@@ -20,7 +20,6 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand StartCommand { get; }
     public ICommand MapCommand { get; }
     public ICommand LanguageCommand { get; }
-    public ICommand AudioCommand { get; }
     public ICommand ProfileCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand LoadDataCommand { get; }
@@ -67,9 +66,9 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public MainViewModel(SessionService sessionService, IStallService stallService)
+    public MainViewModel(IQrService qrAccessService, IStallService stallService)
     {
-        this.sessionService = sessionService;
+        _qrAccessService = qrAccessService;
         this.stallService = stallService;
         LoadUserName();
 
@@ -78,7 +77,6 @@ public class MainViewModel : INotifyPropertyChanged
         // OLD CODE (kept for reference): MapCommand = new Command(async () => await NavigateQuickActionAsync($"//{nameof(MapPage)}"));
         MapCommand = new Command(async () => await NavigateQuickActionAsync("//MapPage"));
         LanguageCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
-        AudioCommand = new Command(async () => await NavigateQuickActionAsync("AudioPage"));
         ProfileCommand = new Command(async () => await ShowProfileAsync());
         LogoutCommand = new Command(async () => await LogoutAsync());
         LoadDataCommand = new Command(async () => await LoadFeaturedStallsAsync());
@@ -93,7 +91,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void LoadUserName()
     {
-        UserName = sessionService.GetUserName();
+        UserName = "Du khách";
     }
 
     public async Task LoadFeaturedStallsAsync()
@@ -157,8 +155,8 @@ public class MainViewModel : INotifyPropertyChanged
 
     async Task LogoutAsync()
     {
-        sessionService.ClearSession();
-        await Shell.Current.GoToAsync("//StartPage");
+        _qrAccessService.ClearAccess();
+        await Shell.Current.GoToAsync("//ScanPage");
     }
 
     private async Task NavigateQuickActionAsync(string route)

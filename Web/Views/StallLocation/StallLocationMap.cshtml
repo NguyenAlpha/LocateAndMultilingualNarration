@@ -79,9 +79,14 @@
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-map me-2"></i>Bản đồ Vị trí (OpenStreetMap)</h5>
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="useCurrentLocationBtn">
-                    <i class="bi bi-crosshair me-1"></i>Vị trí hiện tại
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="toggleLabelsBtn" title="Bật/tắt hiển thị tên stall">
+                        <i class="bi bi-tag me-1"></i><span>Hiện tên</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="useCurrentLocationBtn">
+                        <i class="bi bi-crosshair me-1"></i>Vị trí hiện tại
+                    </button>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div id="map"></div>
@@ -244,7 +249,9 @@
 
         // Tất cả vị trí stall hiện có (để hiển thị trên bản đồ)
         var allStallLocations = @Html.Raw(ViewBag.AllLocationsJson ?? "[]");
-        var otherMarkers = [];
+        var otherItems = []; // { marker, circle, label } – stall của user hiện tại (đỏ)
+        var publicItems = []; // { marker, circle, label } – stall của người khác (xám)
+        var showLabels = false;
 
         // Icon xanh lục cho stall đang chọn/chỉnh sửa
         var selectedIcon = L.divIcon({
@@ -254,15 +261,25 @@
             iconAnchor: [14, 28]
         });
 
+        function getSelectedStallName() {
+            var sel = document.getElementById('stallSelect');
+            var text = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+            return (text && text !== '-- Chọn stall --') ? text : '';
+        }
+
         // Render các marker đỏ cho tất cả stall KHÔNG phải stall đang chọn
         function renderOtherMarkers(selectedStallId) {
-            otherMarkers.forEach(function(m) { map.removeLayer(m); });
-            otherMarkers = [];
+            otherItems.forEach(function(item) {
+                map.removeLayer(item.marker);
+                map.removeLayer(item.circle);
+            });
+            otherItems = [];
 
             allStallLocations.forEach(function(loc) {
                 if (loc.stallId === selectedStallId) return;
                 var lat = parseFloat(loc.latitude);
                 var lng = parseFloat(loc.longitude);
+                var label = loc.stallName || loc.stallId;
 
                 var m = L.circleMarker([lat, lng], {
                     color: '#dc3545',
@@ -271,8 +288,7 @@
                     radius: 8,
                     weight: 2
                 }).addTo(map);
-                m.bindTooltip(loc.stallName || loc.stallId, { permanent: false, direction: 'top' });
-                otherMarkers.push(m);
+                m.bindTooltip(label, { permanent: showLabels, direction: 'top' });
 
                 var radiusVal = parseFloat(loc.radiusMeters) || 8;
                 var c = L.circle([lat, lng], {
@@ -282,7 +298,8 @@
                     radius: radiusVal,
                     weight: 1.5
                 }).addTo(map);
-                otherMarkers.push(c);
+
+                otherItems.push({ marker: m, circle: c, label: label });
             });
         }
 
@@ -314,6 +331,11 @@
                 title: 'Kéo để điều chỉnh vị trí',
                 icon: selectedIcon
             }).addTo(map);
+
+            var stallName = getSelectedStallName();
+            if (stallName) {
+                marker.bindTooltip(stallName, { permanent: showLabels, direction: 'top' });
+            }
 
             // Add radius circle (xanh lục = stall đang chọn)
             var radius = parseFloat($('#radiusMeters').val()) || 8;
@@ -524,10 +546,85 @@
             });
         });
 
+        // Fetch stall của người khác từ geo API (AllowAnonymous) và render màu xám
+        function loadPublicStalls() {
+            var apiBaseUrl = '@Html.Raw(apiBaseUrl)'.replace(/\/$/, '');
+            fetch(apiBaseUrl + '/api/geo/stalls')
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (!result.success || !result.data) return;
+
+                    // Tập hợp stallId của user hiện tại (để loại trừ)
+                    var myStallIds = new Set(allStallLocations.map(function(l) { return l.stallId; }));
+
+                    publicItems.forEach(function(item) {
+                        map.removeLayer(item.marker);
+                        map.removeLayer(item.circle);
+                    });
+                    publicItems = [];
+
+                    result.data.forEach(function(stall) {
+                        if (myStallIds.has(stall.stallId)) return;
+
+                        var lat = parseFloat(stall.latitude);
+                        var lng = parseFloat(stall.longitude);
+                        var label = stall.stallName || stall.stallId;
+
+                        var m = L.circleMarker([lat, lng], {
+                            color: '#6c757d',
+                            fillColor: '#adb5bd',
+                            fillOpacity: 0.5,
+                            radius: 7,
+                            weight: 1.5
+                        }).addTo(map);
+                        m.bindTooltip(label, { permanent: showLabels, direction: 'top' });
+
+                        var radiusVal = parseFloat(stall.radiusMeters) || 8;
+                        var c = L.circle([lat, lng], {
+                            color: '#6c757d',
+                            fillColor: '#adb5bd',
+                            fillOpacity: 0.08,
+                            radius: radiusVal,
+                            weight: 1
+                        }).addTo(map);
+
+                        publicItems.push({ marker: m, circle: c, label: label });
+                    });
+                })
+                .catch(function() { /* silently ignore – chỉ là lớp tham khảo */ });
+        }
+
+        // Toggle hiển thị tên stall trên bản đồ
+        $('#toggleLabelsBtn').on('click', function() {
+            showLabels = !showLabels;
+            $(this).toggleClass('btn-outline-primary btn-primary');
+            $(this).find('span').text(showLabels ? 'Ẩn tên' : 'Hiện tên');
+
+            // Cập nhật marker đỏ (stall của user hiện tại)
+            var selectedStallId = $('#stallSelect').val() || '';
+            renderOtherMarkers(selectedStallId);
+
+            // Cập nhật marker xám (stall của người khác)
+            publicItems.forEach(function(item) {
+                item.marker.unbindTooltip();
+                item.marker.bindTooltip(item.label, { permanent: showLabels, direction: 'top' });
+            });
+
+            // Cập nhật marker xanh (stall đang chọn)
+            if (marker) {
+                var stallName = getSelectedStallName();
+                if (stallName) {
+                    marker.unbindTooltip();
+                    marker.bindTooltip(stallName, { permanent: showLabels, direction: 'top' });
+                }
+            }
+        });
+
         // Khởi tạo pin & bán kính nếu đã có tọa độ từ server (edit mode hoặc create với stall đã có location)
         $(document).ready(function() {
             var initialStallId = '@(stallId?.ToString() ?? "")';
             renderOtherMarkers(initialStallId);
+            loadPublicStalls(); // load stall của người khác (xám, chỉ xem)
 
             var lat = $('#latitude').val();
             var lng = $('#longitude').val();

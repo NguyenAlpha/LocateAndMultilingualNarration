@@ -62,5 +62,16 @@ namespace Web.Services
             var response = await _httpClient.PatchAsJsonAsync($"api/stall-narration-content/{id}/status", isActive, cancellationToken);
             return await response.Content.ReadFromJsonAsync<ApiResult<StallNarrationContentDetailDto>>(cancellationToken: cancellationToken);
         }
+
+        public async Task<ApiResult<TtsStatusDto>?> GetTtsStatusAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return await _httpClient.GetFromJsonAsync<ApiResult<TtsStatusDto>>($"api/stall-narration-content/{id}/tts-status", cancellationToken);
+        }
+
+        public async Task<ApiResult<StallNarrationContentDetailDto>?> RetryTtsAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.PostAsync($"api/stall-narration-content/{id}/retry-tts", null, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<ApiResult<StallNarrationContentDetailDto>>(cancellationToken: cancellationToken);
+        }
     }
 }

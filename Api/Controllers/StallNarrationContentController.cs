@@ -1,8 +1,8 @@
 using Api.Authorization;
+using Api.Domain.Entities;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Api.Infrastructure.Persistence.Extensions;
-using Api.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,13 +27,11 @@ namespace Api.Controllers
         private const int MaxPageSize = 100;
         private readonly AppDbContext _context;
         private readonly ILogger<StallNarrationContentController> _logger;
-        private readonly INarrationAudioService _narrationAudioService;
 
-        public StallNarrationContentController(AppDbContext context, ILogger<StallNarrationContentController> logger, INarrationAudioService narrationAudioService)
+        public StallNarrationContentController(AppDbContext context, ILogger<StallNarrationContentController> logger)
         {
             _context = context;
             _logger = logger;
-            _narrationAudioService = narrationAudioService;
         }
 
         /// <summary>
@@ -107,53 +105,29 @@ namespace Api.Controllers
             }
 
             // Tạo entity mới từ DTO (lưu UpdatedAt ở UTC)
-            var content = new Api.Domain.Entities.StallNarrationContent
+            var content = new StallNarrationContent
             {
-                StallId = request.StallId,
-                LanguageId = request.LanguageId,
-                Title = request.Title,
+                StallId     = request.StallId,
+                LanguageId  = request.LanguageId,
+                Title       = request.Title,
                 Description = request.Description,
-                ScriptText = request.ScriptText,
-                IsActive = request.IsActive,
-                UpdatedAt = DateTimeOffset.UtcNow
+                ScriptText  = request.ScriptText,
+                IsActive    = request.IsActive,
+                TtsStatus   = TtsJobStatus.Pending,
+                UpdatedAt   = DateTimeOffset.UtcNow
             };
 
             // Thêm và lưu thay đổi (deactivate others + add new trong cùng transaction)
             _context.StallNarrationContents.Add(content);
             await _context.SaveChangesAsync();
 
-            try
-            {
-                await _narrationAudioService.CreateOrUpdateFromTtsAsync(
-                    content.Id,
-                    content.ScriptText,
-                    content.LanguageId,
-                    null,
-                    null);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "TTS thất bại khi tạo narration content - ContentId: {ContentId}", content.Id);
-                return this.ServerErrorResult("Tạo narration content thành công nhưng TTS thất bại.");
-            }
+            _logger.LogInformation("Narration content tạo thành công, TTS đã queue - ContentId: {ContentId}", content.Id);
 
-            // Chuyển UpdatedAt sang timezone client (nếu header có) trước khi trả về
             var timeZone = GetTimeZone();
-            var audios = await _context.NarrationAudios
-                .Include(a => a.TtsVoiceProfile)
-                .ThenInclude(p => p.Language)
-                .AsNoTracking()
-                .Where(a => a.NarrationContentId == content.Id)
-                .OrderByDescending(a => a.UpdatedAt)
-                .ThenByDescending(a => a.Id)
-                .ToListAsync();
-
-            var audioItems = audios.Select(a => MapAudioDetail(a, timeZone)).ToList();
-
             return this.OkResult(new StallNarrationContentWithAudiosDto
             {
                 Content = MapDetail(content, timeZone),
-                Audios = audioItems
+                Audios  = []
             });
         }
 
@@ -221,7 +195,7 @@ namespace Api.Controllers
 
             if (scriptChanged)
             {
-                // Kiểm tra plan trước khi chạy TTS (Admin bypass; BusinessOwner Free bỏ qua TTS)
+                // Kiểm tra plan có hỗ trợ TTS không (Admin bypass; BusinessOwner Free bỏ qua TTS)
                 var canRunTts = IsAdmin();
                 if (!canRunTts)
                 {
@@ -233,20 +207,10 @@ namespace Api.Controllers
 
                 if (canRunTts)
                 {
-                    try
-                    {
-                        await _narrationAudioService.CreateOrUpdateFromTtsAsync(
-                            content.Id,
-                            content.ScriptText,
-                            content.LanguageId,
-                            null,
-                            null);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "TTS thất bại khi cập nhật narration content - ContentId: {ContentId}", content.Id);
-                        return this.ServerErrorResult("Cập nhật narration content thành công nhưng TTS thất bại.");
-                    }
+                    content.TtsStatus = TtsJobStatus.Pending;
+                    content.TtsError  = null;
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Script thay đổi, TTS đã queue lại - ContentId: {ContentId}", content.Id);
                 }
                 else
                 {
@@ -452,23 +416,96 @@ namespace Api.Controllers
             return this.OkResult(result);
         }
 
-        private static StallNarrationContentDetailDto MapDetail(Api.Domain.Entities.StallNarrationContent content, TimeZoneInfo timeZone)
+        /// <summary>
+        /// Lấy trạng thái TTS và danh sách audio của một StallNarrationContent.
+        /// Dùng cho JS polling để biết khi nào TTS hoàn thành.
+        /// </summary>
+        [HttpGet("{id:guid}/tts-status")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
+        public async Task<IActionResult> GetTtsStatus(Guid id)
+        {
+            if (!TryGetUserId(out var userId))
+                return this.UnauthorizedResult("Không xác thực");
+
+            var content = await _context.StallNarrationContents
+                .Include(n => n.Stall).ThenInclude(s => s.Business)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(n => n.Id == id);
+
+            if (content == null)
+                return this.NotFoundResult("Không tìm thấy narration content");
+
+            if (!IsAdmin() && content.Stall.Business.OwnerUserId != userId)
+                return this.ForbiddenResult("Không có quyền truy cập");
+
+            var audios = content.TtsStatus == TtsJobStatus.Completed
+                ? await _context.NarrationAudios
+                    .Include(a => a.TtsVoiceProfile).ThenInclude(p => p!.Language)
+                    .AsNoTracking()
+                    .Where(a => a.NarrationContentId == id)
+                    .OrderByDescending(a => a.UpdatedAt)
+                    .ToListAsync()
+                : [];
+
+            var timeZone = GetTimeZone();
+            return this.OkResult(new TtsStatusDto
+            {
+                Id        = content.Id,
+                TtsStatus = content.TtsStatus,
+                TtsError  = content.TtsError,
+                Audios    = audios.Select(a => MapAudioDetail(a, timeZone)).ToList()
+            });
+        }
+
+        /// <summary>
+        /// Reset TTS từ Failed về Pending để thử lại.
+        /// </summary>
+        [HttpPost("{id:guid}/retry-tts")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
+        public async Task<IActionResult> RetryTts(Guid id)
+        {
+            if (!TryGetUserId(out var userId))
+                return this.UnauthorizedResult("Không xác thực");
+
+            var content = await _context.StallNarrationContents
+                .Include(n => n.Stall).ThenInclude(s => s.Business)
+                .FirstOrDefaultAsync(n => n.Id == id);
+
+            if (content == null)
+                return this.NotFoundResult("Không tìm thấy narration content");
+
+            if (!IsAdmin() && content.Stall.Business.OwnerUserId != userId)
+                return this.ForbiddenResult("Không có quyền truy cập");
+
+            if (content.TtsStatus != TtsJobStatus.Failed)
+                return this.BadRequestResult("Chỉ có thể thử lại khi TTS đang ở trạng thái Failed.");
+
+            content.TtsStatus = TtsJobStatus.Pending;
+            content.TtsError  = null;
+            content.UpdatedAt = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return this.OkResult(MapDetail(content, GetTimeZone()));
+        }
+
+        private static StallNarrationContentDetailDto MapDetail(StallNarrationContent content, TimeZoneInfo timeZone)
         {
             return new StallNarrationContentDetailDto
             {
-                Id = content.Id,
-                StallId = content.StallId,
-                LanguageId = content.LanguageId,
-                Title = content.Title,
+                Id          = content.Id,
+                StallId     = content.StallId,
+                LanguageId  = content.LanguageId,
+                Title       = content.Title,
                 Description = content.Description,
-                ScriptText = content.ScriptText,
-                IsActive = content.IsActive,
-                // Convert thời gian lưu ở UTC sang timezone của client
-                UpdatedAt = ConvertFromUtc(content.UpdatedAt, timeZone)
+                ScriptText  = content.ScriptText,
+                IsActive    = content.IsActive,
+                TtsStatus   = content.TtsStatus,
+                TtsError    = content.TtsError,
+                UpdatedAt   = ConvertFromUtc(content.UpdatedAt, timeZone)
             };
         }
 
-        private static NarrationAudioDetailDto MapAudioDetail(Api.Domain.Entities.NarrationAudio audio, TimeZoneInfo timeZone)
+        private static NarrationAudioDetailDto MapAudioDetail(NarrationAudio audio, TimeZoneInfo timeZone)
         {
             return new NarrationAudioDetailDto
             {

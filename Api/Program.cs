@@ -30,6 +30,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IGeoService, GeoService>();
 builder.Services.AddScoped<INarrationAudioService, NarrationAudioService>();
 builder.Services.AddHttpClient<ITranslationService, AzureTranslationService>();
+builder.Services.AddHostedService<TtsBackgroundService>();
 
 // Cấu hình xác thực JWT cho toàn bộ API
 builder.Services.AddAuthentication(options =>

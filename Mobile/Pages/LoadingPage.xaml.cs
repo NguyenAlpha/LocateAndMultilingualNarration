@@ -8,16 +8,19 @@ public partial class LoadingPage : ContentPage
 {
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
     private readonly ILocalPreferenceService _localPreference;
+    private readonly IQrService _qrAccessService;
     private readonly ILogger<LoadingPage> _logger;
 
     public LoadingPage(
         IDevicePreferenceApiService devicePreferenceApiService,
         ILocalPreferenceService localPreference,
+        IQrService qrAccessService,
         ILogger<LoadingPage> logger)
     {
         InitializeComponent();
         _devicePreferenceApiService = devicePreferenceApiService;
         _localPreference = localPreference;
+        _qrAccessService = qrAccessService;
         _logger = logger;
     }
 
@@ -41,6 +44,13 @@ public partial class LoadingPage : ContentPage
                 return;
             }
 
+            if (!_qrAccessService.IsAccessValid())
+            {
+                _logger.LogInformation("[LoadingPage] QR chưa verify hoặc đã hết hạn → ScanPage");
+                await Shell.Current.GoToAsync("//ScanPage");
+                return;
+            }
+
             // Đọc local cache trước — không cần mạng, điều hướng ngay lập tức
             var local = _localPreference.Load();
             if (local is not null)
@@ -57,7 +67,7 @@ public partial class LoadingPage : ContentPage
             var hasPreference = preference is not null;
             if (_logger.IsEnabled(LogLevel.Information))
                 _logger.LogInformation("[LoadingPage] API hasPreference={HasPreference} → {Route}",
-                    hasPreference, hasPreference ? "MainPage" : "ScanPage");
+                    hasPreference, hasPreference ? "MainPage" : "LanguagePage");
 
             if (hasPreference)
             {
@@ -65,7 +75,7 @@ public partial class LoadingPage : ContentPage
                 _localPreference.Save(preference!);
             }
 
-            await Shell.Current.GoToAsync(hasPreference ? "//MainPage" : "//ScanPage");
+            await Shell.Current.GoToAsync(hasPreference ? "//MainPage" : nameof(LanguagePage));
         }
         catch (Exception ex)
         {

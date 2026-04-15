@@ -3,28 +3,30 @@ using Shared.DTOs.Languages;
 
 namespace Mobile.Services;
 
-/// <summary>
-/// Cung cấp dữ liệu ngôn ngữ và đồng bộ lựa chọn ngôn ngữ của người dùng lên API.
-/// </summary>
-// OLD CODE (kept for reference):
-// public interface ILanguageService
-// {
-//     Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
-// }
+public interface ILanguageService
+{
+    /// <summary>
+    /// Lấy danh sách ngôn ngữ đang active từ API.
+    /// </summary>
+    Task<IReadOnlyList<LanguageDetailDto>> GetActiveLanguagesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lấy tất cả ngôn ngữ (có thể dùng cho admin hoặc cache).
+    /// </summary>
+    Task<IReadOnlyList<LanguageDetailDto>> GetLanguagesAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
+}
 
 /// <summary>
-/// Triển khai logic lấy danh sách ngôn ngữ và cập nhật lựa chọn ngôn ngữ của người dùng.
+/// Cung cấp dữ liệu ngôn ngữ và đồng bộ lựa chọn ngôn ngữ của người dùng lên API.
 /// </summary>
 public class LanguageService : ILanguageService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private const string ApiClientName = "ApiHttp";
+    private const string BaseUrl = "http://10.0.2.2:5299";
 
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(15);
     private List<LanguageDetailDto>? _cachedLanguages;
     private DateTime _lastFetchUtc;
-
-    // OLD CODE (kept for reference): private const string BaseUrl = "http://10.0.2.2:5299";
 
     public LanguageService(IHttpClientFactory httpClientFactory)
     {
@@ -64,9 +66,9 @@ public class LanguageService : ILanguageService
         try
         {
             // Tạo HttpClient từ factory để gọi API ngôn ngữ.
-            var client = _httpClientFactory.CreateClient(ApiClientName);
+            var client = _httpClientFactory.CreateClient();
             // Gọi endpoint lấy danh sách ngôn ngữ đang active.
-            var response = await client.GetAsync("api/languages/active", cancellationToken);
+            var response = await client.GetAsync($"{BaseUrl}/api/languages/active", cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 // Nếu API lỗi thì trả lại dữ liệu cache hiện có, hoặc danh sách rỗng.

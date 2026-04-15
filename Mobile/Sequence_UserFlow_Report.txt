@@ -26,14 +26,14 @@ Flow cho khách du lịch quét mã QR tại gian hàng để vào nhanh trải 
 Trình tự chi tiết:
 1. User mở MainPage và chọn chức năng quét QR (đi vào ScanPage).
 2. ScanPage mở camera, đọc mã QR gian hàng.
-3. App validate dữ liệu QR (stallId hợp lệ), lưu ngữ cảnh scan và điều hướng sang LanguagePage.
+3. App validate dữ liệu QR , lưu ngữ cảnh scan và điều hướng sang LanguagePage.
 4. LanguagePage tải danh sách ngôn ngữ từ API (GET /api/languages/active).
 5. User chọn ngôn ngữ -> app điều hướng sang VoicePage.
 6. VoicePage gọi API lấy voice theo ngôn ngữ (GET /api/tts-voice-profiles/active?languageId=...).
 7. User chọn voice.
 8. App lấy DeviceId từ DeviceService và upsert DevicePreferences qua API:
    POST /api/device-preference
-9. App điều hướng sang MapPage (kèm context stall nếu có).
+9. App điều hướng sang MapPage 
 10. MapPage focus stall vừa quét, user bấm phát audio narration.
 
 Sequence Diagram (PlantUML text):
@@ -52,7 +52,7 @@ participant MapPage
 User -> MainPage: Chọn Scan
 MainPage -> ScanPage: Navigate
 User -> ScanPage: Quét QR
-ScanPage -> LanguagePage: Navigate(stallId)
+ScanPage -> LanguagePage: 
 LanguagePage -> LanguageApi: GET /api/languages/active
 LanguageApi --> LanguagePage: List<Language>
 User -> LanguagePage: Chọn language

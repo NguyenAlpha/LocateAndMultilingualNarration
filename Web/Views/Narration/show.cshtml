@@ -207,6 +207,30 @@
         @Model.ErrorMessage
     </div>
 }
+
+@if (content?.TtsStatus == "Pending" || content?.TtsStatus == "Processing")
+{
+    <div id="tts-status-banner" class="alert alert-info d-flex align-items-center gap-2"
+         data-content-id="@content.Id" role="alert">
+        <div class="spinner-border spinner-border-sm flex-shrink-0" role="status"></div>
+        <span id="tts-status-text">Đang tạo audio TTS, vui lòng chờ...</span>
+    </div>
+}
+else if (content?.TtsStatus == "Failed")
+{
+    <div class="alert alert-danger d-flex align-items-center justify-content-between" role="alert">
+        <div>
+            <strong>TTS thất bại:</strong> @(content.TtsError ?? "Lỗi không xác định.")
+        </div>
+        <form asp-action="RetryTts" asp-route-id="@content.Id" method="post" class="ms-3 flex-shrink-0">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-arrow-clockwise me-1"></i>Thử lại TTS
+            </button>
+        </form>
+    </div>
+}
+
 <!-- Text To Speech Section (kept) -->
 <div class="card mb-4">
     <div class="card-body">
@@ -430,6 +454,36 @@
                         : '<i class="bi bi-chevron-down me-1"></i>Mở rộng tất cả';
                 });
             }
+        })();
+
+        // TTS polling
+        (function () {
+            var banner = document.getElementById('tts-status-banner');
+            if (!banner) return;
+
+            var contentId = banner.dataset.contentId;
+            var statusText = document.getElementById('tts-status-text');
+            var attempts = 0;
+            var maxAttempts = 72; // 72 × 5s = 6 phút
+
+            var poll = setInterval(async function () {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    clearInterval(poll);
+                    statusText.textContent = 'Quá thời gian chờ. Vui lòng tải lại trang.';
+                    return;
+                }
+                try {
+                    var resp = await fetch('/Narration/TtsStatus?id=' + contentId);
+                    var json = await resp.json();
+                    if (!json || !json.success) return;
+                    var status = json.data && json.data.ttsStatus;
+                    if (status === 'Completed' || status === 'Failed') {
+                        clearInterval(poll);
+                        window.location.reload();
+                    }
+                } catch (e) { /* network error - keep polling */ }
+            }, 5000);
         })();
     </script>
 }

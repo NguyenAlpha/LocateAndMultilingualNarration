@@ -1,13 +1,10 @@
 ﻿using CommunityToolkit.Maui;
-// API của Microsoft để đăng ký và resolve service (AddSingleton, AddTransient...)
 using Microsoft.Extensions.DependencyInjection;
-// Hỗ trợ logging trong ứng dụng .NET
 using Microsoft.Extensions.Logging;
 using Mobile.LocalDb;
 using Mobile.Pages;
 using Mobile.Services;
 using Mobile.ViewModels;
-// Plugin phát audio (IAudioManager, AudioManager.Current)
 using Plugin.Maui.Audio;
 // SkiaSharp: thư viện đồ họa 2D — dùng để vẽ bản đồ và geofence
 using SkiaSharp.Views.Maui.Controls.Hosting;
@@ -54,23 +51,8 @@ public static class MauiProgram
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 
-        builder.Services.AddTransient<ProfileViewModel>();
-        builder.Services.AddTransient<LanguagePage>();
-        builder.Services.AddTransient<LanguageViewModel>();
-        builder.Services.AddTransient<ProfileViewModel>();
-        builder.Services.AddTransient<IVoiceService, VoiceService>();
-        // === Đăng ký ScanService ===
-        builder.Services.AddSingleton<IScanService, ScanService>();
-        builder.Services.AddTransient<IDevicePreferenceApiService, DevicePreferenceApiService>();
-        // OLD CODE (kept for reference): builder.Services.AddTransient<ProfileViewModel>();
-        // ProfileViewModel đã được đăng ký ở section VIEWMODELS bên dưới để tránh đăng ký trùng.
-
-
         // ---- SERVICES (Singleton — tạo 1 lần, dùng xuyên suốt app) ----
         // Singleton phù hợp cho service cần giữ state lâu dài hoặc dùng chung toàn app
-
-        // Quản lý phiên đăng nhập (token, user info...)
-        builder.Services.AddSingleton<SessionService>();
 
         // Xác thực người dùng — đăng nhập, đăng xuất
         builder.Services.AddSingleton<IAuthService, AuthService>();
@@ -114,19 +96,17 @@ public static class MauiProgram
         // Thu thập GPS theo batch, gửi lên API để phục vụ thống kê di chuyển
         builder.Services.AddSingleton<ILocationLogService, LocationLogService>();
 
+        // Lưu trạng thái QR đã verify vào Preferences để skip ScanPage khi mở lại app
+        builder.Services.AddSingleton<IQrService, QrService>();
+
         // ---- VIEWMODELS (Transient — tạo mới mỗi khi được resolve) ----
         // Transient phù hợp cho ViewModel vì mỗi Page nên có instance ViewModel riêng,
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
 
 
         // OLD CODE (kept for reference): dùng builder.Services.AddTransient<T>() trực tiếp gây ambiguous extension trong một số context.
-        ServiceCollectionServiceExtensions.AddTransient<StartViewModel>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<LoginViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
-        // OLD CODE (kept for reference): ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
-        // Tạm comment do class chưa tồn tại/đang chưa sẵn sàng trong workspace hiện tại.
-        // ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
@@ -136,8 +116,6 @@ public static class MauiProgram
         builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<LanguagePage>();
-        builder.Services.AddTransient<VoicePage>();
-        builder.Services.AddTransient<StartPage>();
         builder.Services.AddTransient<StallPopup>();
         builder.Services.AddTransient<ProfilePage>();
 

@@ -123,6 +123,7 @@
                     <th scope="col">Tiêu đề</th>
                     <th scope="col">Gian hàng</th>
                     <th scope="col">Ngôn ngữ gốc</th>
+                    <th scope="col">TTS</th>
                     <th scope="col">Trạng thái</th>
                     <th scope="col">Cập nhật</th>
                     <th scope="col" class="no-export">Hành động</th>
@@ -132,7 +133,7 @@
                 @if (Model.Items.Count == 0)
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted">Chưa có narration content.</td>
+                        <td colspan="7" class="text-center text-muted">Chưa có narration content.</td>
                     </tr>
                 }
                 else
@@ -141,6 +142,14 @@
                     {
                         var statusClass = item.IsActive ? "success" : "secondary";
                         var statusText = item.IsActive ? "Active" : "Inactive";
+                        var (ttsBadge, ttsText, ttsTitle) = item.TtsStatus switch
+                        {
+                            "Pending"    => ("bg-warning text-dark", "Chờ",        "Đang chờ xử lý TTS"),
+                            "Processing" => ("bg-info text-white",   "Đang tạo",   "TTS đang chạy"),
+                            "Completed"  => ("bg-success",            "Hoàn thành", "TTS hoàn thành"),
+                            "Failed"     => ("bg-danger",             "Lỗi",        item.TtsError ?? "TTS thất bại"),
+                            _            => ("bg-secondary",          "–",          "Chưa có TTS"),
+                        };
                         var stallName = stallLookup.TryGetValue(item.StallId, out var stallValue) ? stallValue : item.StallId.ToString();
                         var languageName = languageLookup.TryGetValue(item.LanguageId, out var langValue) ? langValue : item.LanguageId.ToString();
                         <tr>
@@ -150,6 +159,9 @@
                             </td>
                             <td>@stallName</td>
                             <td>@languageName</td>
+                            <td>
+                                <span class="badge @ttsBadge" title="@ttsTitle">@ttsText</span>
+                            </td>
                             <td><span class="badge bg-@statusClass">@statusText</span></td>
                             <td>@(item.UpdatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</td>
                             <td>
