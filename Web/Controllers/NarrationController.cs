@@ -145,6 +145,21 @@ namespace Web.Controllers
             return RedirectToAction(nameof(Show), new { id });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> TtsStatus(Guid id, CancellationToken cancellationToken = default)
+        {
+            var result = await _stallNarrationContentApiClient.GetTtsStatusAsync(id, cancellationToken);
+            return Json(result);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RetryTts(Guid id, CancellationToken cancellationToken = default)
+        {
+            await _stallNarrationContentApiClient.RetryTtsAsync(id, cancellationToken);
+            return RedirectToAction(nameof(Show), new { id });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadAudio(Guid audioId, Guid narrationContentId, IFormFile? audioFile, CancellationToken cancellationToken = default)
