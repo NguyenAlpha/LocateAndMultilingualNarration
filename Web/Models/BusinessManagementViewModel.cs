@@ -9,6 +9,8 @@ namespace Web.Models
         public int PageSize { get; set; } = 10;
         public int TotalCount { get; set; }
         public string? Search { get; set; }
+        public string? SortBy { get; set; }
+        public string? SortDir { get; set; }
         public BusinessFormViewModel Create { get; set; } = new();
         public BusinessFormViewModel Edit { get; set; } = new();
         public string? ErrorMessage { get; set; }

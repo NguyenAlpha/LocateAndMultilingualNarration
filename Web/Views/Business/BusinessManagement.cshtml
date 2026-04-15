@@ -5,6 +5,12 @@
     var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
     var userRole = Context.Session.GetString("UserRole") ?? "";
     var isAdmin = userRole == "Admin";
+
+    var isSortingByPlan = string.Equals(Model.SortBy, "plan", StringComparison.OrdinalIgnoreCase);
+    var planSortDir = isSortingByPlan && string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+    var planSortIcon = isSortingByPlan
+        ? (string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase) ? "ti ti-sort-ascending" : "ti ti-sort-descending")
+        : "ti ti-arrows-sort";
 }
 
 <!-- Page Header -->
@@ -41,6 +47,8 @@
 <!-- Search/Filter -->
 <div class="search-filter-bar">
     <form method="get" asp-action="Index" class="row g-3">
+        <input type="hidden" name="sortBy" value="@Model.SortBy" />
+        <input type="hidden" name="sortDir" value="@Model.SortDir" />
         <div class="col-md-4">
             <label for="businessSearch" class="form-label visually-hidden">Search businesses</label>
             <div class="input-group">
@@ -55,7 +63,7 @@
             </button>
         </div>
         <div class="col-md-2">
-            <a class="btn btn-outline-secondary w-100" asp-action="Index">
+            <a class="btn btn-outline-secondary w-100" asp-action="Index" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir">
                 <i class="bi bi-x-circle me-1"></i>Reset
             </a>
         </div>
@@ -73,7 +81,17 @@
                     <th scope="col" class="sortable">Contact Email</th>
                     <th scope="col" class="sortable">Contact Phone</th>
                     <th scope="col" class="sortable">Status</th>
-                    <th scope="col">Plan</th>
+                    <th scope="col">
+                        <a asp-action="Index"
+                           asp-route-page="1"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-search="@Model.Search"
+                           asp-route-sortBy="plan"
+                           asp-route-sortDir="@planSortDir"
+                           class="text-decoration-none text-reset d-flex align-items-center gap-1 user-select-none">
+                            Plan <i class="@planSortIcon"></i>
+                        </a>
+                    </th>
                     <th scope="col" class="sortable">Created At</th>
                     <th scope="col" class="no-export">Actions</th>
                 </tr>
@@ -171,6 +189,8 @@
                                             <input type="hidden" name="page" value="@Model.Page" />
                                             <input type="hidden" name="pageSize" value="@Model.PageSize" />
                                             <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
                                             <button type="submit" class="@toggleCss"
                                                     data-bs-toggle="tooltip" title="@toggleTitle"
                                                     onclick="return confirm('@toggleConfirm');">
@@ -193,18 +213,18 @@
         <nav aria-label="Business list pagination">
             <ul class="pagination mb-0">
                 <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" aria-label="Previous">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
                 @for (var i = 1; i <= Model.TotalPages; i++)
                 {
                     <li class="page-item @(i == Model.Page ? "active" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search">@i</a>
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir">@i</a>
                     </li>
                 }
                 <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" aria-label="Next">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
@@ -226,6 +246,8 @@
                 <input type="hidden" name="page" value="@Model.Page" />
                 <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                <input type="hidden" name="sortDir" value="@Model.SortDir" />
                 <div class="modal-body">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <div class="row">
@@ -282,6 +304,8 @@
                 <input type="hidden" name="page" value="@Model.Page" />
                 <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                <input type="hidden" name="sortDir" value="@Model.SortDir" />
                 <div class="modal-body">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <input asp-for="Edit.Id" type="hidden" />

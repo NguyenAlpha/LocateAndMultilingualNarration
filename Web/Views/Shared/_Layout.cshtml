@@ -115,6 +115,10 @@
                                            asp-controller="Admin" asp-action="SubscriptionOrders">
                                             <i class="ti ti-receipt me-2"></i>Đơn đăng ký
                                         </a>
+                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "QrCodes" ? "active" : "")"
+                                           asp-controller="Admin" asp-action="QrCodes">
+                                            <i class="ti ti-qrcode me-2"></i>Mã QR
+                                        </a>
                                     </div>
                                 </li>
                             }

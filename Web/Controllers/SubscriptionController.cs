@@ -23,15 +23,24 @@ namespace Web.Controllers
 
         // GET /Subscription/Plans — public
         [HttpGet]
-        public IActionResult Plans(string? highlight = null, Guid? businessId = null)
+        public async Task<IActionResult> Plans(string? highlight = null, Guid? businessId = null, CancellationToken cancellationToken = default)
         {
             var isLoggedIn = !string.IsNullOrEmpty(HttpContext.Session.GetString(ApiClient.TokenSessionKey));
+
+            var hasBusiness = false;
+            if (isLoggedIn)
+            {
+                var businesses = await FetchBusinessSelectItemsAsync(cancellationToken);
+                hasBusiness = businesses.Count > 0;
+            }
 
             return View(new PlansViewModel
             {
                 IsLoggedIn = isLoggedIn,
+                HasBusiness = hasBusiness,
                 HighlightPlan = highlight,
-                PreselectedBusinessId = businessId
+                PreselectedBusinessId = businessId,
+                ErrorMessage = TempData["ErrorMessage"] as string
             });
         }
 
@@ -71,7 +80,10 @@ namespace Web.Controllers
 
             var businesses = await FetchBusinessSelectItemsAsync(cancellationToken);
             if (businesses.Count == 0)
-                return RedirectToAction("Plans");
+            {
+                TempData["ErrorMessage"] = "Bạn cần tạo business trước khi đăng ký gói.";
+                return RedirectToAction("Plans", new { plan, businessId });
+            }
 
             // Pre-select business từ query param, fallback về đầu tiên
             var preselected = businessId.HasValue

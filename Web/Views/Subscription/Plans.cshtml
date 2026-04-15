@@ -5,13 +5,11 @@
 
     string CardCss(string plan) => plan == "Pro" ? "card shadow-lg border-primary" : "card shadow-sm";
 
-    // Tạo URL checkout kèm businessId nếu có
     string CheckoutUrl(string plan)
     {
-        var url = Url.Action("Checkout", "Subscription", new { plan })!;
         if (Model.PreselectedBusinessId.HasValue)
-            url = Url.Action("Checkout", "Subscription", new { plan, businessId = Model.PreselectedBusinessId.Value })!;
-        return url;
+            return Url.Action("Checkout", "Subscription", new { plan, businessId = Model.PreselectedBusinessId.Value })!;
+        return Url.Action("Checkout", "Subscription", new { plan })!;
     }
 
     string LoginUrl(string plan) => Model.PreselectedBusinessId.HasValue
@@ -33,6 +31,19 @@
 
 <div class="page-body">
     <div class="container-xl">
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="alert alert-warning alert-dismissible" role="alert">
+                        <i class="ti ti-alert-triangle me-2"></i>@Model.ErrorMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            </div>
+        }
+
         <div class="row row-cards justify-content-center g-4">
 
             <!-- Free -->
@@ -52,9 +63,18 @@
                         </ul>
                     </div>
                     <div class="card-footer bg-transparent border-0 pb-4 px-4">
-                        <a asp-controller="Auth" asp-action="Register" class="btn btn-outline-secondary w-100">
-                            Bắt đầu miễn phí
-                        </a>
+                        @if (!Model.IsLoggedIn)
+                        {
+                            <a asp-controller="Auth" asp-action="Register" class="btn btn-outline-secondary w-100">
+                                Bắt đầu miễn phí
+                            </a>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-outline-secondary w-100" disabled>
+                                <i class="ti ti-check me-1"></i>Bạn đang dùng gói này
+                            </button>
+                        }
                     </div>
                 </div>
             </div>
@@ -80,6 +100,13 @@
                         @if (!Model.IsLoggedIn)
                         {
                             <a href="@LoginUrl("Basic")" class="btn btn-outline-primary w-100">Đăng ký Basic</a>
+                        }
+                        else if (!Model.HasBusiness)
+                        {
+                            <button type="button" class="btn btn-outline-primary w-100"
+                                    data-bs-toggle="modal" data-bs-target="#needBusinessModal">
+                                Đăng ký Basic
+                            </button>
                         }
                         else
                         {
@@ -114,6 +141,13 @@
                         {
                             <a href="@LoginUrl("Pro")" class="btn btn-primary w-100">Đăng ký Pro</a>
                         }
+                        else if (!Model.HasBusiness)
+                        {
+                            <button type="button" class="btn btn-primary w-100"
+                                    data-bs-toggle="modal" data-bs-target="#needBusinessModal">
+                                Đăng ký Pro
+                            </button>
+                        }
                         else
                         {
                             <a href="@CheckoutUrl("Pro")" class="btn btn-primary w-100">Đăng ký Pro</a>
@@ -135,3 +169,30 @@
         </div>
     </div>
 </div>
+
+@if (Model.IsLoggedIn && !Model.HasBusiness)
+{
+    <!-- Modal: cần tạo business trước -->
+    <div class="modal fade" id="needBusinessModal" tabindex="-1" aria-labelledby="needBusinessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="needBusinessModalLabel">
+                        <i class="ti ti-building me-2"></i>Cần tạo business trước
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn cần tạo ít nhất một <strong>business</strong> trước khi có thể đăng ký gói trả phí.</p>
+                    <p class="text-muted mb-0">Sau khi tạo business, quay lại trang này để tiếp tục đăng ký gói.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <a asp-controller="Business" asp-action="Index" class="btn btn-primary">
+                        <i class="ti ti-plus me-1"></i>Tạo Business ngay
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
