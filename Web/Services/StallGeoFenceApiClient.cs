@@ -17,24 +17,41 @@ namespace Web.Services
         {
             var url = $"api/stall-geo-fence?page={page}&pageSize={pageSize}";
             if (stallId.HasValue) url += $"&stallId={stallId.Value}";
-            return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<StallGeoFenceDetailDto>>>(url, cancellationToken);
+
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<StallGeoFenceDetailDto>>>(url, cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<StallGeoFenceDetailDto>?> GetGeoFenceAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            return await _httpClient.GetFromJsonAsync<ApiResult<StallGeoFenceDetailDto>>($"api/stall-geo-fence/{id}", cancellationToken);
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ApiResult<StallGeoFenceDetailDto>>($"api/stall-geo-fence/{id}", cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<StallGeoFenceDetailDto>?> CreateGeoFenceAsync(StallGeoFenceCreateDto request, CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/stall-geo-fence", request, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<ApiResult<StallGeoFenceDetailDto>>(cancellationToken: cancellationToken);
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/stall-geo-fence", request, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<StallGeoFenceDetailDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<StallGeoFenceDetailDto>?> UpdateGeoFenceAsync(Guid id, StallGeoFenceUpdateDto request, CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/stall-geo-fence/{id}", request, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<ApiResult<StallGeoFenceDetailDto>>(cancellationToken: cancellationToken);
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"api/stall-geo-fence/{id}", request, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<StallGeoFenceDetailDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
     }
 }

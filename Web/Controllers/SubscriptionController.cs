@@ -26,6 +26,8 @@ namespace Web.Controllers
         public async Task<IActionResult> Plans(string? highlight = null, Guid? businessId = null, CancellationToken cancellationToken = default)
         {
             var isLoggedIn = !string.IsNullOrEmpty(HttpContext.Session.GetString(ApiClient.TokenSessionKey));
+            var userRole = HttpContext.Session.GetString(ApiClient.UserRoleSessionKey) ?? "";
+            var isAdmin = userRole == "Admin";
 
             var hasBusiness = false;
             if (isLoggedIn)
@@ -38,6 +40,7 @@ namespace Web.Controllers
             {
                 IsLoggedIn = isLoggedIn,
                 HasBusiness = hasBusiness,
+                IsAdmin = isAdmin,
                 HighlightPlan = highlight,
                 PreselectedBusinessId = businessId,
                 ErrorMessage = TempData["ErrorMessage"] as string

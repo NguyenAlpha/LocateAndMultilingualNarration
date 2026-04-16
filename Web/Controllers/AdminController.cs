@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.DTOs.Businesses;
 using Shared.DTOs.QrCodes;
@@ -7,6 +8,7 @@ using Web.Services;
 
 namespace Web.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private readonly BusinessApiClient _businessApiClient;
@@ -329,9 +331,9 @@ namespace Web.Controllers
 
         [HttpGet]
         public async Task<IActionResult> Subscription(
-            int page = 1, int pageSize = 10, string? search = null, CancellationToken cancellationToken = default)
+            int page = 1, int pageSize = 10, string? search = null, string? plan = null, CancellationToken cancellationToken = default)
         {
-            var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken);
+            var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken, plan: plan);
 
             var vm = new SubscriptionManagementViewModel
             {
@@ -340,6 +342,7 @@ namespace Web.Controllers
                 PageSize = pageSize,
                 TotalCount = result?.Data?.TotalCount ?? 0,
                 Search = search,
+                FilterPlan = plan,
                 SuccessMessage = TempData["SuccessMessage"] as string,
                 ErrorMessage = TempData["ErrorMessage"] as string
             };
@@ -351,12 +354,12 @@ namespace Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateSubscription(
             SubscriptionFormViewModel model,
-            int page = 1, int pageSize = 10, string? search = null,
+            int page = 1, int pageSize = 10, string? search = null, string? plan = null,
             CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
-                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken);
+                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken, plan: plan);
                 var vm = new SubscriptionManagementViewModel
                 {
                     Items = result?.Data?.Items?.ToList() ?? [],
@@ -364,6 +367,7 @@ namespace Web.Controllers
                     PageSize = pageSize,
                     TotalCount = result?.Data?.TotalCount ?? 0,
                     Search = search,
+                    FilterPlan = plan,
                     Edit = model,
                     ShowEditModal = true,
                     ErrorMessage = "Dữ liệu không hợp lệ."
@@ -378,7 +382,7 @@ namespace Web.Controllers
 
             if (apiResult?.Success != true)
             {
-                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken);
+                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken, plan: plan);
                 var vm = new SubscriptionManagementViewModel
                 {
                     Items = result?.Data?.Items?.ToList() ?? [],
@@ -386,6 +390,7 @@ namespace Web.Controllers
                     PageSize = pageSize,
                     TotalCount = result?.Data?.TotalCount ?? 0,
                     Search = search,
+                    FilterPlan = plan,
                     Edit = model,
                     ShowEditModal = true,
                     ErrorMessage = apiResult?.Error?.Message ?? "Cập nhật gói thất bại."
@@ -394,7 +399,7 @@ namespace Web.Controllers
             }
 
             TempData["SuccessMessage"] = $"Đã cập nhật gói {model.Plan} cho \"{model.BusinessName}\" thành công.";
-            return RedirectToAction(nameof(Subscription), new { page, pageSize, search });
+            return RedirectToAction(nameof(Subscription), new { page, pageSize, search, plan });
         }
     }
 }

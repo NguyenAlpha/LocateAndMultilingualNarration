@@ -42,7 +42,6 @@ public class SyncService : ISyncService
     private readonly ILogger<SyncService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private const string BaseUrl = "http://10.0.2.2:5299";
     private const string StallsEndpoint = "/api/geo/stalls";
 
     public DateTime? LastSyncedAt { get; private set; }
@@ -87,7 +86,7 @@ public class SyncService : ISyncService
 
             // Bước 2: Gọi API trực tiếp để lấy danh sách Stall của thiết bị hiện tại.
             var client = _httpClientFactory.CreateClient();
-            var url = $"{BaseUrl}{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
+            var url = $"{StallsEndpoint}?deviceId={Uri.EscapeDataString(deviceId)}";
             using var response = await client.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode)
             {

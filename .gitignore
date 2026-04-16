@@ -365,5 +365,7 @@ FodyWeavers.xsd
 /.github
 .claude/settings.local.json
 /Mobile/.idea
-*.md
 *.sql
+/.claude/agents
+/ANIMATIONS.md
+/CLAUDE_md_prompt_template.md

@@ -58,6 +58,15 @@
             </div>
         </div>
         <div class="col-md-2">
+            <label for="planFilter" class="form-label visually-hidden">Lọc theo gói</label>
+            <select class="form-select" id="planFilter" name="plan">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.FilterPlan))">Tất cả gói</option>
+                <option value="Free"  selected="@(Model.FilterPlan == "Free")">Free</option>
+                <option value="Basic" selected="@(Model.FilterPlan == "Basic")">Basic</option>
+                <option value="Pro"   selected="@(Model.FilterPlan == "Pro")">Pro</option>
+            </select>
+        </div>
+        <div class="col-md-2">
             <button class="btn btn-outline-secondary w-100" type="submit">
                 <i class="bi bi-search me-1"></i>Tìm kiếm
             </button>
@@ -86,6 +95,7 @@
                            asp-route-page="1"
                            asp-route-pageSize="@Model.PageSize"
                            asp-route-search="@Model.Search"
+                           asp-route-plan="@Model.FilterPlan"
                            asp-route-sortBy="plan"
                            asp-route-sortDir="@planSortDir"
                            class="text-decoration-none text-reset d-flex align-items-center gap-1 user-select-none">
@@ -191,6 +201,7 @@
                                             <input type="hidden" name="search" value="@Model.Search" />
                                             <input type="hidden" name="sortBy" value="@Model.SortBy" />
                                             <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                            <input type="hidden" name="plan" value="@Model.FilterPlan" />
                                             <button type="submit" class="@toggleCss"
                                                     data-bs-toggle="tooltip" title="@toggleTitle"
                                                     onclick="return confirm('@toggleConfirm');">
@@ -213,18 +224,18 @@
         <nav aria-label="Phân trang danh sách doanh nghiệp">
             <ul class="pagination mb-0">
                 <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" aria-label="Trang trước">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" asp-route-plan="@Model.FilterPlan" aria-label="Trang trước">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
                 @for (var i = 1; i <= Model.TotalPages; i++)
                 {
                     <li class="page-item @(i == Model.Page ? "active" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir">@i</a>
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" asp-route-plan="@Model.FilterPlan">@i</a>
                     </li>
                 }
                 <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" aria-label="Trang sau">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" asp-route-plan="@Model.FilterPlan" aria-label="Trang sau">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
@@ -248,6 +259,7 @@
                 <input type="hidden" name="search" value="@Model.Search" />
                 <input type="hidden" name="sortBy" value="@Model.SortBy" />
                 <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                <input type="hidden" name="plan" value="@Model.FilterPlan" />
                 <div class="modal-body">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <div class="row">
@@ -312,6 +324,7 @@
                 <input type="hidden" name="search" value="@Model.Search" />
                 <input type="hidden" name="sortBy" value="@Model.SortBy" />
                 <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                <input type="hidden" name="plan" value="@Model.FilterPlan" />
                 <div class="modal-body">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <input asp-for="Edit.Id" type="hidden" />

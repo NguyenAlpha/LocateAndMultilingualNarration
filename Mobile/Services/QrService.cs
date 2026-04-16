@@ -43,9 +43,6 @@ public class QrService : IQrService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<QrService> _logger;
 
-    // Android emulator dùng 10.0.2.2 thay localhost để trỏ về máy host.
-    private const string BaseUrl     = "http://10.0.2.2:5299";
-
     // Hai key lưu vào Preferences — tồn tại qua các lần tắt/mở app,
     // bị xoá khi user gỡ cài đặt app.
     private const string VerifiedKey = "qr_verified"; // bool   – đã quét QR thành công chưa
@@ -70,7 +67,7 @@ public class QrService : IQrService
             var client  = _httpClientFactory.CreateClient();
             var request = new QrCodeVerifyRequestDto { Code = code, DeviceId = deviceId };
 
-            var response = await client.PostAsJsonAsync($"{BaseUrl}/api/qrcodes/verify", request);
+            var response = await client.PostAsJsonAsync("api/qrcodes/verify", request);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("[QrService] Verify thất bại. StatusCode={Status}", response.StatusCode);

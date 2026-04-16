@@ -64,36 +64,46 @@
     <div class="tab-pane fade show active" id="users" role="tabpanel">
 
         <!-- Search/Filter Form -->
-        <form method="get" asp-action="UserRoleManagement" asp-controller="Admin" class="mb-3">
-            <input type="hidden" name="pageSize" value="@Model.PageSize" />
-            <div class="row g-3">
+        <div class="search-filter-bar mb-3">
+            <form method="get" asp-action="UserRoleManagement" asp-controller="Admin" class="row g-3">
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <div class="col-md-4">
+                    <label for="userSearch" class="form-label visually-hidden">Tìm user</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" name="search" value="@Model.Search" placeholder="Tìm email hoặc username...">
+                        <input type="text" class="form-control table-search" id="userSearch" name="search"
+                               value="@Model.Search" placeholder="Tìm email hoặc username...">
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" name="roleFilter">
-                        <option value="">Tất cả Role</option>
+                <div class="col-md-2">
+                    <label for="roleFilterSelect" class="form-label visually-hidden">Lọc theo Role</label>
+                    <select class="form-select" id="roleFilterSelect" name="roleFilter">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.RoleFilter))">Tất cả Role</option>
                         <option value="Admin" selected="@(Model.RoleFilter == "Admin")">Admin</option>
                         <option value="BusinessOwner" selected="@(Model.RoleFilter == "BusinessOwner")">BusinessOwner</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" name="isActiveFilter">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="true" selected="@(Model.IsActiveFilter == true)">Active</option>
-                        <option value="false" selected="@(Model.IsActiveFilter == false)">Inactive</option>
+                <div class="col-md-2">
+                    <label for="activeFilterSelect" class="form-label visually-hidden">Lọc theo trạng thái</label>
+                    <select class="form-select" id="activeFilterSelect" name="isActiveFilter">
+                        <option value="" selected="@(Model.IsActiveFilter == null)">Tất cả trạng thái</option>
+                        <option value="true" selected="@(Model.IsActiveFilter == true)">Hoạt động</option>
+                        <option value="false" selected="@(Model.IsActiveFilter == false)">Tạm dừng</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-outline-primary w-100">
-                        <i class="bi bi-funnel me-1"></i>Lọc
+                    <button type="submit" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-search me-1"></i>Tìm kiếm
                     </button>
                 </div>
-            </div>
-        </form>
+                <div class="col-md-2">
+                    <a class="btn btn-outline-secondary w-100"
+                       asp-action="UserRoleManagement" asp-controller="Admin">
+                        <i class="bi bi-x-circle me-1"></i>Đặt lại
+                    </a>
+                </div>
+            </form>
+        </div>
 
         <!-- Users Table -->
         <div class="table-container" data-aos="fade-up" data-aos-delay="100">
@@ -162,7 +172,7 @@
                                             <button type="submit"
                                                     class="btn btn-sm @(u.IsActive ? "btn-outline-warning" : "btn-outline-success")"
                                                     title="@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt")"
-                                                    onclick="return confirm('@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt") user @u.UserName?')">
+                                                    onclick="return confirm('@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt") user @System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(u.UserName ?? "")?')">
                                                 <i class="bi @(u.IsActive ? "bi-person-slash" : "bi-person-check")"></i>
                                             </button>
                                         </form>

@@ -179,7 +179,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         [HttpGet]
         [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
-        public async Task<IActionResult> GetBusinesses([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] string? sortBy = null, [FromQuery] string? sortDir = null)
+        public async Task<IActionResult> GetBusinesses([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] string? sortBy = null, [FromQuery] string? sortDir = null, [FromQuery] string? plan = null)
         {
             _logger.LogInformation("Bắt đầu lấy danh sách business - Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
@@ -203,6 +203,11 @@ namespace Api.Controllers
             {
                 var keyword = search.Trim();
                 query = query.Where(b => b.Name.Contains(keyword) || (b.TaxCode != null && b.TaxCode.Contains(keyword)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(plan))
+            {
+                query = query.Where(b => b.Plan == plan);
             }
 
             _logger.LogDebug("Truy vấn danh sách business - UserId: {UserId}", userId);

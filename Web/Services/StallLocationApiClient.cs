@@ -19,24 +19,41 @@ namespace Web.Services
             if (stallId.HasValue) url += $"&stallId={stallId.Value}";
             if (isActive.HasValue) url += $"&isActive={isActive.Value}";
             if (!string.IsNullOrWhiteSpace(stallName)) url += $"&stallName={Uri.EscapeDataString(stallName)}";
-            return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<StallLocationDetailDto>>>(url, cancellationToken);
+
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<StallLocationDetailDto>>>(url, cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<StallLocationDetailDto>?> GetLocationAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            return await _httpClient.GetFromJsonAsync<ApiResult<StallLocationDetailDto>>($"api/stall-location/{id}", cancellationToken);
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ApiResult<StallLocationDetailDto>>($"api/stall-location/{id}", cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<StallLocationDetailDto>?> CreateLocationAsync(StallLocationCreateDto request, CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/stall-location", request, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<ApiResult<StallLocationDetailDto>>(cancellationToken: cancellationToken);
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/stall-location", request, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<StallLocationDetailDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<StallLocationDetailDto>?> UpdateLocationAsync(Guid id, StallLocationUpdateDto request, CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/stall-location/{id}", request, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<ApiResult<StallLocationDetailDto>>(cancellationToken: cancellationToken);
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"api/stall-location/{id}", request, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<StallLocationDetailDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
     }
 }
