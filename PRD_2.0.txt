@@ -1,0 +1,645 @@
+# PRD 2.0 — Hệ thống Thuyết minh Tự động Đa ngôn ngữ cho Phố Ẩm Thực  
+**(Locate & Multilingual Narration System)**
+
+---
+
+## 1) Trang bìa & Thông tin chung
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Tên dự án | **Hệ thống Thuyết minh Tự động Đa ngôn ngữ cho Phố Ẩm Thực** |
+| Tên tiếng Anh | **Locate & Multilingual Narration System** |
+| Phiên bản tài liệu | **PRD 2.0** |
+| Ngày lập | **16/04/2026** |
+| Trạng thái | **Đang phát triển (cập nhật theo branch `dev`)** |
+| Mục đích | Chuẩn hóa yêu cầu sản phẩm phục vụ triển khai kỹ thuật, kiểm thử, nghiệm thu đồ án tốt nghiệp |
+
+---
+
+## 2) Tổng quan sản phẩm
+
+### 2.1 Mô tả ngắn gọn
+Hệ thống cung cấp trải nghiệm tham quan thông minh tại Phố Ẩm Thực: khách dùng app di động .NET MAUI để quét QR, chọn ngôn ngữ/giọng đọc, xem bản đồ gian hàng, nhận thuyết minh audio; đồng thời web admin phục vụ quản trị dữ liệu nghiệp vụ (gian hàng, nội dung, media, người dùng, gói dịch vụ).
+
+### 2.2 Thành phần hệ thống
+- **Mobile App (MAUI)**: cho khách tham quan (anonymous theo DeviceId)
+- **Web Admin (ASP.NET Core MVC/Razor views)**: cho Admin, BusinessOwner
+- **API Backend (ASP.NET Core Web API)**: nghiệp vụ, bảo mật, lưu trữ, tích hợp dịch vụ ngoài
+- **Shared**: DTO dùng chung giữa Mobile/Web/API
+
+### 2.3 Stack công nghệ (đối chiếu code hiện tại)
+- **Mobile**
+  - .NET MAUI `.NET 10` (Android/iOS/Windows/macOS)
+  - CommunityToolkit.Maui, Mapsui.Maui, ZXing.Net.Maui, Plugin.Maui.Audio
+  - SQLite (`sqlite-net-pcl`) cho offline cache
+- **Backend API**
+  - ASP.NET Core Web API `.NET 10`
+  - EF Core 10 + SQL Server
+  - JWT Bearer Auth + Refresh Token
+  - Hosted service cho TTS background
+- **Web Admin**
+  - ASP.NET Core MVC (`AddControllersWithViews`) + Session
+  - HttpClientFactory + AuthTokenHandler
+- **Cloud/Integration**
+  - Azure Speech (TTS)
+  - Azure Blob Storage (audio/media)
+  - Azure Translator
+
+---
+
+## 3) Vấn đề & Mục tiêu
+
+### 3.1 Vấn đề hiện tại
+1. Khách tham quan thiếu thông tin đa ngôn ngữ ngay tại điểm gian hàng.
+2. Thuyết minh thủ công tốn nhân lực, không đồng nhất.
+3. Cần vận hành ở môi trường mạng không ổn định (offline-friendly).
+4. Cần quản trị nội dung tập trung cho nhiều gian hàng.
+
+### 3.2 Mục tiêu sản phẩm
+| Mục tiêu | KPI/Success Metrics |
+|---|---|
+| Tự động hóa trải nghiệm thuyết minh | Tỷ lệ vào flow thành công: Scan/Load → Map ≥ 95% |
+| Đa ngôn ngữ thực dụng | Có danh sách language active + voice active, phát đúng preference |
+| Ẩn danh nhưng cá nhân hóa | DevicePreference theo DeviceId lưu/khôi phục thành công |
+| Trải nghiệm ổn định | App không crash khi API lỗi/mất mạng; có fallback local |
+| Quản trị nội dung tập trung | Admin/BusinessOwner CRUD được business/stall/content |
+
+---
+
+## 4) Người dùng mục tiêu (User Personas)
+
+| Persona | Vai trò | Nhu cầu chính | Pain Point |
+|---|---|---|---|
+| Visitor (Khách tham quan) | Người dùng Mobile | Quét nhanh, chọn ngôn ngữ, nghe audio tại gian hàng | Không hiểu ngôn ngữ bản địa, thao tác phức tạp |
+| BusinessOwner | Chủ gian hàng | Quản lý nội dung gian hàng, media, narration | Cần giao diện quản trị dễ dùng |
+| Admin | Quản trị hệ thống | Quản lý người dùng, ngôn ngữ, phân quyền, giám sát dữ liệu | Cần tính nhất quán & kiểm soát toàn cục |
+
+---
+
+## 5) Phạm vi sản phẩm
+
+### 5.1 In Scope (theo trạng thái hiện tại)
+- Mobile:
+  - QR verify và session theo hạn dùng
+  - Loading flow theo DeviceId + QR validity
+  - Language/Voice selection, lưu DevicePreference
+  - Map hiển thị stall + geofence + audio controls
+  - Cache SQLite stall data + local audio path
+  - Background sync định kỳ và theo connectivity
+  - Profile cập nhật preference
+- API:
+  - Auth, Business, Stall, StallLocation, StallGeoFence
+  - Language active/admin CRUD
+  - TTS Voice active theo language
+  - DevicePreference (GET/POST)
+  - QR code quản trị + verify
+  - Device location log batch
+- Web:
+  - Auth session, API client cho nhiều module quản trị
+  - Nhiều controller admin/business đã có, mức hoàn thiện chưa đồng đều
+
+### 5.2 Out of Scope (hiện tại)
+- Social login
+- Dashboard analytics hoàn chỉnh (BI/KPI sâu)
+- Audit log đầy đủ
+- Full auto geofence-trigger chuẩn production (còn tối ưu)
+- Một số UX nâng cao theo TODO (featured stalls, nearest thực chiến hoàn thiện)
+
+---
+
+## 6) Kiến trúc hệ thống tổng quan
+
+### 6.1 Sơ đồ kiến trúc (PlantUML text)
+```
+@startuml
+actor Visitor
+actor Admin
+actor BusinessOwner
+
+node "Mobile App (.NET MAUI)" as Mobile
+node "Web Admin (ASP.NET Core MVC)" as Web
+node "API Backend (.NET 10 Web API)" as Api
+database "SQL Server" as Db
+node "SQLite (on device)" as Sqlite
+cloud "Azure Speech/Blob/Translator" as Azure
+
+Visitor --> Mobile
+Admin --> Web
+BusinessOwner --> Web
+
+Mobile --> Api : REST (JSON)
+Web --> Api : REST (JSON + Bearer)
+Api --> Db : EF Core
+Mobile --> Sqlite : Cache-first
+Api --> Azure : TTS/Storage/Translate
+@enduml
+```
+
+### 6.2 Cấu trúc Solution
+- `Api` — Web API + Domain + Infrastructure + Migrations
+- `Mobile` — MAUI app (Pages/ViewModels/Services/LocalDb)
+- `Shared` — DTO contracts
+- `Web` — MVC Admin portal
+- `TestAPI` — test project
+
+---
+
+## 7) Mô hình dữ liệu (Domain Model) — **Quan trọng**
+
+> Ghi chú: code hiện tại có **23 bảng chính** trong `AppDbContext` (mở rộng từ mốc ~19 trước đây).
+
+### 7.1 Danh sách Entities/Table
+
+| # | Entity | Table | Mô tả |
+|---|---|---|---|
+| 1 | User | Users | Tài khoản hệ thống |
+| 2 | Role | Roles | Vai trò |
+| 3 | UserRole | UserRoles | N-N User-Role |
+| 4 | RefreshToken | RefreshTokens | Refresh token đăng nhập |
+| 5 | Business | Businesses | Doanh nghiệp |
+| 6 | BusinessOwnerProfile | BusinessOwnerProfiles | Hồ sơ chủ doanh nghiệp |
+| 7 | EmployeeProfile | EmployeeProfiles | Hồ sơ nhân viên |
+| 8 | Stall | Stalls | Gian hàng |
+| 9 | StallLocation | StallLocations | Tọa độ gian hàng |
+|10| StallGeoFence | StallGeoFences | Vùng geofence |
+|11| StallMedia | StallMedia | Ảnh/media gian hàng |
+|12| Language | Languages | Ngôn ngữ hệ thống |
+|13| TtsVoiceProfile | TtsVoiceProfiles | Giọng đọc TTS |
+|14| StallNarrationContent | StallNarrationContents | Nội dung thuyết minh |
+|15| NarrationAudio | NarrationAudios | Audio thuyết minh |
+|16| DevicePreference | DevicePreferences | Preference theo DeviceId |
+|17| VisitorProfile | VisitorProfiles | Hồ sơ visitor (hệ user-based) |
+|18| VisitorPreference | VisitorPreferences | Preference visitor (user-based) |
+|19| VisitorLocationLog | VisitorLocationLogs | Log vị trí visitor |
+|20| DeviceLocationLog | DeviceLocationLogs | Log vị trí theo device |
+|21| ScanLog | ScanLogs | Nhật ký quét QR |
+|22| SubscriptionOrder | SubscriptionOrders | Đơn/gói subscription |
+|23| QrCode | QrCodes | Mã QR quản trị + verify |
+
+---
+
+### 7.2 Chi tiết cột từng bảng
+
+## Users
+| Column | Type | Nullable | PK/FK | Default | Description |
+|---|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() | User ID |
+| UserName | nvarchar(256) | Yes |  |  | Username |
+| NormalizedUserName | nvarchar(256) | Yes |  |  | Chuẩn hóa username |
+| Email | nvarchar(256) | Yes |  |  | Email |
+| NormalizedEmail | nvarchar(256) | Yes |  |  | Chuẩn hóa email |
+| PasswordHash | nvarchar(256) | Yes |  |  | BCrypt hash |
+| PhoneNumber | nvarchar(32) | Yes |  |  | SĐT |
+| DisplayName | nvarchar(256) | Yes |  |  | Tên hiển thị |
+| Sex | nvarchar(16) | Yes |  |  | Giới tính |
+| DateOfBirth | date | Yes |  |  | Ngày sinh |
+| EmailConfirmed | bit | No |  | false | Xác nhận email |
+| PhoneNumberConfirmed | bit | No |  | false | Xác nhận SĐT |
+| TwoFactorEnabled | bit | No |  | false | 2FA |
+| LockoutEnabled | bit | No |  | true | Khóa tài khoản |
+| LockoutEnd | datetimeoffset(3) | Yes |  |  | Hạn lockout |
+| AccessFailedCount | int | No |  | 0 | Số lần fail login |
+| SecurityStamp | nvarchar(256) | Yes |  |  | Security stamp |
+| ConcurrencyStamp | nvarchar(256) | Yes |  |  | Concurrency stamp |
+| LastLoginAt | datetime2(3) | Yes |  |  | Đăng nhập gần nhất |
+| IsActive | bit | No |  | true | Trạng thái hoạt động |
+| CreatedAt | datetime2(3) | No |  | SYSUTCDATETIME() | Tạo lúc |
+| UpdatedAt | datetime2(3) | No |  | SYSUTCDATETIME() | Cập nhật lúc |
+| DeletedAt | datetime2(3) | Yes |  |  | Soft delete |
+
+## Roles
+| Column | Type | Nullable | PK/FK | Default | Description |
+|---|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() | Role ID |
+| Name | nvarchar(256) | No |  |  | Tên role |
+| NormalizedName | nvarchar(256) | No |  |  | Tên role chuẩn hóa |
+| ConcurrencyStamp | nvarchar(256) | Yes |  |  | Concurrency |
+
+## UserRoles
+| Column | Type | Nullable | PK/FK | Default | Description |
+|---|---|---|---|---|---|
+| UserId | uniqueidentifier | No | PK, FK->Users(Id) |  | User |
+| RoleId | uniqueidentifier | No | PK, FK->Roles(Id) |  | Role |
+
+## RefreshTokens
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| UserId | uniqueidentifier | No | FK->Users(Id) |  |
+| TokenHash | nvarchar(256) | No |  |  |
+| ExpiresAtUtc | datetime2(3) | No |  |  |
+| CreatedAtUtc | datetime2(3) | No |  | SYSUTCDATETIME() |
+| CreatedByIp | nvarchar(64) | Yes |  |  |
+| DeviceId | nvarchar(128) | Yes |  |  |
+| RevokedAtUtc | datetime2(3) | Yes |  |  |
+| ReplacedByTokenId | uniqueidentifier | Yes |  |  |
+
+## Businesses
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| Name | nvarchar(256) | No |  |  |
+| TaxCode | nvarchar(32) | Yes |  |  |
+| ContactEmail | nvarchar(256) | Yes |  |  |
+| ContactPhone | nvarchar(32) | Yes |  |  |
+| OwnerUserId | uniqueidentifier | Yes | FK->Users(Id) |  |
+| IsActive | bit | No |  | true |
+| Plan | nvarchar(16) | No |  | "Free" |
+| PlanExpiresAt | datetimeoffset(3) | Yes |  |  |
+| CreatedAt | datetimeoffset(3) | No |  | SYSUTCDATETIME() |
+
+## BusinessOwnerProfiles
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| UserId | uniqueidentifier | No | FK->Users(Id), Unique |  |
+| OwnerName | nvarchar(256) | Yes |  |  |
+| ContactInfo | nvarchar(256) | Yes |  |  |
+| CreatedAt | datetime2(3) | No |  | SYSUTCDATETIME() |
+
+## EmployeeProfiles
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| UserId | uniqueidentifier | No | FK->Users(Id), Unique |  |
+| Department | nvarchar(256) | Yes |  |  |
+| Position | nvarchar(256) | Yes |  |  |
+| CreatedAt | datetime2(3) | No |  | SYSUTCDATETIME() |
+
+## Stalls
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| BusinessId | uniqueidentifier | No | FK->Businesses(Id) |  |
+| Name | nvarchar(128) | No |  |  |
+| Slug | nvarchar(256) | No | Unique |  |
+| Description | nvarchar(256) | Yes |  |  |
+| ContactPhone | nvarchar(16) | Yes |  |  |
+| ContactEmail | nvarchar(256) | Yes |  |  |
+| IsActive | bit | No |  | true |
+| CreatedAt | datetimeoffset | No |  | SYSDATETIMEOFFSET() |
+| UpdatedAt | datetimeoffset | Yes |  |  |
+
+## StallLocations
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| StallId | uniqueidentifier | No | FK->Stalls(Id) |  |
+| Latitude | decimal(9,6) | No |  |  |
+| Longitude | decimal(9,6) | No |  |  |
+| RadiusMeters | decimal(10,2) | No |  |  |
+| Address | nvarchar(256) | Yes |  |  |
+| MapProviderPlaceId | nvarchar(128) | Yes |  |  |
+| IsActive | bit | No |  | true |
+| UpdatedAt | datetimeoffset | Yes |  |  |
+
+## StallGeoFences
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| StallId | uniqueidentifier | No | FK->Stalls(Id) |  |
+| PolygonJson | nvarchar(max) | No |  |  |
+| MinZoom | int | Yes |  |  |
+| MaxZoom | int | Yes |  |  |
+
+## StallMedia
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| StallId | uniqueidentifier | No | FK->Stalls(Id) |  |
+| MediaType | nvarchar(32) | No |  |  |
+| MediaUrl | nvarchar(512) | No |  |  |
+| Caption | nvarchar(256) | Yes |  |  |
+| SortOrder | int | No |  | 0 |
+| IsActive | bit | No |  | true |
+
+## Languages
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| Code | nvarchar(16) | No | Unique |  |
+| Name | nvarchar(64) | No |  |  |
+| DisplayName | nvarchar(64) | Yes |  |  |
+| FlagCode | nvarchar(8) | Yes |  |  |
+| IsActive | bit | No |  | true |
+
+## TtsVoiceProfiles
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| LanguageId | uniqueidentifier | No | FK->Languages(Id) |  |
+| DisplayName | nvarchar(128) | No |  |  |
+| VoiceName | nvarchar(128) | Yes |  |  |
+| Description | nvarchar(256) | Yes |  |  |
+| Provider | nvarchar(64) | Yes |  |  |
+| Style | nvarchar(64) | Yes |  |  |
+| Role | nvarchar(64) | Yes |  |  |
+| IsActive | bit | No |  | true |
+| IsDefault | bit | No |  | false |
+| Priority | int | No |  | 0 |
+
+## StallNarrationContents
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| StallId | uniqueidentifier | No | FK->Stalls(Id) |  |
+| LanguageId | uniqueidentifier | No | FK->Languages(Id) |  |
+| Title | nvarchar(128) | No |  |  |
+| Description | nvarchar(256) | Yes |  |  |
+| ScriptText | nvarchar(max) | No |  |  |
+| IsActive | bit | No |  | true |
+| TtsStatus | nvarchar(32) | No |  | "None" |
+| TtsError | nvarchar(512) | Yes |  |  |
+| UpdatedAt | datetimeoffset | Yes |  |  |
+
+## NarrationAudios
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| NarrationContentId | uniqueidentifier | No | FK->StallNarrationContents(Id) |  |
+| TtsVoiceProfileId | uniqueidentifier | Yes | FK->TtsVoiceProfiles(Id) |  |
+| AudioUrl | nvarchar(512) | Yes |  |  |
+| BlobId | nvarchar(128) | Yes |  |  |
+| Voice | nvarchar(64) | Yes |  |  |
+| Provider | nvarchar(64) | Yes |  |  |
+| DurationSeconds | int | Yes |  |  |
+| IsTts | bit | No |  | false |
+| UpdatedAt | datetimeoffset | Yes |  |  |
+
+## DevicePreferences
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| DeviceId | nvarchar(128) | No | Unique |  |
+| LanguageId | uniqueidentifier | No | FK->Languages(Id) |  |
+| VoiceId | uniqueidentifier | Yes | FK->TtsVoiceProfiles(Id) |  |
+| SpeechRate | decimal(4,2) | No |  | 1.0 |
+| AutoPlay | bit | No |  | true |
+| Platform | nvarchar(32) | Yes |  |  |
+| DeviceModel | nvarchar(128) | Yes |  |  |
+| Manufacturer | nvarchar(128) | Yes |  |  |
+| OsVersion | nvarchar(64) | Yes |  |  |
+| FirstSeenAt | datetimeoffset | No |  |  |
+| LastSeenAt | datetimeoffset | No |  |  |
+
+## VisitorProfiles
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| UserId | uniqueidentifier | No | FK->Users(Id), Unique |  |
+| LanguageId | uniqueidentifier | No | FK->Languages(Id) |  |
+| CreatedAt | datetime2(3) | No |  | SYSUTCDATETIME() |
+
+## VisitorPreferences
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| UserId | uniqueidentifier | No | FK->Users(Id), Unique |  |
+| LanguageId | uniqueidentifier | No | FK->Languages(Id) |  |
+| Voice | nvarchar(64) | Yes |  |  |
+| SpeechRate | decimal(4,2) | No |  |  |
+| AutoPlay | bit | No |  | false |
+| UpdatedAt | datetimeoffset | Yes |  |  |
+
+## VisitorLocationLogs
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| UserId | uniqueidentifier | No | FK->Users(Id) |  |
+| Latitude | decimal(9,6) | No |  |  |
+| Longitude | decimal(9,6) | No |  |  |
+| AccuracyMeters | decimal(10,2) | Yes |  |  |
+| CapturedAtUtc | datetime2(3) | No |  | SYSUTCDATETIME() |
+
+## DeviceLocationLogs
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK |  |
+| DeviceId | nvarchar(128) | No | Index |  |
+| Latitude | decimal(9,6) | No |  |  |
+| Longitude | decimal(9,6) | No |  |  |
+| AccuracyMeters | decimal(10,2) | Yes |  |  |
+| CapturedAtUtc | datetimeoffset | No | Index |  |
+
+## ScanLogs
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | int | No | PK | Identity |
+| DeviceId | nvarchar(128) | No | Index |  |
+| QrRawResult | nvarchar(2048) | No |  |  |
+| LastScannedSlug | nvarchar(256) | Yes |  |  |
+| LastQrScanAt | datetime2(3) | No |  |  |
+| QrSessionExpiry | datetime2(3) | No |  |  |
+| HasScannedQr | bit | No |  | true |
+
+## SubscriptionOrders
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK | NEWSEQUENTIALID() |
+| BusinessId | uniqueidentifier | No | FK->Businesses(Id) |  |
+| Plan | nvarchar(16) | No |  |  |
+| Amount | decimal(18,0) | No |  |  |
+| Currency | nvarchar(3) | No |  | "VND" |
+| DurationMonths | int | No |  |  |
+| Status | nvarchar(16) | No |  |  |
+| PaymentMethod | nvarchar(32) | No |  | "MockCard" |
+| CardLastFour | nvarchar(4) | Yes |  |  |
+| CreatedAt | datetimeoffset(3) | No |  | SYSUTCDATETIME() |
+| PaidAt | datetimeoffset | Yes |  |  |
+| PlanStartAt | datetimeoffset(3) | No |  |  |
+| PlanEndAt | datetimeoffset(3) | No |  |  |
+
+## QrCodes
+| Column | Type | Nullable | PK/FK | Default |
+|---|---|---|---|---|
+| Id | uniqueidentifier | No | PK |  |
+| Code | nvarchar(100) | No | Unique |  |
+| ValidDays | int | No |  |  |
+| IsUsed | bit | No |  | false |
+| UsedAt | datetime2 | Yes |  |  |
+| UsedByDeviceId | nvarchar(100) | Yes |  |  |
+| Note | nvarchar(500) | Yes |  |  |
+| CreatedAt | datetime2 | No |  | GETUTCDATE() |
+
+---
+
+### 7.3 Quan hệ dữ liệu chính
+- `Users` 1-N `RefreshTokens`
+- `Users` N-N `Roles` qua `UserRoles`
+- `Users` 1-1 `BusinessOwnerProfiles`, `EmployeeProfiles`, `VisitorProfiles`, `VisitorPreferences`
+- `Businesses` 1-N `Stalls`; `Businesses` 1-N `SubscriptionOrders`
+- `Stalls` 1-N `StallLocations`, `StallGeoFences`, `StallMedia`, `StallNarrationContents`
+- `Languages` 1-N `TtsVoiceProfiles`, `StallNarrationContents`, `DevicePreferences`, `VisitorProfiles`, `VisitorPreferences`
+- `StallNarrationContents` 1-N `NarrationAudios`
+- `DevicePreferences` optional FK đến `TtsVoiceProfiles` (`VoiceId` nullable)
+
+---
+
+## 8) Yêu cầu chức năng
+
+## 8.1 Mobile App (Visitor)
+| Mã FR | Chức năng | Mô tả |
+|---|---|---|
+| FR-M-01 | Startup loading | Kiểm tra DeviceId, QR validity, local preference để route nhanh |
+| FR-M-02 | QR Scan & Verify | Quét QR, verify API, lưu expiry/session |
+| FR-M-03 | Language & Voice | Chọn ngôn ngữ/giọng, tìm kiếm realtime, lưu preference |
+| FR-M-04 | Map Stall | Tải stall cache-first, hiển thị pin, focus/selected stall |
+| FR-M-05 | Geofence Polling | Poll GPS, kiểm tra vào/ra vùng, queue audio |
+| FR-M-06 | Audio Playback | Play/Pause/Stop, local file ưu tiên trước remote |
+| FR-M-07 | Offline Cache | SQLite stalls + local audio path |
+| FR-M-08 | Background Sync | Chu kỳ 3 phút + trigger khi internet phục hồi |
+| FR-M-09 | Profile | Cập nhật Language/Voice/SpeechRate/AutoPlay |
+| FR-M-10 | Device Location Batch | Gom điểm GPS và gửi batch API |
+
+## 8.2 Web Admin (Admin & BusinessOwner)
+| Mã FR | Chức năng | Trạng thái |
+|---|---|---|
+| FR-W-01 | Auth login/register/logout | Có |
+| FR-W-02 | Business CRUD + subscription | Có (mức nghiệp vụ đã đáng kể) |
+| FR-W-03 | Stall CRUD | Có |
+| FR-W-04 | StallLocation/GeoFence/Media | Có |
+| FR-W-05 | Narration content/audio | Có controller + service |
+| FR-W-06 | User/Role management | Có (Admin) |
+| FR-W-07 | Dashboard phân tích sâu | Chưa đầy đủ |
+
+## 8.3 API Backend
+- Đã có hệ thống endpoint phủ các module chính (Auth, Geo, Preference, QR, CRUD nghiệp vụ)
+- Chuẩn hóa response qua `ApiResult<T>` cho đa số endpoint
+- Có một số endpoint dạng raw DTO (ví dụ `api/stalls`) để tối ưu client cũ/tương thích
+
+---
+
+## 9) Luồng người dùng (User Flows)
+
+### 9.1 Flow chính (actual trên Mobile hiện tại)
+1. App mở `LoadingPage`
+2. Kiểm tra `device_id`
+3. Nếu chưa có QR hợp lệ → `ScanPage`
+4. Quét QR thành công → `LanguagePage`
+5. Chọn language + voice + confirm → lưu `DevicePreference`
+6. Điều hướng `MapPage`
+7. Map poll GPS, phát narration theo stall/geofence
+
+### 9.2 Sequence Diagram (text)
+```plaintext
+Visitor -> LoadingPage : open app
+LoadingPage -> QrService : IsAccessValid()
+QrService -> API : POST /api/qrcodes/verify (khi scan)
+LoadingPage -> DevicePreferenceApi : GET /api/device-preference/{deviceId}
+Visitor -> LanguagePage : chọn language/voice
+LanguagePage -> DevicePreferenceApi : POST /api/device-preference
+LanguagePage -> MapPage : navigate
+MapPage -> StallService : GET /api/geo/stalls?deviceId=...
+StallService -> SQLite : cache/read
+MapPage -> AudioGuideService : play/pause/stop
+SyncBackgroundService -> SyncService : periodic sync
+```
+
+---
+
+## 10) API Endpoints chính (tóm tắt)
+
+> Tổng hợp từ `api-endpoints-summary.txt` + đối chiếu controller hiện tại.
+
+| Nhóm | Method | Endpoint | Ghi chú |
+|---|---|---|---|
+| Auth | POST | `/api/Auth/register/business-owner` | Đăng ký BusinessOwner |
+| Auth | POST | `/api/Auth/login` | JWT + refresh token |
+| Auth | POST | `/api/Auth/refresh` | Refresh access token |
+| Auth | POST | `/api/Auth/logout` | Revoke refresh token |
+| QR | GET | `/api/qrcodes` | Danh sách QR (Admin) |
+| QR | POST | `/api/qrcodes` | Tạo QR |
+| QR | POST | `/api/qrcodes/verify` | Verify QR (anonymous) |
+| Geo | GET | `/api/geo/stalls?deviceId=` | Dữ liệu map |
+| Language | GET | `/api/languages/active` | Public list |
+| Voice | GET | `/api/tts-voice-profiles/active?languageId=` | Voice theo language |
+| DevicePref | GET | `/api/device-preference/{deviceId}` | Lấy preference |
+| DevicePref | POST | `/api/device-preference` | Upsert preference |
+| DevicePref | POST | `/api/device-preferences` | Endpoint mở rộng |
+| Stall public | GET | `/api/stalls` | Raw list |
+| Stall public | GET | `/api/stalls/{id}` | Raw detail |
+| Device log | POST | `/api/device-location-log/batch` | GPS batch |
+| Business | GET/POST/PUT | `/api/Business...` | Quản trị doanh nghiệp |
+| Stall admin | GET/POST/PUT | `/api/Stall...` | Quản trị gian hàng |
+| Narration | CRUD | `/api/stall-narration-content...` | Nội dung |
+| Audio | PUT upload | `/api/narration-audio/{id}/upload` | Upload human audio |
+| User admin | GET/POST/PUT | `/api/User...` | Quản trị user/role |
+
+---
+
+## 11) Tích hợp dịch vụ ngoài
+
+| Dịch vụ | Vai trò | Tầng sử dụng |
+|---|---|---|
+| Azure Speech | Sinh TTS từ script | API |
+| Azure Blob Storage | Lưu file audio/media | API |
+| Azure Translator | Dịch nội dung narration | API |
+| Mapsui + OSM | Bản đồ tương tác | Mobile |
+| SQLite | Offline stall/audio metadata | Mobile |
+| ZXing.Net.Maui | QR scan | Mobile |
+| Plugin.Maui.Audio | Audio playback | Mobile |
+
+---
+
+## 12) Yêu cầu phi chức năng
+
+| Nhóm | Yêu cầu |
+|---|---|
+| Performance | Startup nhanh; map load ưu tiên local; API timeout 10s phía mobile client |
+| Reliability | Không crash khi mất mạng; fallback local cache; sync retry theo chu kỳ |
+| Security | JWT + refresh token hash; role-based authorization; phân quyền Admin/BusinessOwner |
+| Offline-first | Stall data đọc từ SQLite trước; audio local path ưu tiên |
+| Scalability | API stateless; cloud storage tách biệt; phân trang endpoints |
+| Maintainability | MVVM + DI + Shared DTO; tách service rõ ràng; logging chi tiết |
+
+---
+
+## 13) Quyết định kỹ thuật quan trọng
+
+1. **Device-based personalization** thay vì bắt buộc tài khoản mobile.
+2. **Cache-first** (SQLite trước, API sau) để tối ưu UX.
+3. **Mapsui/OSM** thay cho nền tảng map trả phí.
+4. **Audio local-first** để giảm phụ thuộc mạng.
+5. **API response envelope** `ApiResult<T>` cho xử lý lỗi nhất quán.
+6. **Hosted background tasks** cho TTS/sync logic phía server/mobile.
+
+---
+
+## 14) Backlog & Tính năng chưa triển khai (theo TODO)
+
+| Ưu tiên | Hạng mục | Mô tả |
+|---|---|---|
+| P1 | Featured stalls MainPage | Hiển thị đầy đủ ảnh/mô tả/khoảng cách |
+| P1 | Nearest stall thực chiến | Hoàn thiện flow focus map theo nearest endpoint |
+| P1 | Khoảng cách Haversine UI | Tính và hiển thị khoảng cách thực |
+| P1 | 401 global handling | Xử lý token hết hạn đồng bộ |
+| P2 | Offline/audio lifecycle | Ổn định hơn trong background/foreground |
+| P2 | Stall search | Tìm kiếm trên Main/Map |
+| P2 | Thiết bị thật | Kiểm thử GPS/Camera/Audio |
+| P3 | Đánh giá sử dụng QR | Chính sách hạn 7 ngày/24h theo nghiệp vụ |
+| P3 | Trạng thái “đã quét QR” | Bổ sung logic cờ quét để tối ưu flow |
+
+---
+
+## 15) Phụ lục
+
+### 15.1 Glossary
+- **DeviceId**: định danh duy nhất cho thiết bị mobile.
+- **Geofence**: vùng bán kính hoặc polygon để xác định “đến gần gian hàng”.
+- **Narration**: nội dung thuyết minh.
+- **TTS**: Text-to-Speech.
+- **Cache-first**: ưu tiên đọc dữ liệu local trước khi gọi mạng.
+
+### 15.2 References
+- `PRD_extracted.txt`
+- `README.txt`
+- `Sequence_UserFlow_Report.txt`
+- `api-endpoints-summary.txt`
+- `Project_Summary_Todo.txt`
+- Source code hiện tại: `Api + Mobile + Shared + Web`
+
+---
+
+Nếu cần, có thể xuất tiếp bản này thành:
+1) **PRD rút gọn cho slide bảo vệ** (10–12 trang), hoặc  
+2) **PRD + RTM (Requirement Traceability Matrix)** để nối trực tiếp sang test case.
