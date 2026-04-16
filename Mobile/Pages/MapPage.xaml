@@ -103,7 +103,8 @@
                         <Frame Margin="10,6"
                                Padding="12"
                                CornerRadius="14"
-                               BorderColor="#D1D5DB">
+                               BorderColor="#D1D5DB"
+                               HorizontalOptions="Fill">
                             <VerticalStackLayout>
                                 <!-- Tên gian hàng -->
                                 <Label Text="{Binding StallName}" FontAttributes="Bold" />

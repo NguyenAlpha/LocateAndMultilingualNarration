@@ -126,6 +126,7 @@ public static class MauiProgram
 
         // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
         builder.Logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
+        builder.Logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
 #endif
 
         // Hoàn tất cấu hình — đóng băng DI container và trả về MauiApp để framework khởi chạy

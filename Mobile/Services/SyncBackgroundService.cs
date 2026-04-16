@@ -28,7 +28,8 @@ public class SyncBackgroundService : ISyncBackgroundService
     private readonly ILogger<SyncBackgroundService> _logger;
 
     private CancellationTokenSource? _cts;
-    private static readonly TimeSpan SyncInterval = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan StallSyncInterval = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromMinutes(1);
 
     public SyncBackgroundService(ISyncService syncService, ILocationLogService locationLogService, ILogger<SyncBackgroundService> logger)
     {
@@ -84,22 +85,39 @@ public class SyncBackgroundService : ISyncBackgroundService
     /// <param name="ct">Token hủy để dừng vòng lặp nền.</param>
     private async Task RunPeriodicAsync(CancellationToken ct)
     {
-        // Timer lặp theo khoảng thời gian cố định.
-        using var timer = new PeriodicTimer(SyncInterval);
+        using var stallTimer = new PeriodicTimer(StallSyncInterval);
+        using var flushTimer = new PeriodicTimer(FlushInterval);
         try
         {
-            while (await timer.WaitForNextTickAsync(ct))
+            var stallTask = stallTimer.WaitForNextTickAsync(ct).AsTask();
+            var flushTask = flushTimer.WaitForNextTickAsync(ct).AsTask();
+
+            while (true)
             {
-                // Nếu không có mạng thì bỏ qua lần tick này.
+                await Task.WhenAny(stallTask, flushTask);
+
                 if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
                 {
                     _logger.LogDebug("SyncBackgroundService: không có mạng, bỏ qua tick");
+                    if (stallTask.IsCompleted) stallTask = stallTimer.WaitForNextTickAsync(ct).AsTask();
+                    if (flushTask.IsCompleted) flushTask = flushTimer.WaitForNextTickAsync(ct).AsTask();
                     continue;
                 }
-                // Có mạng thì đồng bộ dữ liệu.
-                _logger.LogInformation("SyncBackgroundService: periodic tick → sync");
-                await _syncService.SyncAsync(ct);
-                await _locationLogService.FlushAsync();
+
+                if (stallTask.IsCompleted)
+                {
+                    if (!await stallTask) break;
+                    _logger.LogInformation("SyncBackgroundService: stall sync tick");
+                    await _syncService.SyncAsync(ct);
+                    stallTask = stallTimer.WaitForNextTickAsync(ct).AsTask();
+                }
+
+                if (flushTask.IsCompleted)
+                {
+                    if (!await flushTask) break;
+                    await _locationLogService.FlushAsync();
+                    flushTask = flushTimer.WaitForNextTickAsync(ct).AsTask();
+                }
             }
         }
         catch (OperationCanceledException) { /* normal stop */ }

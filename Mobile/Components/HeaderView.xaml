@@ -7,7 +7,7 @@
     HeightRequest="56"
     Padding="0">
 
-    <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalOptions="Center">
         <Label
             Text="{Binding Title}"
             FontSize="20"
@@ -16,7 +16,20 @@
             VerticalOptions="Center"/>
 
         <Button
+            x:Name="debugResetButton"
             Grid.Column="1"
+            Text="⚙ Device ID"
+            BackgroundColor="#CC6600"
+            TextColor="White"
+            CornerRadius="16"
+            HeightRequest="32"
+            Padding="10,0"
+            FontSize="12"
+            IsVisible="False"
+            VerticalOptions="Center"/>
+
+        <Button
+            Grid.Column="2"
             Text="Đăng xuất"
             Command="{Binding LogoutCommand}"
             BackgroundColor="#FFFFFF"
