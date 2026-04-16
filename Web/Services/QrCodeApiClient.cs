@@ -17,6 +17,9 @@ public class QrCodeApiClient(HttpClient httpClient)
         return await httpClient.GetFromJsonAsync<ApiResult<PagedResult<QrCodeDetailDto>>>(url, ct);
     }
 
+    public async Task<ApiResult<QrCodeDetailDto>?> GetQrCodeAsync(Guid id, CancellationToken ct = default)
+        => await httpClient.GetFromJsonAsync<ApiResult<QrCodeDetailDto>>($"api/qrcodes/{id}", ct);
+
     public async Task<ApiResult<QrCodeDetailDto>?> CreateQrCodeAsync(
         QrCodeCreateDto request, CancellationToken ct = default)
     {

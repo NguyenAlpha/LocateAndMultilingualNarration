@@ -69,7 +69,7 @@
                         <tr>
                             <th>Code</th>
                             <th>Ngày tạo</th>
-                            <th>Hết hạn</th>
+                            <th>Hiệu lực</th>
                             <th>Trạng thái</th>
                             <th>Ghi chú</th>
                             <th class="w-1"></th>
@@ -84,25 +84,32 @@
                         }
                         @foreach (var item in Model.Items)
                         {
-                            var isExpired = item.ExpiryAt <= DateTime.UtcNow;
+                            var accessExpired = item.IsUsed && item.AccessExpiresAt.HasValue && item.AccessExpiresAt.Value <= DateTime.UtcNow;
                             <tr>
                                 <td>
                                     <code class="fw-bold">****@(item.Code.Length >= 4 ? item.Code[^4..] : item.Code)</code>
                                 </td>
                                 <td class="text-muted">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="@(isExpired ? "text-danger" : "")">
-                                    @item.ExpiryAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-                                    @if (isExpired)
+                                <td>
+                                    @if (!item.IsUsed)
                                     {
-                                        <span class="badge bg-danger-lt ms-1">Hết hạn</span>
+                                        <span class="badge bg-blue-lt">@item.ValidDays ngày</span>
+                                    }
+                                    else if (item.AccessExpiresAt.HasValue && !accessExpired)
+                                    {
+                                        <span class="badge bg-success-lt">@item.AccessExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                    }
+                                    else if (item.AccessExpiresAt.HasValue)
+                                    {
+                                        <span class="badge bg-danger-lt">@item.AccessExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") — Hết hạn</span>
                                     }
                                 </td>
                                 <td>
-                                    @if (item.IsUsed)
+                                    @if (item.IsUsed && !accessExpired)
                                     {
-                                        <span class="badge bg-success-lt">Đã dùng</span>
+                                        <span class="badge bg-success-lt">Đang dùng</span>
                                     }
-                                    else if (isExpired)
+                                    else if (item.IsUsed && accessExpired)
                                     {
                                         <span class="badge bg-secondary-lt">Hết hạn</span>
                                     }
@@ -188,12 +195,12 @@
                         <div class="alert alert-danger py-2">@Model.ErrorMessage</div>
                     }
                     <div class="mb-3">
-                        <label class="form-label required">Ngày hết hạn</label>
-                        <input type="datetime-local" class="form-control"
-                               name="ExpiryAt"
-                               value="@(Model.Create.ExpiryAt != default ? Model.Create.ExpiryAt.ToString("yyyy-MM-ddTHH:mm") : "")"
-                               required />
-                        <small class="text-muted">Mã QR sẽ hết hiệu lực sau thời điểm này.</small>
+                        <label class="form-label required">Số ngày hiệu lực</label>
+                        <input type="number" class="form-control"
+                               name="ValidDays"
+                               value="@(Model.Create.ValidDays > 0 ? Model.Create.ValidDays.ToString() : "")"
+                               min="1" placeholder="VD: 30" required />
+                        <small class="text-muted">Thiết bị quét sẽ được dùng app trong số ngày này.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Ghi chú (tuỳ chọn)</label>

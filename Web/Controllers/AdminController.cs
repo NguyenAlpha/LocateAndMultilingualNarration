@@ -208,7 +208,7 @@ namespace Web.Controllers
             QrCodeCreateDto model, int page = 1, int pageSize = 20,
             CancellationToken cancellationToken = default)
         {
-            if (!ModelState.IsValid || model.ExpiryAt <= DateTime.UtcNow)
+            if (!ModelState.IsValid || model.ValidDays <= 0)
             {
                 var result = await _qrCodeApiClient.GetQrCodesAsync(page, pageSize, ct: cancellationToken);
                 var items = result?.Data?.Items?.ToList() ?? [];
@@ -221,7 +221,7 @@ namespace Web.Controllers
                     TotalUsed = items.Count(q => q.IsUsed),
                     Create = model,
                     ShowCreateModal = true,
-                    ErrorMessage = "Ngày hết hạn không hợp lệ."
+                    ErrorMessage = "Số ngày hiệu lực không hợp lệ."
                 };
                 return View("QrCodes", vm);
             }
@@ -260,6 +260,55 @@ namespace Web.Controllers
             var bytes = await _qrCodeApiClient.GetQrCodeImageAsync(id, cancellationToken);
             if (bytes is null) return NotFound();
             return File(bytes, "image/png", $"qr-{id}.png");
+        }
+
+        [HttpGet]
+        public IActionResult AutoQr() => View();
+
+        [HttpPost]
+        public async Task<IActionResult> StartAutoQr(
+            [FromBody] Shared.DTOs.QrCodes.QrCodeCreateDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _qrCodeApiClient.CreateQrCodeAsync(request, cancellationToken);
+            if (result?.Success != true || result.Data is null)
+                return BadRequest(new { error = result?.Error?.Message ?? "Tạo mã QR thất bại." });
+
+            return Ok(new
+            {
+                id       = result.Data.Id,
+                code     = result.Data.Code,
+                imageUrl = Url.Action("GetQrImage", "Admin", new { id = result.Data.Id })
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> PollAutoQr(
+            Guid id, int validDays,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _qrCodeApiClient.GetQrCodeAsync(id, cancellationToken);
+            if (result?.Success != true || result.Data is null)
+                return NotFound();
+
+            if (!result.Data.IsUsed)
+                return Ok(new { used = false });
+
+            // QR đã được quét → tạo QR mới tự động
+            var newResult = await _qrCodeApiClient.CreateQrCodeAsync(
+                new Shared.DTOs.QrCodes.QrCodeCreateDto { ValidDays = validDays },
+                cancellationToken);
+
+            if (newResult?.Success != true || newResult.Data is null)
+                return BadRequest(new { error = "Tạo mã QR mới thất bại." });
+
+            return Ok(new
+            {
+                used     = true,
+                id       = newResult.Data.Id,
+                code     = newResult.Data.Code,
+                imageUrl = Url.Action("GetQrImage", "Admin", new { id = newResult.Data.Id })
+            });
         }
 
         [HttpGet]

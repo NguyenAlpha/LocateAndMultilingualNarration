@@ -119,6 +119,10 @@
                                            asp-controller="Admin" asp-action="QrCodes">
                                             <i class="ti ti-qrcode me-2"></i>Mã QR
                                         </a>
+                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "AutoQr" ? "active" : "")"
+                                           asp-controller="Admin" asp-action="AutoQr">
+                                            <i class="ti ti-refresh me-2"></i>Tạo QR tự động
+                                        </a>
                                     </div>
                                 </li>
                             }
