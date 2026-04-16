@@ -855,8 +855,4 @@ sequenceDiagram
     Note over CTR: Tính stats từ trang hiện tại:<br/>TotalRevenue (Completed), TotalCompleted, TotalFailed
     CTR-->>VIEW: Render bảng lịch sử + stats cards
     VIEW-->>ADMIN: Bảng đơn + filter Plan/Status + phân trang
-
-    ADMIN->>VIEW: Thay đổi filter, submit
-    VIEW->>CTR: GET /Admin/SubscriptionOrders?plan=Basic&status=Completed
-    Note over CTR: Lặp lại luồng trên với filter mới
 ```
