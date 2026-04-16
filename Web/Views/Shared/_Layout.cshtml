@@ -112,7 +112,7 @@
                                        href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button"
                                        aria-expanded="@(currentController == "Admin" ? "true" : "false")">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <i class="ti ti-speedometer"></i>
+                                            <i class="ti ti-shield"></i>
                                         </span>
                                         <span class="nav-link-title">Quản trị</span>
                                     </a>
@@ -195,25 +195,20 @@
 
                         </ul>
 
-                        <!-- Bottom: user profile -->
-                        <div class="mt-auto d-none d-lg-block pb-3">
-                            <div class="nav-item dropdown">
-                                <a href="#" class="nav-link d-flex lh-1 text-reset p-0 px-2 py-2" data-bs-toggle="dropdown">
-                                    <span class="avatar avatar-sm me-2">@userName.Substring(0, 1).ToUpper()</span>
-                                    <div class="d-none d-xl-block ps-1">
-                                        <div class="text-white fw-medium">@userName</div>
-                                        <div class="mt-1 small text-white-50">@userRole</div>
-                                    </div>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                                    <div class="dropdown-header">@userName</div>
-                                    <div class="dropdown-divider"></div>
-                                    <form method="post" asp-controller="Auth" asp-action="Logout">
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i class="ti ti-logout me-2"></i>Đăng xuất
-                                        </button>
-                                    </form>
+                        <!-- Bottom: user profile + logout -->
+                        <div class="mt-auto d-none d-lg-block pb-3 px-2">
+                            <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm me-2 flex-shrink-0">@userName.Substring(0, 1).ToUpper()</span>
+                                <div class="d-none d-xl-block ps-1 overflow-hidden flex-grow-1">
+                                    <div class="text-white fw-medium text-truncate">@userName</div>
+                                    <div class="small text-white-50">@userRole</div>
                                 </div>
+                                <form method="post" asp-controller="Auth" asp-action="Logout" class="ms-auto ms-xl-2 flex-shrink-0">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-ghost-danger" title="Đăng xuất">
+                                        <i class="ti ti-logout"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>

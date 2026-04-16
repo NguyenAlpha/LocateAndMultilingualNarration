@@ -20,21 +20,17 @@ namespace Web.Services
         // Lấy danh sách business có phân trang và tìm kiếm
         // - Tạo query string động dựa trên tham số truyền vào
         // - Gọi GET và deserialize response JSON về ApiResult<PagedResult<BusinessDetailDto>>
-        public async Task<ApiResult<PagedResult<BusinessDetailDto>>?> GetBusinessesAsync(int page, int pageSize, string? search, CancellationToken cancellationToken = default, string? sortBy = null, string? sortDir = null)
+        public async Task<ApiResult<PagedResult<BusinessDetailDto>>?> GetBusinessesAsync(int page, int pageSize, string? search, CancellationToken cancellationToken = default, string? sortBy = null, string? sortDir = null, string? plan = null)
         {
             var url = $"api/business?page={page}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(search))
-            {
                 url += $"&search={Uri.EscapeDataString(search)}";
-            }
             if (!string.IsNullOrWhiteSpace(sortBy))
-            {
                 url += $"&sortBy={Uri.EscapeDataString(sortBy)}";
-            }
             if (!string.IsNullOrWhiteSpace(sortDir))
-            {
                 url += $"&sortDir={Uri.EscapeDataString(sortDir)}";
-            }
+            if (!string.IsNullOrWhiteSpace(plan))
+                url += $"&plan={Uri.EscapeDataString(plan)}";
 
             return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<BusinessDetailDto>>>(url, cancellationToken);
         }
