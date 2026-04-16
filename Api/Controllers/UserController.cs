@@ -163,7 +163,7 @@ namespace Api.Controllers
         /// <summary>
         /// Bật/tắt trạng thái IsActive của user. Admin không thể toggle bản thân.
         /// </summary>
-        [HttpPut("{id:guid}/toggle-active")]
+        [HttpPatch("{id:guid}/toggle-active")]
         [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> ToggleUserActive(Guid id)
         {

@@ -51,7 +51,7 @@ namespace Web.Services
         {
             try
             {
-                var response = await _httpClient.PutAsJsonAsync($"api/users/{userId}/toggle-active", new { }, cancellationToken);
+                var response = await _httpClient.PatchAsync($"api/users/{userId}/toggle-active", null, cancellationToken);
                 return await response.Content.ReadFromJsonAsync<ApiResult<object>>(cancellationToken: cancellationToken);
             }
             catch (HttpRequestException) { return null; }
