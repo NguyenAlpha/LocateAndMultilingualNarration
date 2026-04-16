@@ -21,23 +21,7 @@
                    HorizontalOptions="Center"/>
         </VerticalStackLayout>
 
-        <!-- SỬA Ở ĐÂY: OLD CODE (kept for reference): Search Bar nằm ở ngoài popup. -->
-        <!--
-        <Frame Grid.Row="1"
-               CornerRadius="25"
-               BackgroundColor="White"
-               HasShadow="True"
-               Padding="16,12">
-            <Entry Placeholder="Tìm ngôn ngữ (ví dụ: Việt, Anh, Pháp...)"
-                   Text="{Binding SearchText, Mode=TwoWay}"
-                   FontSize="16"
-                   BackgroundColor="Transparent"
-                   ClearButtonVisibility="WhileEditing"
-                   TextChanged="OnSearchTextChanged"/>
-        </Frame>
-        -->
-
-        <!-- SỬA Ở ĐÂY: Vùng hiển thị ngôn ngữ đã chọn + nút mở Popup -->
+        <!-- Vùng hiển thị ngôn ngữ đã chọn + nút mở Popup -->
         <Frame Grid.Row="1"
                CornerRadius="16"
                BackgroundColor="White"
@@ -64,48 +48,48 @@
             </Grid>
         </Frame>
 
-        <!-- SỬA Ở ĐÂY: OLD CODE (kept for reference): chọn ngôn ngữ bằng Picker. -->
-        <!--
-        <VerticalStackLayout Grid.Row="2" Spacing="8">
-            <Label Text="Ngôn ngữ thuyết minh"
-                   FontSize="16"
-                   FontAttributes="Bold"
-                   TextColor="#374151"/>
-            <Picker ItemsSource="{Binding AvailableLanguages}"
-                    SelectedItem="{Binding SelectedLanguage}"
-                    ItemDisplayBinding="{Binding Name}"
-                    Title="Chọn ngôn ngữ"
-                    FontSize="16"/>
-        </VerticalStackLayout>
-        -->
-
-        <!-- SỬA Ở ĐÂY: Hiển thị danh sách giọng đọc ngay bên dưới ngôn ngữ -->
+        <!-- ==================== PHẦN GIỌNG ĐỌC - ĐÃ SỬA VÙNG CLICK ==================== -->
         <VerticalStackLayout Grid.Row="2" Spacing="8">
             <Label Text="Giọng đọc"
                    FontSize="16"
                    FontAttributes="Bold"
                    TextColor="#374151"/>
 
-            <!-- SỬA Ở ĐÂY: OLD CODE (kept for reference): dùng Picker cho giọng đọc. -->
-            <!--
-            <Picker ItemsSource="{Binding AvailableVoices}"
-                    SelectedItem="{Binding SelectedVoice}"
-                    ItemDisplayBinding="{Binding DisplayText}"
-                    Title="Chọn giọng đọc"
-                    FontSize="16"/>
-            -->
-
             <CollectionView ItemsSource="{Binding Voices}"
                             SelectedItem="{Binding SelectedVoice, Mode=TwoWay}"
                             SelectionMode="Single"
                             SelectionChanged="OnVoiceSelectionChanged"
-                            HeightRequest="180">
+                            HeightRequest="230"
+                            VerticalScrollBarVisibility="Never"
+                            InputTransparent="False">
+
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Frame Margin="0,4" Padding="10" CornerRadius="12" HasShadow="False" BorderColor="#E5E7EB">
-                            <VerticalStackLayout Spacing="2">
-                                <Label Text="{Binding DisplayName}" FontAttributes="Bold" TextColor="#111827"/>
-                                <Label Text="{Binding Description}" FontSize="12" TextColor="#6B7280"/>
+                        <Frame 
+                            Margin="0,6"
+                            Padding="20,16"
+                            CornerRadius="14"
+                            HasShadow="False"
+                            BorderColor="#E5E7EB"
+                            BackgroundColor="White"
+                            InputTransparent="False">
+
+                            <!-- GestureRecognizer giúp toàn bộ khung Frame đều nhận click -->
+                            <Frame.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, 
+                                                      Path=SelectionChangedCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Frame.GestureRecognizers>
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{Binding DisplayName}" 
+                                       FontAttributes="Bold" 
+                                       TextColor="#111827"
+                                       FontSize="16"/>
+                                <Label Text="{Binding Description}" 
+                                       FontSize="13" 
+                                       TextColor="#6B7280"/>
                             </VerticalStackLayout>
                         </Frame>
                     </DataTemplate>
@@ -140,7 +124,7 @@
             </Frame>
         </VerticalStackLayout>
 
-        <!-- SỬA Ở ĐÂY: Hiển thị lỗi trên trang chính -->
+        <!-- Hiển thị lỗi -->
         <Label Grid.Row="4"
                Text="{Binding ErrorMessage}"
                IsVisible="{Binding HasError}"
@@ -159,7 +143,7 @@
                 Command="{Binding ConfirmSelectionCommand}"
                 IsEnabled="{Binding IsReadyToContinue}"/>
 
-        <!-- SỬA Ở ĐÂY: Giữ nguyên Popup và hiển thị danh sách ngôn ngữ bên trong Popup -->
+        <!-- Popup chọn ngôn ngữ -->
         <Grid Grid.RowSpan="6"
               IsVisible="{Binding IsLanguagePopupOpen}"
               BackgroundColor="#80000000"
