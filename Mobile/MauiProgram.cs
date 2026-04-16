@@ -57,7 +57,7 @@ public static class MauiProgram
         // Singleton phù hợp cho service cần giữ state lâu dài hoặc dùng chung toàn app
 
         // Xác thực người dùng — đăng nhập, đăng xuất
-        builder.Services.AddSingleton<IAuthService, AuthService>();
+        //builder.Services.AddSingleton<IAuthService, AuthService>();
 
         // Lấy danh sách gian hàng từ API — có cache, dùng chung cho MapPage và ScanPage
         builder.Services.AddSingleton<IStallService, StallService>();
