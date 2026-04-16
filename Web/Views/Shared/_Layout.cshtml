@@ -114,7 +114,7 @@
                     <div class="navbar-nav flex-row d-lg-none">
                         <div class="nav-item dropdown">
                             <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
-                                <span class="avatar avatar-sm">@userName.Substring(0, 1).ToUpper()</span>
+                                <span class="avatar avatar-sm">@(userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "?")</span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
                                 <div class="dropdown-header">@userName</div>
@@ -265,7 +265,7 @@
                         <!-- Bottom: user profile + logout -->
                         <div class="mt-auto d-none d-lg-block pb-3 px-2">
                             <div class="d-flex align-items-center">
-                                <span class="avatar avatar-sm me-2 flex-shrink-0">@userName.Substring(0, 1).ToUpper()</span>
+                                <span class="avatar avatar-sm me-2 flex-shrink-0">@(userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "?")</span>
                                 <div class="d-none d-xl-block ps-1 overflow-hidden flex-grow-1">
                                     <div class="text-white fw-medium text-truncate">@userName</div>
                                     <div class="small text-white-50">@userRole</div>
@@ -344,16 +344,6 @@
     <script>
         // Khởi tạo AOS
         AOS.init({ duration: 350, once: true, offset: 30 });
-
-        // Sync JWT token to localStorage
-        $(document).ready(function () {
-            var serverToken = '@Html.Raw(Context.Session.GetString("AuthToken") ?? "")';
-            if (serverToken && serverToken.trim() !== '') {
-                localStorage.setItem('jwtToken', serverToken);
-            } else {
-                localStorage.removeItem('jwtToken');
-            }
-        });
 
         // Sidebar collapse arrow animation
         document.querySelectorAll('.navbar-vertical [data-bs-toggle="collapse"]').forEach(function (toggle) {

@@ -156,7 +156,12 @@ namespace Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RetryTts(Guid id, CancellationToken cancellationToken = default)
         {
-            await _stallNarrationContentApiClient.RetryTtsAsync(id, cancellationToken);
+            var result = await _stallNarrationContentApiClient.RetryTtsAsync(id, cancellationToken);
+            if (result?.Success != true)
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không thể thử lại TTS. Vui lòng thử lại sau.";
+            else
+                TempData["SuccessMessage"] = "Đã gửi yêu cầu thử lại TTS.";
+
             return RedirectToAction(nameof(Show), new { id });
         }
 

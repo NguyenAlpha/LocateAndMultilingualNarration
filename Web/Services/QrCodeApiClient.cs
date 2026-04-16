@@ -14,29 +14,52 @@ public class QrCodeApiClient(HttpClient httpClient)
         var url = $"api/qrcodes?page={page}&pageSize={pageSize}";
         if (isUsed.HasValue) url += $"&isUsed={isUsed.Value.ToString().ToLower()}";
         if (expired.HasValue) url += $"&expired={expired.Value.ToString().ToLower()}";
-        return await httpClient.GetFromJsonAsync<ApiResult<PagedResult<QrCodeDetailDto>>>(url, ct);
+
+        try
+        {
+            return await httpClient.GetFromJsonAsync<ApiResult<PagedResult<QrCodeDetailDto>>>(url, ct);
+        }
+        catch (HttpRequestException) { return null; }
     }
 
     public async Task<ApiResult<QrCodeDetailDto>?> GetQrCodeAsync(Guid id, CancellationToken ct = default)
-        => await httpClient.GetFromJsonAsync<ApiResult<QrCodeDetailDto>>($"api/qrcodes/{id}", ct);
+    {
+        try
+        {
+            return await httpClient.GetFromJsonAsync<ApiResult<QrCodeDetailDto>>($"api/qrcodes/{id}", ct);
+        }
+        catch (HttpRequestException) { return null; }
+    }
 
     public async Task<ApiResult<QrCodeDetailDto>?> CreateQrCodeAsync(
         QrCodeCreateDto request, CancellationToken ct = default)
     {
-        var response = await httpClient.PostAsJsonAsync("api/qrcodes", request, ct);
-        return await response.Content.ReadFromJsonAsync<ApiResult<QrCodeDetailDto>>(cancellationToken: ct);
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("api/qrcodes", request, ct);
+            return await response.Content.ReadFromJsonAsync<ApiResult<QrCodeDetailDto>>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
     }
 
     public async Task<ApiResult<object?>?> DeleteQrCodeAsync(Guid id, CancellationToken ct = default)
     {
-        var response = await httpClient.DeleteAsync($"api/qrcodes/{id}", ct);
-        return await response.Content.ReadFromJsonAsync<ApiResult<object?>>(cancellationToken: ct);
+        try
+        {
+            var response = await httpClient.DeleteAsync($"api/qrcodes/{id}", ct);
+            return await response.Content.ReadFromJsonAsync<ApiResult<object?>>(cancellationToken: ct);
+        }
+        catch (HttpRequestException) { return null; }
     }
 
     public async Task<byte[]?> GetQrCodeImageAsync(Guid id, CancellationToken ct = default)
     {
-        var response = await httpClient.GetAsync($"api/qrcodes/{id}/image", ct);
-        if (!response.IsSuccessStatusCode) return null;
-        return await response.Content.ReadAsByteArrayAsync(ct);
+        try
+        {
+            var response = await httpClient.GetAsync($"api/qrcodes/{id}/image", ct);
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadAsByteArrayAsync(ct);
+        }
+        catch (HttpRequestException) { return null; }
     }
 }

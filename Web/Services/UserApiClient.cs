@@ -18,7 +18,7 @@ namespace Web.Services
             string? search, string? role, bool? isActive,
             CancellationToken cancellationToken = default)
         {
-            var url = $"api/user?page={page}&pageSize={pageSize}";
+            var url = $"api/users?page={page}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(search))
                 url += $"&search={Uri.EscapeDataString(search)}";
             if (!string.IsNullOrWhiteSpace(role))
@@ -26,37 +26,57 @@ namespace Web.Services
             if (isActive.HasValue)
                 url += $"&isActive={isActive.Value.ToString().ToLower()}";
 
-            return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<UserListItemDto>>>(url, cancellationToken);
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ApiResult<PagedResult<UserListItemDto>>>(url, cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<UserListItemDto>?> AdminCreateUserAsync(
             AdminCreateUserDto dto,
             CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/user", dto, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<ApiResult<UserListItemDto>>(cancellationToken: cancellationToken);
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/users", dto, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<UserListItemDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<object>?> ToggleUserActiveAsync(
             Guid userId,
             CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/user/{userId}/toggle-active", new { }, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<ApiResult<object>>(cancellationToken: cancellationToken);
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"api/users/{userId}/toggle-active", new { }, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<object>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<UserListItemDto>?> UpdateUserRoleAsync(
             Guid userId, UserRoleUpdateDto dto,
             CancellationToken cancellationToken = default)
         {
-            var response = await _httpClient.PutAsJsonAsync($"api/user/{userId}/role", dto, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<ApiResult<UserListItemDto>>(cancellationToken: cancellationToken);
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync($"api/users/{userId}/role", dto, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<UserListItemDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<List<RoleListItemDto>>?> GetRolesAsync(
             CancellationToken cancellationToken = default)
         {
-            return await _httpClient.GetFromJsonAsync<ApiResult<List<RoleListItemDto>>>("api/user/roles", cancellationToken);
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ApiResult<List<RoleListItemDto>>>("api/users/roles", cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
     }
 }

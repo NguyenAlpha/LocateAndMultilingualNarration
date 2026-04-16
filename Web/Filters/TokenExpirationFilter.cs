@@ -14,6 +14,8 @@ namespace Web.Filters
             "/Auth/Logout",
             "/Home/Index",
             "/Home/Privacy",
+            "/Subscription/Plans",
+            "/Subscription/Success",
         ];
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)

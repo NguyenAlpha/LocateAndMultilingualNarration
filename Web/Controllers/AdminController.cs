@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.DTOs.Businesses;
 using Shared.DTOs.QrCodes;
@@ -7,6 +8,7 @@ using Web.Services;
 
 namespace Web.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private readonly BusinessApiClient _businessApiClient;

@@ -172,7 +172,7 @@
                                             <button type="submit"
                                                     class="btn btn-sm @(u.IsActive ? "btn-outline-warning" : "btn-outline-success")"
                                                     title="@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt")"
-                                                    onclick="return confirm('@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt") user @u.UserName?')">
+                                                    onclick="return confirm('@(u.IsActive ? "Vô hiệu hóa" : "Kích hoạt") user @System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(u.UserName ?? "")?')">
                                                 <i class="bi @(u.IsActive ? "bi-person-slash" : "bi-person-check")"></i>
                                             </button>
                                         </form>
