@@ -22,15 +22,12 @@ public class MapViewModel : INotifyPropertyChanged
     // Service điều khiển phát audio thuyết minh
     private readonly IAudioGuideService _audioGuideService;
 
-    private readonly ILocationLogService _locationLogService;
+    private readonly IGpsPollingService _gpsPollingService;
 
     private readonly ILogger<MapViewModel> _logger;
 
     // Cờ đánh dấu dữ liệu đã được tải lần đầu hay chưa — tránh gọi API trùng lặp
     private bool _isLoaded;
-
-    // CancellationTokenSource để dừng polling khi rời MapPage
-    private CancellationTokenSource? _pollingCts;
 
     // Tập hợp StallId đã được trigger trong lần ghé thăm hiện tại (đang phát hoặc đang chờ).
     // Stall bị xóa khỏi set khi user thoát khỏi vùng geofence → cho phép trigger lại khi quay lại.
@@ -132,14 +129,15 @@ public class MapViewModel : INotifyPropertyChanged
     /// Constructor nhận service qua Dependency Injection (đăng ký trong MauiProgram.cs).
     /// Khởi tạo tất cả Command ngay tại đây.
     /// </summary>
-    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService, ILocationLogService locationLogService, ILogger<MapViewModel> logger)
+    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService, IGpsPollingService gpsPollingService, ILogger<MapViewModel> logger)
     {
         _stallService = stallService;
         _audioGuideService = audioGuideService;
-        _locationLogService = locationLogService;
+        _gpsPollingService = gpsPollingService;
         _logger = logger;
 
         _audioGuideService.PlaybackCompleted += OnPlaybackCompleted;
+        _gpsPollingService.LocationUpdated += OnLocationUpdated;
 
         // forceRefresh = true: bỏ qua cache, luôn gọi API mới
         RefreshCommand = new Command(async () => await LoadStallsAsync(true));
@@ -272,68 +270,22 @@ public class MapViewModel : INotifyPropertyChanged
     // ---- GEOFENCING ----
 
     /// <summary>
-    /// Bắt đầu polling GPS định kỳ. Được MapPage gọi trong OnAppearing.
+    /// Bắt đầu polling GPS. Được MapPage gọi trong OnAppearing.
     /// </summary>
-    public void StartPolling()
-    {
-        StopPolling(); // hủy polling cũ nếu có
-        _pollingCts = new CancellationTokenSource();
-        _ = StartLocationPollingAsync(_pollingCts.Token);
-    }
+    public void StartPolling() => _gpsPollingService.Start();
 
     /// <summary>
     /// Dừng polling GPS. Được MapPage gọi trong OnDisappearing.
     /// </summary>
-    public void StopPolling()
-    {
-        _pollingCts?.Cancel();
-        _pollingCts?.Dispose();
-        _pollingCts = null;
-    }
+    public void StopPolling() => _gpsPollingService.Stop();
 
     /// <summary>
-    /// Vòng lặp polling GPS mỗi 1 giây, kiểm tra geofence của từng stall.
+    /// Callback từ GpsPollingService mỗi khi có vị trí mới.
     /// </summary>
-    private async Task StartLocationPollingAsync(CancellationToken ct)
+    private async void OnLocationUpdated(double lat, double lng, double? _)
     {
-        _logger.LogInformation("[Polling] Bắt đầu polling GPS");
-        var tickCount = 0;
-
-        while (!ct.IsCancellationRequested)
-        {
-            tickCount++;
-            try
-            {
-                var location = await Geolocation.Default.GetLocationAsync(
-                    new GeolocationRequest(GeolocationAccuracy.Low), ct);
-
-                if (location is not null)
-                {
-                    _logger.LogDebug("[Polling] Tick #{Tick} — lat={Lat:F6}, lng={Lng:F6}", tickCount, location.Latitude, location.Longitude);
-                    LocationUpdated?.Invoke(location.Latitude, location.Longitude);
-                    await CheckGeofencesAsync(location.Latitude, location.Longitude);
-                    _locationLogService.TrySample(location.Latitude, location.Longitude, location.Accuracy);
-                }
-                else
-                {
-                    if (_logger.IsEnabled(LogLevel.Debug))
-                        _logger.LogDebug("[Polling] Tick #{Tick} — GPS trả về null", tickCount);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogInformation("[Polling] Bị hủy ở tick #{Tick}", tickCount);
-                break;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("[Polling] Tick #{Tick} lỗi GPS: {Message}", tickCount, ex.Message);
-            }
-
-            await Task.Delay(TimeSpan.FromSeconds(1), ct).ContinueWith(_ => { }); // không throw khi bị cancel
-        }
-
-        _logger.LogInformation("[Polling] Dừng polling GPS sau {Tick} tick", tickCount);
+        LocationUpdated?.Invoke(lat, lng);
+        await CheckGeofencesAsync(lat, lng);
     }
 
     /// <summary>
