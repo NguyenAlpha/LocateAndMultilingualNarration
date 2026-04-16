@@ -85,32 +85,15 @@ namespace Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleActive(Guid id, int page = 1, int pageSize = 20, string? search = null, string? plan = null, string? sortBy = null, string? sortDir = null, CancellationToken cancellationToken = default)
         {
-            var detailResult = await _businessApiClient.GetBusinessAsync(id, cancellationToken);
-            if (detailResult?.Success != true || detailResult.Data == null)
+            var result = await _businessApiClient.ToggleActiveAsync(id, cancellationToken);
+            if (result?.Success != true)
             {
-                TempData["ErrorMessage"] = detailResult?.Error?.Message ?? "Không lấy được thông tin business.";
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không thể cập nhật trạng thái business.";
                 return RedirectToAction(nameof(Index), new { page, pageSize, search, plan, sortBy, sortDir });
             }
 
-            var detail = detailResult.Data;
-            var newActive = !detail.IsActive;
-
-            var updateResult = await _businessApiClient.UpdateBusinessAsync(id, new BusinessUpdateDto
-            {
-                Name = detail.Name,
-                TaxCode = detail.TaxCode,
-                ContactEmail = detail.ContactEmail,
-                ContactPhone = detail.ContactPhone,
-                IsActive = newActive
-            }, cancellationToken);
-
-            if (updateResult?.Success != true)
-            {
-                TempData["ErrorMessage"] = updateResult?.Error?.Message ?? "Không thể cập nhật trạng thái business.";
-                return RedirectToAction(nameof(Index), new { page, pageSize, search, plan, sortBy, sortDir });
-            }
-
-            TempData["SuccessMessage"] = newActive ? "Business đã được kích hoạt." : "Business đã được vô hiệu hóa.";
+            var isActive = result.Data?.IsActive ?? false;
+            TempData["SuccessMessage"] = isActive ? "Business đã được kích hoạt." : "Business đã được vô hiệu hóa.";
             return RedirectToAction(nameof(Index), new { page, pageSize, search, plan, sortBy, sortDir });
         }
 

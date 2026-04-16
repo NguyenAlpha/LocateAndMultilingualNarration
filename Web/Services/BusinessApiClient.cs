@@ -60,5 +60,15 @@ namespace Web.Services
             }
             catch (HttpRequestException) { return null; }
         }
+
+        public async Task<ApiResult<BusinessDetailDto>?> ToggleActiveAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var response = await _httpClient.PatchAsync($"api/business/{id}/toggle-active", null, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<BusinessDetailDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
+        }
     }
 }
