@@ -8,19 +8,18 @@
 | [SD-W04](#sd-w04-quản-lý-doanh-nghiệp) | Quản lý Doanh nghiệp |
 | [SD-W05](#sd-w05-quản-lý-gian-hàng) | Quản lý Gian hàng |
 | [SD-W06](#sd-w06-đặt-vị-trí-gian-hàng-trên-bản-đồ) | Đặt vị trí Gian hàng trên bản đồ |
-| [SD-W07](#sd-w07-quản-lý-geofence-gian-hàng) | Quản lý Geofence Gian hàng |
-| [SD-W08](#sd-w08-quản-lý-media-gian-hàng) | Quản lý Media Gian hàng |
-| [SD-W09](#sd-w09-quản-lý-nội-dung-thuyết-minh) | Quản lý Nội dung Thuyết minh |
-| [SD-W10](#sd-w10-theo-dõi--retry-tts) | Theo dõi & Retry TTS |
-| [SD-W11](#sd-w11-upload-audio-giọng-người) | Upload Audio giọng người |
-| [SD-W12](#sd-w12-xem-bảng-giá) | Xem bảng giá |
-| [SD-W13](#sd-w13-thanh-toán-đăng-ký-gói) | Thanh toán đăng ký gói |
-| [SD-W14](#sd-w14-dashboard-admin) | Dashboard Admin |
-| [SD-W15](#sd-w15-quản-lý-user--role) | Quản lý User & Role |
-| [SD-W16](#sd-w16-quản-lý-mã-qr) | Quản lý Mã QR |
-| [SD-W17](#sd-w17-kiosk-tạo-qr-tự-động) | Kiosk Tạo QR Tự Động |
-| [SD-W18](#sd-w18-admin-cập-nhật-subscription-business) | Admin cập nhật Subscription Business |
-| [SD-W19](#sd-w19-lịch-sử-đơn-đăng-ký) | Lịch sử Đơn đăng ký |
+| [SD-W07](#sd-w07-quản-lý-media-gian-hàng) | Quản lý Media Gian hàng |
+| [SD-W08](#sd-w08-quản-lý-nội-dung-thuyết-minh) | Quản lý Nội dung Thuyết minh |
+| [SD-W09](#sd-w09-theo-dõi--retry-tts) | Theo dõi & Retry TTS |
+| [SD-W10](#sd-w10-upload-audio-giọng-người) | Upload Audio giọng người |
+| [SD-W11](#sd-w11-xem-bảng-giá) | Xem bảng giá |
+| [SD-W12](#sd-w12-thanh-toán-đăng-ký-gói) | Thanh toán đăng ký gói |
+| [SD-W13](#sd-w13-dashboard-admin) | Dashboard Admin |
+| [SD-W14](#sd-w14-quản-lý-user--role) | Quản lý User & Role |
+| [SD-W15](#sd-w15-quản-lý-mã-qr) | Quản lý Mã QR |
+| [SD-W16](#sd-w16-kiosk-tạo-qr-tự-động) | Kiosk Tạo QR Tự Động |
+| [SD-W17](#sd-w17-admin-cập-nhật-subscription-business) | Admin cập nhật Subscription Business |
+| [SD-W18](#sd-w18-lịch-sử-đơn-đăng-ký) | Lịch sử Đơn đăng ký |
 
 ---
 
@@ -48,11 +47,6 @@ sequenceDiagram
     else Đăng nhập thành công
         SVC-->>CTR: Token + Roles + UserName
         CTR->>SESSION: StoreToken(token, expiresAt, userName, role)
-        alt Role = BusinessOwner
-            CTR->>SVC: GetBusinessesAsync(page=1, pageSize=1)
-            SVC-->>CTR: Business đầu tiên (Plan, PlanExpiresAt)
-            CTR->>SESSION: StoreUserPlan(plan, expiresAt)
-        end
         CTR-->>VIEW: Redirect Home/Index
         VIEW-->>USER: Vào trang chủ
     end
@@ -154,11 +148,9 @@ sequenceDiagram
     %% Kích hoạt / Vô hiệu hóa
     USER->>VIEW: Nhấn nút Toggle Active
     VIEW->>CTR: POST /Business/ToggleActive
-    CTR->>SVC: GetBusinessAsync(id)
-    SVC->>API: GET /api/business/{id}
-    API-->>SVC: BusinessDetailDto hiện tại
-    CTR->>SVC: UpdateBusinessAsync(id, {IsActive: !current})
-    SVC->>API: PUT /api/business/{id}
+    CTR->>SVC: ToggleActiveAsync(id)
+    SVC->>API: PATCH /api/business/{id}/toggle-active
+    API-->>SVC: BusinessDetailDto đã cập nhật
     CTR-->>VIEW: Redirect Index + thông báo
 ```
 
@@ -212,11 +204,9 @@ sequenceDiagram
     %% Toggle Active
     USER->>VIEW: Nhấn Toggle Active
     VIEW->>CTR: POST /Stall/ToggleActive
-    CTR->>STALL: GetStallAsync(id)
-    STALL->>API: GET /api/stall/{id}
-    API-->>STALL: StallDetailDto hiện tại
-    CTR->>STALL: UpdateStallAsync(id, {IsActive: !current})
-    STALL->>API: PUT /api/stall/{id}
+    CTR->>STALL: ToggleActiveAsync(id)
+    STALL->>API: PATCH /api/stall/{id}/toggle-active
+    API-->>STALL: StallDetailDto đã cập nhật
     CTR-->>VIEW: Redirect Index + thông báo
 ```
 
@@ -280,54 +270,7 @@ sequenceDiagram
 
 ---
 
-### SD-W07: Quản lý Geofence Gian hàng
-
-```mermaid
-sequenceDiagram
-    actor USER as Admin / BusinessOwner
-    participant VIEW as StallGeoFenceIndex View
-    participant CTR as StallGeoFenceController
-    participant SVC as StallGeoFenceApiClient
-    participant STALL as StallApiClient
-    participant API as /api/stall-geo-fence
-
-    %% Xem danh sách
-    USER->>VIEW: Truy cập /StallGeoFence
-    VIEW->>CTR: GET /StallGeoFence/Index
-    par
-        CTR->>STALL: GetStallsAsync(1, 500)
-        CTR->>SVC: GetGeoFencesAsync(page, pageSize, stallId)
-    end
-    STALL-->>CTR: Danh sách stalls
-    SVC-->>CTR: PagedResult<StallGeoFenceDetailDto>
-    CTR-->>VIEW: Render StallGeoFenceIndex
-
-    %% Tạo mới
-    USER->>VIEW: Điền form (chọn stall, bán kính...), submit
-    VIEW->>CTR: POST /StallGeoFence/Create
-    CTR->>SVC: CreateGeoFenceAsync(dto)
-    SVC->>API: POST /api/stall-geo-fence
-    alt Thành công
-        CTR-->>VIEW: Redirect Index + SuccessMessage
-    else Thất bại
-        CTR-->>VIEW: Redirect Index + ErrorMessage
-    end
-
-    %% Cập nhật
-    USER->>VIEW: Submit form sửa
-    VIEW->>CTR: POST /StallGeoFence/Update
-    CTR->>SVC: UpdateGeoFenceAsync(id, dto)
-    SVC->>API: PUT /api/stall-geo-fence/{id}
-    alt Thành công
-        CTR-->>VIEW: Redirect Index + SuccessMessage
-    else Thất bại
-        CTR-->>VIEW: Redirect Index + ErrorMessage
-    end
-```
-
----
-
-### SD-W08: Quản lý Media Gian hàng
+### SD-W07: Quản lý Media Gian hàng
 
 ```mermaid
 sequenceDiagram
@@ -382,7 +325,7 @@ sequenceDiagram
 
 ---
 
-### SD-W09: Quản lý Nội dung Thuyết minh
+### SD-W08: Quản lý Nội dung Thuyết minh
 
 ```mermaid
 sequenceDiagram
@@ -451,7 +394,7 @@ sequenceDiagram
 
 ---
 
-### SD-W10: Theo dõi & Retry TTS
+### SD-W09: Theo dõi & Retry TTS
 
 ```mermaid
 sequenceDiagram
@@ -501,7 +444,7 @@ sequenceDiagram
 
 ---
 
-### SD-W11: Upload Audio giọng người
+### SD-W10: Upload Audio giọng người
 
 ```mermaid
 sequenceDiagram
@@ -528,7 +471,7 @@ sequenceDiagram
 
 ---
 
-### SD-W12: Xem bảng giá
+### SD-W11: Xem bảng giá
 
 ```mermaid
 sequenceDiagram
@@ -561,7 +504,7 @@ sequenceDiagram
 
 ---
 
-### SD-W13: Thanh toán đăng ký gói
+### SD-W12: Thanh toán đăng ký gói
 
 ```mermaid
 sequenceDiagram
@@ -616,7 +559,7 @@ sequenceDiagram
 
 ---
 
-### SD-W14: Dashboard Admin
+### SD-W13: Dashboard Admin
 
 ```mermaid
 sequenceDiagram
@@ -657,7 +600,7 @@ sequenceDiagram
 
 ---
 
-### SD-W15: Quản lý User & Role
+### SD-W14: Quản lý User & Role
 
 ```mermaid
 sequenceDiagram
@@ -701,13 +644,13 @@ sequenceDiagram
     ADMIN->>VIEW: Nhấn Kích hoạt / Vô hiệu hóa
     VIEW->>CTR: POST /Admin/ToggleUserActive?id=...
     CTR->>SVC: ToggleUserActiveAsync(id)
-    SVC->>API: PUT /api/users/{id}/toggle-active
+    SVC->>API: PATCH /api/users/{id}/toggle-active
     CTR-->>VIEW: Redirect + thông báo kết quả
 ```
 
 ---
 
-### SD-W16: Quản lý Mã QR
+### SD-W15: Quản lý Mã QR
 
 ```mermaid
 sequenceDiagram
@@ -754,7 +697,7 @@ sequenceDiagram
 
 ---
 
-### SD-W17: Kiosk Tạo QR Tự Động
+### SD-W16: Kiosk Tạo QR Tự Động
 
 ```mermaid
 sequenceDiagram
@@ -802,7 +745,7 @@ sequenceDiagram
 
 ---
 
-### SD-W18: Admin cập nhật Subscription Business
+### SD-W17: Admin cập nhật Subscription Business
 
 ```mermaid
 sequenceDiagram
@@ -836,7 +779,7 @@ sequenceDiagram
 
 ---
 
-### SD-W19: Lịch sử Đơn đăng ký
+### SD-W18: Lịch sử Đơn đăng ký
 
 ```mermaid
 sequenceDiagram
