@@ -45,13 +45,22 @@
 <div class="search-filter-bar" data-aos="fade-up" data-aos-delay="50">
     <form method="get" asp-action="Subscription" class="row g-3">
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
-        <div class="col-md-5">
+        <div class="col-md-4">
             <label for="subSearch" class="form-label visually-hidden">Tìm business</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control table-search" id="subSearch" name="search"
                        value="@Model.Search" placeholder="Tìm business...">
             </div>
+        </div>
+        <div class="col-md-2">
+            <label for="subPlanFilter" class="form-label visually-hidden">Lọc theo gói</label>
+            <select class="form-select" id="subPlanFilter" name="plan">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.FilterPlan))">Tất cả gói</option>
+                <option value="Free"  selected="@(Model.FilterPlan == "Free")">Free</option>
+                <option value="Basic" selected="@(Model.FilterPlan == "Basic")">Basic</option>
+                <option value="Pro"   selected="@(Model.FilterPlan == "Pro")">Pro</option>
+            </select>
         </div>
         <div class="col-md-2">
             <button class="btn btn-outline-secondary w-100" type="submit">
@@ -156,7 +165,7 @@
                     <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
                         <a class="page-link" asp-action="Subscription"
                            asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize"
-                           asp-route-search="@Model.Search" aria-label="Trang trước">
+                           asp-route-search="@Model.Search" asp-route-plan="@Model.FilterPlan" aria-label="Trang trước">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
@@ -165,13 +174,13 @@
                         <li class="page-item @(i == Model.Page ? "active" : "")">
                             <a class="page-link" asp-action="Subscription"
                                asp-route-page="@i" asp-route-pageSize="@Model.PageSize"
-                               asp-route-search="@Model.Search">@i</a>
+                               asp-route-search="@Model.Search" asp-route-plan="@Model.FilterPlan">@i</a>
                         </li>
                     }
                     <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
                         <a class="page-link" asp-action="Subscription"
                            asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize"
-                           asp-route-search="@Model.Search" aria-label="Trang sau">
+                           asp-route-search="@Model.Search" asp-route-plan="@Model.FilterPlan" aria-label="Trang sau">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>
@@ -192,6 +201,7 @@
                 <input type="hidden" name="page" value="@Model.Page" />
                 <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="plan" value="@Model.FilterPlan" />
 
                 <div class="modal-header">
                     <h5 class="modal-title">Đổi gói subscription</h5>

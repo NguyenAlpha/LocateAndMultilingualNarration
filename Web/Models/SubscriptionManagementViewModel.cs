@@ -10,6 +10,7 @@ namespace Web.Models
         public int PageSize { get; set; } = 10;
         public int TotalCount { get; set; }
         public string? Search { get; set; }
+        public string? FilterPlan { get; set; }
         public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
 
         public SubscriptionFormViewModel Edit { get; set; } = new();

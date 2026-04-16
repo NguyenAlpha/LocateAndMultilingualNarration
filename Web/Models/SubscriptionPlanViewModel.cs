@@ -6,6 +6,7 @@ namespace Web.Models
     {
         public bool IsLoggedIn { get; set; }
         public bool HasBusiness { get; set; }
+        public bool IsAdmin { get; set; }
         public string? HighlightPlan { get; set; }
         public Guid? PreselectedBusinessId { get; set; }  // từ Business Management
         public string? ErrorMessage { get; set; }

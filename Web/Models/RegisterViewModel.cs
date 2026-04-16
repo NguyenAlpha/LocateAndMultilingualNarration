@@ -7,7 +7,7 @@ namespace Web.Models
         [Required(ErrorMessage = "User name là bắt buộc.")]
         [MinLength(3, ErrorMessage = "User name phải có ít nhất 3 ký tự.")]
         [MaxLength(50, ErrorMessage = "User name tối đa 50 ký tự.")]
-        [RegularExpression(@"^[a-zA-Z0-9_]+$", ErrorMessage = "User name chỉ được chứa chữ cái, số và dấu gạch dưới.")]
+        [RegularExpression(@"^(?!\d+$)[a-zA-Z0-9_]+$", ErrorMessage = "User name chỉ được chứa chữ cái, số và dấu gạch dưới, và không được là chuỗi toàn số.")]
         [Display(Name = "User name")]
         public string UserName { get; set; } = string.Empty;
 

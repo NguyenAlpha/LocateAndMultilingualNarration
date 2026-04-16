@@ -101,7 +101,7 @@
                         {
                             <a href="@LoginUrl("Basic")" class="btn btn-outline-primary w-100">Đăng ký Basic</a>
                         }
-                        else if (!Model.HasBusiness)
+                        else if (!Model.HasBusiness && !Model.IsAdmin)
                         {
                             <button type="button" class="btn btn-outline-primary w-100"
                                     data-bs-toggle="modal" data-bs-target="#needBusinessModal">
@@ -141,7 +141,7 @@
                         {
                             <a href="@LoginUrl("Pro")" class="btn btn-primary w-100">Đăng ký Pro</a>
                         }
-                        else if (!Model.HasBusiness)
+                        else if (!Model.HasBusiness && !Model.IsAdmin)
                         {
                             <button type="button" class="btn btn-primary w-100"
                                     data-bs-toggle="modal" data-bs-target="#needBusinessModal">
