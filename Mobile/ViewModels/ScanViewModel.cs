@@ -4,6 +4,7 @@ using System.Threading;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.ApplicationModel;
+using Mobile.Pages;
 using Mobile.Services;
 using SkiaSharp;
 using ZXing;
@@ -241,8 +242,11 @@ public class ScanViewModel : INotifyPropertyChanged
             // miễn là QR chưa hết hạn (kiểm tra bằng expiryAt > UtcNow).
             _qrService.SaveAccess(verifyResult.ExpiryAt);
 
+            // OLD CODE (kept for reference):
+            // await MainThread.InvokeOnMainThreadAsync(async () =>
+            //     await Shell.Current.GoToAsync(nameof(LanguagePage)));
             await MainThread.InvokeOnMainThreadAsync(async () =>
-                await Shell.Current.GoToAsync(nameof(LanguagePage)));
+                await Shell.Current.GoToAsync("LanguagePage"));
         }
         catch (Exception ex)
         {
