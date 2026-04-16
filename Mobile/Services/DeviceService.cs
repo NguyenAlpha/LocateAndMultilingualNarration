@@ -22,6 +22,11 @@ public interface IDeviceService
 
     /// <summary>Lấy thông tin phần cứng của thiết bị hiện tại.</summary>
     DeviceInfoDto GetDeviceInfo();
+
+#if DEBUG
+    /// <summary>Xóa DeviceId khỏi Preferences. Lần gọi GetOrCreateDeviceId tiếp theo sẽ tạo GUID mới.</summary>
+    void ResetDeviceId();
+#endif
 }
 
 /// <summary>
@@ -59,4 +64,8 @@ public class DeviceService : IDeviceService
         Manufacturer = DeviceInfo.Current.Manufacturer,
         OsVersion    = DeviceInfo.Current.VersionString
     };
+
+#if DEBUG
+    public void ResetDeviceId() => Preferences.Remove(DeviceIdKey);
+#endif
 }

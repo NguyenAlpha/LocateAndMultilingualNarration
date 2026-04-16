@@ -309,9 +309,7 @@ public class MapViewModel : INotifyPropertyChanged
 
                 if (location is not null)
                 {
-                    if (_logger.IsEnabled(LogLevel.Debug))
-                        _logger.LogDebug("[Polling] Tick #{Tick} — lat={Lat:F6}, lng={Lng:F6}",
-                            tickCount, location.Latitude, location.Longitude);
+                    _logger.LogDebug("[Polling] Tick #{Tick} — lat={Lat:F6}, lng={Lng:F6}", tickCount, location.Latitude, location.Longitude);
                     LocationUpdated?.Invoke(location.Latitude, location.Longitude);
                     await CheckGeofencesAsync(location.Latitude, location.Longitude);
                     _locationLogService.TrySample(location.Latitude, location.Longitude, location.Accuracy);
