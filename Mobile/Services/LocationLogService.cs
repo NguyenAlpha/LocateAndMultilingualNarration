@@ -21,14 +21,15 @@ public interface ILocationLogService
 }
 
 /// <summary>
-/// Lấy mẫu GPS mỗi 10 giây, buffer tối đa 500 điểm.
+/// Lấy mẫu GPS mỗi 5 giây, buffer tối đa 500 điểm.
 /// Flush được trigger từ SyncBackgroundService (mỗi 3 phút) và App.OnSleep.
 /// </summary>
 public class LocationLogService : ILocationLogService
 {
-    private static readonly TimeSpan SampleInterval = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan SampleInterval = TimeSpan.FromSeconds(5);
     private const int MaxBufferSize = 500;
-    private const string BatchEndpoint = "api/device-location-log/batch";
+    private const string BaseUrl = "http://10.0.2.2:5299";
+    private const string BatchEndpoint = $"{BaseUrl}/api/device-location-log/batch";
 
     private readonly List<LocationPointDto> _buffer = [];
     private readonly IDeviceService _deviceService;
