@@ -147,15 +147,15 @@
 
                             <!-- Quản lý -->
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "active" : "")"
+                                <a class="nav-link dropdown-toggle @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration","Subscription"}.Contains(currentController) ? "active" : "")"
                                    href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button"
-                                   aria-expanded="@(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "true" : "false")">
+                                   aria-expanded="@(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration","Subscription"}.Contains(currentController) ? "true" : "false")">
                                     <span class="nav-link-icon d-md-none d-lg-inline-block">
                                         <i class="ti ti-settings"></i>
                                     </span>
                                     <span class="nav-link-title">Quản lý</span>
                                 </a>
-                                <div class="dropdown-menu @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "show" : "")">
+                                <div class="dropdown-menu @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration","Subscription"}.Contains(currentController) ? "show" : "")">
                                     @if (userRole == "Admin" || userRole == "BusinessOwner")
                                     {
                                         <a class="dropdown-item @(currentController == "Business" ? "active" : "")"
