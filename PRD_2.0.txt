@@ -32,6 +32,7 @@ Hệ thống cung cấp trải nghiệm tham quan thông minh tại Phố Ẩm T
   - .NET MAUI `.NET 10` (Android/iOS/Windows/macOS)
   - CommunityToolkit.Maui, Mapsui.Maui, ZXing.Net.Maui, Plugin.Maui.Audio
   - SQLite (`sqlite-net-pcl`) cho offline cache
+  - Kiến trúc service hiện tại: `GpsPollingService` tách riêng khỏi `MapViewModel`, kết hợp `LocationLogService` để lấy mẫu và gửi GPS batch
 - **Backend API**
   - ASP.NET Core Web API `.NET 10`
   - EF Core 10 + SQL Server
@@ -84,6 +85,7 @@ Hệ thống cung cấp trải nghiệm tham quan thông minh tại Phố Ẩm T
   - Loading flow theo DeviceId + QR validity
   - Language/Voice selection, lưu DevicePreference
   - Map hiển thị stall + geofence + audio controls
+  - Polling GPS tách service độc lập (`IGpsPollingService`) và publish event vị trí về ViewModel
   - Cache SQLite stall data + local audio path
   - Background sync định kỳ và theo connectivity
   - Profile cập nhật preference
@@ -484,7 +486,7 @@ Api --> Azure : TTS/Storage/Translate
 | FR-M-02 | QR Scan & Verify | Quét QR, verify API, lưu expiry/session |
 | FR-M-03 | Language & Voice | Chọn ngôn ngữ/giọng, tìm kiếm realtime, lưu preference |
 | FR-M-04 | Map Stall | Tải stall cache-first, hiển thị pin, focus/selected stall |
-| FR-M-05 | Geofence Polling | Poll GPS, kiểm tra vào/ra vùng, queue audio |
+| FR-M-05 | Geofence Polling | Poll GPS qua `IGpsPollingService`, kiểm tra vào/ra vùng, queue audio |
 | FR-M-06 | Audio Playback | Play/Pause/Stop, local file ưu tiên trước remote |
 | FR-M-07 | Offline Cache | SQLite stalls + local audio path |
 | FR-M-08 | Background Sync | Chu kỳ 3 phút + trigger khi internet phục hồi |
@@ -518,7 +520,7 @@ Api --> Azure : TTS/Storage/Translate
 4. Quét QR thành công → `LanguagePage`
 5. Chọn language + voice + confirm → lưu `DevicePreference`
 6. Điều hướng `MapPage`
-7. Map poll GPS, phát narration theo stall/geofence
+7. `MapPage` gọi `StartPolling()` → `MapViewModel` nhận event từ `GpsPollingService`, kiểm tra geofence và phát narration theo queue
 
 ### 9.2 Sequence Diagram (text)
 ```plaintext
@@ -531,6 +533,8 @@ LanguagePage -> DevicePreferenceApi : POST /api/device-preference
 LanguagePage -> MapPage : navigate
 MapPage -> StallService : GET /api/geo/stalls?deviceId=...
 StallService -> SQLite : cache/read
+MapPage -> GpsPollingService : Start/Stop polling
+GpsPollingService -> MapViewModel : LocationUpdated(lat,lng,accuracy)
 MapPage -> AudioGuideService : play/pause/stop
 SyncBackgroundService -> SyncService : periodic sync
 ```
@@ -602,6 +606,7 @@ SyncBackgroundService -> SyncService : periodic sync
 4. **Audio local-first** để giảm phụ thuộc mạng.
 5. **API response envelope** `ApiResult<T>` cho xử lý lỗi nhất quán.
 6. **Hosted background tasks** cho TTS/sync logic phía server/mobile.
+7. **Tách GPS polling thành service riêng** (`GpsPollingService`) để giảm coupling UI, giúp dễ test và mở rộng lifecycle.
 
 ---
 
