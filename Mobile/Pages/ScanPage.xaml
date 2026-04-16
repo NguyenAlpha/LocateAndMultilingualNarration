@@ -9,17 +9,11 @@
     ios:Page.UseSafeArea="False">
 
     <Grid RowSpacing="0" ColumnSpacing="0" BackgroundColor="Black">
-        <!-- OLD CODE (kept for reference):
-        <zxing:CameraBarcodeReaderView
-            x:Name="cameraView"
-            BarcodesDetected="OnQrDetected"
-            IsDetecting="{Binding IsDetecting}" />
-        -->
-
         <!-- Camera preview full màn hình -->
         <zxing:CameraBarcodeReaderView
             x:Name="cameraView"
             BarcodesDetected="OnQrDetected"
+            IsDetecting="{Binding IsDetecting}"
             HorizontalOptions="Fill"
             VerticalOptions="Fill" />
 

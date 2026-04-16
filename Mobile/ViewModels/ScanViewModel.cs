@@ -51,19 +51,6 @@ public class ScanViewModel : INotifyPropertyChanged
         }
     }
 
-    // Chuỗi nhập tay — fallback khi camera không quét được (môi trường tối, QR nhỏ…).
-    string _manualQrInput = string.Empty;
-    public string ManualQrInput
-    {
-        get => _manualQrInput;
-        set
-        {
-            if (_manualQrInput == value) return;
-            _manualQrInput = value;
-            OnPropertyChanged();
-        }
-    }
-
     // Thông báo lỗi hiển thị trực tiếp trên UI — rỗng nghĩa là không có lỗi.
     string _errorMessage = string.Empty;
     public string ErrorMessage
@@ -84,9 +71,6 @@ public class ScanViewModel : INotifyPropertyChanged
     // Lệnh nhận kết quả từ ZXing camera — ScanPage gọi khi camera detect được QR.
     public ICommand ScanResultCommand { get; }
 
-    // Lệnh xử lý QR nhập tay — giữ nguyên flow verify như camera.
-    public ICommand SubmitManualQrCommand { get; }
-
     // Lệnh mở thư viện ảnh, giải mã QR từ ảnh rồi đưa vào flow verify như camera.
     public ICommand PickImageFromGalleryCommand { get; }
 
@@ -96,8 +80,7 @@ public class ScanViewModel : INotifyPropertyChanged
         _deviceService = deviceService;
         _logger        = logger;
 
-        ScanResultCommand          = new Command<string>(async text => await HandleQrResultAsync(text));
-        SubmitManualQrCommand      = new Command(async () => await HandleQrResultAsync(ManualQrInput));
+        ScanResultCommand           = new Command<string>(async text => await HandleQrResultAsync(text));
         PickImageFromGalleryCommand = new Command(async () => await PickAndDecodeQrAsync());
     }
 
@@ -107,8 +90,8 @@ public class ScanViewModel : INotifyPropertyChanged
     /// </summary>
     public void ResetScanner()
     {
-        IsDetecting   = true;
-        ErrorMessage  = string.Empty;
+        IsDetecting  = false; // camera tắt trong lúc EnsureCameraPermissionAsync chạy
+        ErrorMessage = string.Empty;
     }
 
     /// <summary>
