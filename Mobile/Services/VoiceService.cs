@@ -24,8 +24,6 @@ public class VoiceService : IVoiceService
 {
     private readonly IHttpClientFactory _httpClientFactory;
 
-    private const string BaseUrl = "http://10.0.2.2:5299";
-
     /// <summary>
     /// Khởi tạo service với factory tạo HttpClient.
     /// </summary>
@@ -48,7 +46,7 @@ public class VoiceService : IVoiceService
             // Tạo client để gọi endpoint voice theo ngôn ngữ.
             var client = _httpClientFactory.CreateClient();
             // Gọi API lấy danh sách voice đang active.
-            var response = await client.GetAsync($"{BaseUrl}/api/tts-voice-profiles/active?languageId={languageId}", cancellationToken);
+            var response = await client.GetAsync($"api/tts-voice-profiles/active?languageId={languageId}", cancellationToken);
             if (!response.IsSuccessStatusCode)
                 return [];
 

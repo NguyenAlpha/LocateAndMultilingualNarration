@@ -28,8 +28,7 @@ public class LocationLogService : ILocationLogService
 {
     private static readonly TimeSpan SampleInterval = TimeSpan.FromSeconds(5);
     private const int MaxBufferSize = 500;
-    private const string BaseUrl = "http://10.0.2.2:5299";
-    private const string BatchEndpoint = $"{BaseUrl}/api/device-location-log/batch";
+    private const string BatchEndpoint = "api/device-location-log/batch";
 
     private readonly List<LocationPointDto> _buffer = [];
     private readonly Lock _bufferLock = new();
