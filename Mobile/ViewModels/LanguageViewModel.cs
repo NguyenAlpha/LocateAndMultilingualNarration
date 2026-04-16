@@ -41,7 +41,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    LanguageOption? _selectedLanguage;
+    private LanguageOption? _selectedLanguage;
     public LanguageOption? SelectedLanguage
     {
         get => _selectedLanguage;
@@ -51,8 +51,20 @@ public class LanguageViewModel : INotifyPropertyChanged
             _selectedLanguage = value;
             OnPropertyChanged();
             if (value != null)
-                _ = LoadVoicesForSelectedLanguageAsync();
+                _ = LoadVoicesForSelectedLanguageAsync();   // Tự động load giọng khi chọn ngôn ngữ
             OnPropertyChanged(nameof(IsReadyToContinue));
+        }
+    }
+
+    private bool _isLanguagePopupOpen;
+    public bool IsLanguagePopupOpen
+    {
+        get => _isLanguagePopupOpen;
+        set
+        {
+            if (_isLanguagePopupOpen == value) return;
+            _isLanguagePopupOpen = value;
+            OnPropertyChanged();
         }
     }
 
@@ -109,7 +121,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    string _errorMessage = string.Empty;
+    private string _errorMessage = string.Empty;
     public string ErrorMessage
     {
         get => _errorMessage;
@@ -170,8 +182,7 @@ public class LanguageViewModel : INotifyPropertyChanged
                     Code = lang.Code ?? string.Empty,
                     Name = lang.Name ?? lang.DisplayName ?? "Unknown Language",
                     NativeName = lang.DisplayName ?? lang.Name ?? "Unknown",
-                    // SỬA LỖI 1: Không dùng FlagUrl nữa → dùng FlagCode hoặc bỏ qua, fallback emoji
-                    FlagEmoji = ConvertFlagToEmoji(lang.FlagCode)   // đổi từ FlagUrl sang FlagCode (an toàn hơn)
+                    FlagEmoji = ConvertFlagToEmoji(lang.FlagCode)
                 };
 
                 _allLanguages.Add(option);
@@ -186,6 +197,7 @@ public class LanguageViewModel : INotifyPropertyChanged
 
             FilterLanguages();
 
+            // Chọn ngôn ngữ đầu tiên làm mặc định
             SelectedLanguage = Languages.FirstOrDefault();
         }
         catch (Exception ex)
@@ -245,6 +257,7 @@ public class LanguageViewModel : INotifyPropertyChanged
                 });
             }
 
+            // Tự động chọn giọng mặc định nếu có, ngược lại chọn giọng đầu tiên
             SelectedVoice = Voices.FirstOrDefault(v => v.IsDefault) ?? Voices.FirstOrDefault();
         }
         catch (Exception ex)
@@ -271,9 +284,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
             var upsertDto = new DevicePreferenceUpsertDto
             {
-                // SỬA LỖI 2: Xóa dòng DeviceId vì DTO không có property này
-                // DeviceId = deviceId,     ← bị xóa để tránh lỗi CS0117
-
                 LanguageId = SelectedLanguage.Id,
                 VoiceId = SelectedVoice.Id,
                 SpeechRate = SpeechRate,
@@ -322,7 +332,9 @@ public class LanguageViewModel : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-// Hai class hỗ trợ UI
+// ====================== Supporting Classes ======================
+// Hai class hỗ trợ UI (giữ nguyên như cũ của bạn)
+
 public class LanguageOption
 {
     public Guid Id { get; set; }
