@@ -96,6 +96,9 @@ public static class MauiProgram
         // Thu thập GPS theo batch, gửi lên API để phục vụ thống kê di chuyển
         builder.Services.AddSingleton<ILocationLogService, LocationLogService>();
 
+        // Polling GPS độc lập — tách khỏi ViewModel để chuẩn bị cho background service
+        builder.Services.AddSingleton<IGpsPollingService, GpsPollingService>();
+
         // Lưu trạng thái QR đã verify vào Preferences để skip ScanPage khi mở lại app
         builder.Services.AddSingleton<IQrService, QrService>();
 
@@ -127,6 +130,7 @@ public static class MauiProgram
         // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
         builder.Logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
         builder.Logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
+        builder.Logging.AddFilter("Mobile.Services.GpsPollingService", LogLevel.Debug);
 #endif
 
         // Hoàn tất cấu hình — đóng băng DI container và trả về MauiApp để framework khởi chạy

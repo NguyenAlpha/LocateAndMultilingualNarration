@@ -12,7 +12,7 @@
     var effectivePlan = (planIsExpired && userPlan != "Free") ? "Free" : userPlan;
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,9 +24,31 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
     <!-- Bootstrap Icons (các view cũ dùng class bi-*) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- AOS – Animate On Scroll -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
     @RenderSection("Styles", required: false)
+
+    <style>
+        /* Page load fade-in */
+        .page-wrapper { animation: pageFadeIn 0.3s ease-in; }
+        @@keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Card hover lift */
+        .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1) !important; }
+
+        /* Button hover lift */
+        .btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .btn:not(:disabled):hover { transform: translateY(-1px); }
+
+        /* Table row hover */
+        .table tbody tr { transition: background-color 0.15s ease; }
+
+        /* Sidebar nav link transition */
+        .navbar-vertical .nav-link { transition: background-color 0.15s ease, color 0.15s ease; }
+    </style>
 </head>
 <body class="antialiased">
     <div class="wrapper">
@@ -60,7 +82,7 @@
                                 <div class="dropdown-divider"></div>
                                 <form method="post" asp-controller="Auth" asp-action="Logout">
                                     <button type="submit" class="dropdown-item text-danger">
-                                        <i class="ti ti-logout me-2"></i>
+                                        <i class="ti ti-logout me-2"></i>Đăng xuất
                                     </button>
                                 </form>
                             </div>
@@ -71,20 +93,20 @@
                     <div class="collapse navbar-collapse" id="sidebar-menu">
                         <ul class="navbar-nav pt-lg-3">
 
-                            <!-- Home -->
+                            <!-- Trang chủ -->
                             <li class="nav-item">
                                 <a class="nav-link @(currentController == "Home" ? "active" : "")"
                                    asp-controller="Home" asp-action="Index">
                                     <span class="nav-link-icon d-md-none d-lg-inline-block">
                                         <i class="ti ti-home"></i>
                                     </span>
-                                    <span class="nav-link-title">Home</span>
+                                    <span class="nav-link-title">Trang chủ</span>
                                 </a>
                             </li>
 
                             @if (userRole == "Admin")
                             {
-                                <!-- Admin section -->
+                                <!-- Quản trị -->
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle @(currentController == "Admin" ? "active" : "")"
                                        href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button"
@@ -92,20 +114,16 @@
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
                                             <i class="ti ti-speedometer"></i>
                                         </span>
-                                        <span class="nav-link-title">Admin</span>
+                                        <span class="nav-link-title">Quản trị</span>
                                     </a>
                                     <div class="dropdown-menu @(currentController == "Admin" ? "show" : "")">
                                         <a class="dropdown-item @(currentController == "Admin" && currentAction == "Dashboard" ? "active" : "")"
                                            asp-controller="Admin" asp-action="Dashboard">
-                                            <i class="ti ti-layout-dashboard me-2"></i>Dashboard
+                                            <i class="ti ti-layout-dashboard me-2"></i>Bảng điều khiển
                                         </a>
                                         <a class="dropdown-item @(currentController == "Admin" && currentAction == "UserRoleManagement" ? "active" : "")"
                                            asp-controller="Admin" asp-action="UserRoleManagement">
-                                            <i class="ti ti-users me-2"></i>User &amp; Role Management
-                                        </a>
-                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "Statistics" ? "active" : "")"
-                                           asp-controller="Admin" asp-action="Statistics">
-                                            <i class="ti ti-chart-bar me-2"></i>Statistics
+                                            <i class="ti ti-users me-2"></i>Quản lý User &amp; Role
                                         </a>
                                         <a class="dropdown-item @(currentController == "Admin" && currentAction == "Subscription" ? "active" : "")"
                                            asp-controller="Admin" asp-action="Subscription">
@@ -127,7 +145,7 @@
                                 </li>
                             }
 
-                            <!-- Management section -->
+                            <!-- Quản lý -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "active" : "")"
                                    href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button"
@@ -135,14 +153,14 @@
                                     <span class="nav-link-icon d-md-none d-lg-inline-block">
                                         <i class="ti ti-settings"></i>
                                     </span>
-                                    <span class="nav-link-title">Management</span>
+                                    <span class="nav-link-title">Quản lý</span>
                                 </a>
                                 <div class="dropdown-menu @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "show" : "")">
                                     @if (userRole == "Admin" || userRole == "BusinessOwner")
                                     {
                                         <a class="dropdown-item @(currentController == "Business" ? "active" : "")"
                                            asp-controller="Business" asp-action="Index">
-                                            <i class="ti ti-building-store me-2"></i>Business Management
+                                            <i class="ti ti-building-store me-2"></i>Quản lý Doanh nghiệp
                                         </a>
                                     }
                                     <a class="dropdown-item @(currentController == "Subscription" && currentAction == "Plans" ? "active" : "")"
@@ -158,19 +176,19 @@
                                     }
                                     <a class="dropdown-item @(currentController == "Stall" ? "active" : "")"
                                        asp-controller="Stall" asp-action="Index">
-                                            <i class="ti ti-building-store me-2"></i>Stall Management
+                                            <i class="ti ti-building-store me-2"></i>Quản lý Gian hàng
                                     </a>
                                     <a class="dropdown-item @(currentController == "Narration" ? "active" : "")"
                                        asp-controller="Narration" asp-action="StallNarrationContents">
-                                        <i class="ti ti-microphone me-2"></i>Narration Contents
+                                        <i class="ti ti-microphone me-2"></i>Nội dung Thuyết minh
                                     </a>
                                     <a class="dropdown-item @(currentController == "StallLocation" ? "active" : "")"
                                        asp-controller="StallLocation" asp-action="Index">
-                                        <i class="ti ti-map-pin me-2"></i>Stall Location
+                                        <i class="ti ti-map-pin me-2"></i>Vị trí Gian hàng
                                     </a>
                                     <a class="dropdown-item @(currentController == "StallMedia" ? "active" : "")"
                                        asp-controller="StallMedia" asp-action="Index">
-                                        <i class="ti ti-photo me-2"></i>Stall Media
+                                        <i class="ti ti-photo me-2"></i>Media Gian hàng
                                     </a>
                                 </div>
                             </li>
@@ -192,7 +210,7 @@
                                     <div class="dropdown-divider"></div>
                                     <form method="post" asp-controller="Auth" asp-action="Logout">
                                         <button type="submit" class="dropdown-item text-danger">
-                                            <i class="ti ti-logout me-2"></i>Logout
+                                            <i class="ti ti-logout me-2"></i>Đăng xuất
                                         </button>
                                     </form>
                                 </div>
@@ -216,10 +234,10 @@
                         </a>
                         <div class="navbar-nav ms-auto">
                             <a class="nav-link" asp-controller="Auth" asp-action="Login">
-                                <i class="ti ti-login me-1"></i>Login
+                                <i class="ti ti-login me-1"></i>Đăng nhập
                             </a>
                             <a class="nav-link" asp-controller="Auth" asp-action="Register">
-                                <i class="ti ti-user-plus me-1"></i>Register
+                                <i class="ti ti-user-plus me-1"></i>Đăng ký
                             </a>
                         </div>
                     </div>
@@ -239,7 +257,7 @@
                     <div class="row text-center align-items-center">
                         <div class="col-12">
                             <p class="text-muted mb-0">
-                                &copy; @DateTime.Now.Year <strong>Enterprise Management System</strong>. All rights reserved.
+                                &copy; @DateTime.Now.Year <strong>Hệ thống Quản lý Doanh nghiệp</strong>. Bản quyền thuộc về nhóm phát triển.
                             </p>
                         </div>
                     </div>
@@ -256,10 +274,15 @@
     <!-- jQuery Validation -->
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <!-- AOS – Animate On Scroll -->
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
     <!-- Custom JS -->
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script>
+        // Khởi tạo AOS
+        AOS.init({ duration: 350, once: true, offset: 30 });
+
         // Sync JWT token to localStorage
         $(document).ready(function () {
             var serverToken = '@Html.Raw(Context.Session.GetString("AuthToken") ?? "")';

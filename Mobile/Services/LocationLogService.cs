@@ -32,6 +32,7 @@ public class LocationLogService : ILocationLogService
     private const string BatchEndpoint = $"{BaseUrl}/api/device-location-log/batch";
 
     private readonly List<LocationPointDto> _buffer = [];
+    private readonly Lock _bufferLock = new();
     private readonly IDeviceService _deviceService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<LocationLogService> _logger;
@@ -52,27 +53,34 @@ public class LocationLogService : ILocationLogService
     {
         var now = DateTimeOffset.UtcNow;
         if (now - _lastSampleAt < SampleInterval) return;
-        if (_buffer.Count >= MaxBufferSize) return;
 
-        _buffer.Add(new LocationPointDto
+        lock (_bufferLock)
         {
-            Latitude = lat,
-            Longitude = lon,
-            AccuracyMeters = accuracy,
-            CapturedAt = now
-        });
-        _lastSampleAt = now;
+            if (_buffer.Count >= MaxBufferSize) return;
 
-        _logger.LogDebug("[LocationLog] Sample #{Count} — lat={Lat:F6}, lng={Lng:F6}", _buffer.Count, lat, lon);
+            _buffer.Add(new LocationPointDto
+            {
+                Latitude = lat,
+                Longitude = lon,
+                AccuracyMeters = accuracy,
+                CapturedAt = now
+            });
+            _logger.LogDebug("[LocationLog] Sample #{Count} — lat={Lat:F6}, lng={Lng:F6}", _buffer.Count, lat, lon);
+        }
+
+        _lastSampleAt = now;
     }
 
     public async Task FlushAsync()
     {
-        if (_buffer.Count == 0) return;
+        List<LocationPointDto> snapshot;
+        lock (_bufferLock)
+        {
+            if (_buffer.Count == 0) return;
+            snapshot = [.. _buffer];
+        }
 
         var deviceId = _deviceService.GetOrCreateDeviceId();
-        var snapshot = _buffer.ToList();
-
         var dto = new DeviceLocationLogBatchDto
         {
             DeviceId = deviceId,
@@ -86,7 +94,11 @@ public class LocationLogService : ILocationLogService
 
             if (response.IsSuccessStatusCode)
             {
-                _buffer.RemoveRange(0, snapshot.Count);
+                lock (_bufferLock)
+                {
+                    // Chỉ xóa đúng số điểm đã gửi — có thể có điểm mới được add trong lúc await
+                    _buffer.RemoveRange(0, Math.Min(snapshot.Count, _buffer.Count));
+                }
                 _logger.LogInformation("[LocationLog] Flush thành công: {Count} điểm", snapshot.Count);
             }
             else

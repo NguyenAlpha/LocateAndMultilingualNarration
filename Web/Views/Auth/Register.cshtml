@@ -3,13 +3,21 @@
     Layout = null;
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - EMS</title>
+    <title>Đăng ký - EMS</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+    <style>
+        .page { animation: pageFadeIn 0.4s ease-in; }
+        @@keyframes pageFadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .card { animation: cardSlide 0.4s ease-out 0.1s both; }
+        @@keyframes cardSlide { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .btn { transition: transform 0.15s ease; }
+        .btn:not(:disabled):hover { transform: translateY(-1px); }
+    </style>
 </head>
 <body class="d-flex flex-column">
     <div class="page page-center">
@@ -32,8 +40,8 @@
 
             <div class="card card-md">
                 <div class="card-body">
-                    <h2 class="h2 text-center mb-1">Create an account</h2>
-                    <p class="text-muted text-center mb-4">Join the Enterprise Management System</p>
+                    <h2 class="h2 text-center mb-1">Tạo tài khoản mới</h2>
+                    <p class="text-muted text-center mb-4">Tham gia Hệ thống Quản lý Doanh nghiệp</p>
 
                     <form asp-action="Register" asp-controller="Auth" method="post" novalidate autocomplete="off">
                         @Html.AntiForgeryToken()
@@ -41,46 +49,53 @@
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
 
                         <div class="mb-3">
-                            <label asp-for="UserName" class="form-label">Username</label>
+                            <label asp-for="UserName" class="form-label">Tên đăng nhập</label>
                             <input asp-for="UserName"
                                    class="form-control"
-                                   placeholder="Enter your username"
+                                   placeholder="Ít nhất 3 ký tự, chỉ a-z, 0-9, _"
                                    autocomplete="username"
+                                   minlength="3" maxlength="50"
+                                   pattern="[a-zA-Z0-9_]+"
                                    required>
                             <span asp-validation-for="UserName" class="invalid-feedback d-block"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Email" class="form-label">Email address</label>
+                            <label asp-for="Email" class="form-label">Địa chỉ Email</label>
                             <input asp-for="Email"
                                    class="form-control"
                                    placeholder="your@email.com"
                                    autocomplete="email"
+                                   maxlength="256"
+                                   type="email"
                                    required>
                             <span asp-validation-for="Email" class="invalid-feedback d-block"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="PhoneNumber" class="form-label">Phone number</label>
+                            <label asp-for="PhoneNumber" class="form-label">Số điện thoại</label>
                             <input asp-for="PhoneNumber"
                                    class="form-control"
-                                   placeholder="+84 xxx xxx xxx"
+                                   placeholder="0912345678 hoặc +84912345678"
                                    autocomplete="tel"
+                                   inputmode="tel"
+                                   pattern="(\+84|0)[0-9]{8,10}"
                                    required>
                             <span asp-validation-for="PhoneNumber" class="invalid-feedback d-block"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Password" class="form-label">Password</label>
+                            <label asp-for="Password" class="form-label">Mật khẩu</label>
                             <div class="input-group input-group-flat">
                                 <input asp-for="Password"
                                        class="form-control"
-                                       placeholder="Create a password"
+                                       placeholder="Ít nhất 8 ký tự, có chữ hoa, chữ thường và số"
                                        autocomplete="new-password"
                                        id="passwordInput"
+                                       minlength="8" maxlength="128"
                                        required>
                                 <span class="input-group-text">
-                                    <a href="#" class="link-secondary" id="togglePassword" title="Show password" tabindex="-1">
+                                    <a href="#" class="link-secondary" id="togglePassword" title="Hiện mật khẩu" tabindex="-1">
                                         <i class="ti ti-eye" id="toggleIcon"></i>
                                     </a>
                                 </span>
@@ -94,16 +109,16 @@
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="ConfirmPassword" class="form-label">Confirm password</label>
+                            <label asp-for="ConfirmPassword" class="form-label">Xác nhận mật khẩu</label>
                             <div class="input-group input-group-flat">
                                 <input asp-for="ConfirmPassword"
                                        class="form-control"
-                                       placeholder="Confirm your password"
+                                       placeholder="Nhập lại mật khẩu"
                                        autocomplete="new-password"
                                        id="confirmPasswordInput"
                                        required>
                                 <span class="input-group-text">
-                                    <a href="#" class="link-secondary" id="toggleConfirm" title="Show password" tabindex="-1">
+                                    <a href="#" class="link-secondary" id="toggleConfirm" title="Hiện mật khẩu" tabindex="-1">
                                         <i class="ti ti-eye" id="toggleConfirmIcon"></i>
                                     </a>
                                 </span>
@@ -113,7 +128,7 @@
 
                         <div class="form-footer">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="ti ti-user-plus me-2"></i>Create account
+                                <i class="ti ti-user-plus me-2"></i>Tạo tài khoản
                             </button>
                         </div>
                     </form>
@@ -121,8 +136,8 @@
             </div>
 
             <div class="text-center text-muted mt-3">
-                Already have an account?
-                <a asp-controller="Auth" asp-action="Login">Sign in</a>
+                Đã có tài khoản?
+                <a asp-controller="Auth" asp-action="Login">Đăng nhập ngay</a>
             </div>
 
         </div>
@@ -151,12 +166,15 @@
         setupToggle('toggleConfirm', 'confirmPasswordInput', 'toggleConfirmIcon');
 
         // Password strength indicator
-        document.getElementById('passwordInput').addEventListener('input', function () {
+        var pwInput = document.getElementById('passwordInput');
+        var confirmInput = document.getElementById('confirmPasswordInput');
+
+        pwInput.addEventListener('input', function () {
             var pw = this.value;
             var bar = document.getElementById('strengthBar');
             var text = document.getElementById('strengthText');
             var strength = 0;
-            if (pw.length >= 6) strength++;
+            if (pw.length >= 8) strength++;
             if (/[A-Z]/.test(pw)) strength++;
             if (/[a-z]/.test(pw)) strength++;
             if (/[0-9]/.test(pw)) strength++;
@@ -168,20 +186,33 @@
             } else if (strength <= 2) {
                 bar.style.width = '33%';
                 bar.className = 'progress-bar bg-danger';
-                text.textContent = 'Weak password';
+                text.textContent = 'Yếu';
                 text.className = 'form-hint mt-1 text-danger';
             } else if (strength === 3) {
                 bar.style.width = '66%';
                 bar.className = 'progress-bar bg-warning';
-                text.textContent = 'Medium password';
+                text.textContent = 'Trung bình';
                 text.className = 'form-hint mt-1 text-warning';
             } else {
                 bar.style.width = '100%';
                 bar.className = 'progress-bar bg-success';
-                text.textContent = 'Strong password';
+                text.textContent = 'Mạnh';
                 text.className = 'form-hint mt-1 text-success';
             }
+
+            // Re-check confirm nếu đã nhập
+            if (confirmInput.value) checkConfirm();
         });
+
+        // Realtime confirm password match
+        function checkConfirm() {
+            if (confirmInput.value !== pwInput.value) {
+                confirmInput.setCustomValidity('Mật khẩu xác nhận không khớp.');
+            } else {
+                confirmInput.setCustomValidity('');
+            }
+        }
+        confirmInput.addEventListener('input', checkConfirm);
     </script>
 </body>
 </html>

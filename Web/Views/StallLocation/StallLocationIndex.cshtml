@@ -1,133 +1,162 @@
 @model Web.Models.StallLocationManagementViewModel
 
 @{
-    ViewData["Title"] = "Stall Locations Management";
+    ViewData["Title"] = "Quản lý Vị trí Gian hàng";
 }
 
-<div class="page-header">
-    <h1><i class="bi bi-geo-alt me-2"></i>Stall Locations Management</h1>
+<div class="page-header d-print-none" data-aos="fade-up">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Quản lý</div>
+                <h2 class="page-title">Vị trí Gian hàng</h2>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <a href="@Url.Action("CreateMap")" class="btn btn-primary">
+                    <i class="ti ti-plus me-1"></i>Tạo mới
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 
-@if (!string.IsNullOrEmpty(Model.SuccessMessage))
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle me-2"></i>@Model.SuccessMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+<div class="page-body">
+    <div class="container-xl">
 
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-circle me-2"></i>@Model.ErrorMessage
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-
-<div class="card">
-    <div class="card-body">
-        <form method="get" class="row g-3 mb-4">
-            <div class="col-md-4">
-                <label for="stallName" class="form-label">Tên Stall</label>
-                <input type="text" name="stallName" id="stallName" class="form-control" placeholder="Tìm theo tên stall..." value="@Model.StallName" />
-            </div>
-            <div class="col-md-3">
-                <label for="isActive" class="form-label">Trạng thái</label>
-                <select name="isActive" id="isActive" class="form-select">
-                    <option value="">Tất cả</option>
-                    <option value="true" selected="@(Model.IsActive == true)">Kích hoạt</option>
-                    <option value="false" selected="@(Model.IsActive == false)">Tắt</option>
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end gap-2">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-funnel me-1"></i>Lọc
-                </button>
-                <a href="@Url.Action("Index")" class="btn btn-outline-secondary w-100">
-                    <i class="bi bi-x-lg me-1"></i>Xóa lọc
-                </a>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <a href="@Url.Action("CreateMap")" class="btn btn-success w-100">
-                    <i class="bi bi-plus-lg me-1"></i>Tạo mới
-                </a>
-            </div>
-        </form>
-
-        @if (Model.Items.Any())
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
         {
-            <div class="table-responsive">
-                <table class="table table-hover table-striped">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Stall</th>
-                            <th>Latitude</th>
-                            <th>Longitude</th>
-                            <th>Bán kính (m)</th>
-                            <th>Địa chỉ</th>
-                            <th>Cập nhật</th>
-                            <th>Trạng thái</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model.Items)
+            <div class="alert alert-success alert-dismissible mb-3" role="alert">
+                <i class="ti ti-check me-2"></i>@Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible mb-3" role="alert">
+                <i class="ti ti-alert-circle me-2"></i>@Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="card" data-aos="fade-up" data-aos-delay="50">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="ti ti-map-pin me-2 text-primary"></i>Danh sách vị trí
+                </div>
+                <div class="card-options">
+                    <form method="get" class="d-flex gap-2 flex-wrap">
+                        <input type="text" name="stallName" class="form-control form-control-sm"
+                               placeholder="Tìm theo tên gian hàng..." value="@Model.StallName" style="width:220px" />
+                        <select name="isActive" class="form-select form-select-sm" style="width:auto">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="true" selected="@(Model.IsActive == true)">Hoạt động</option>
+                            <option value="false" selected="@(Model.IsActive == false)">Tạm dừng</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            <i class="ti ti-filter me-1"></i>Lọc
+                        </button>
+                        @if (!string.IsNullOrEmpty(Model.StallName) || Model.IsActive.HasValue)
                         {
-                            <tr>
-                                <td>@(item.StallName ?? item.StallId.ToString())</td>
-                                <td><code>@item.Latitude.ToString("F6")</code></td>
-                                <td><code>@item.Longitude.ToString("F6")</code></td>
-                                <td>@item.RadiusMeters</td>
-                                <td>@(string.IsNullOrEmpty(item.Address) ? "-" : item.Address)</td>
-                                <td>@item.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>
-                                    @if (item.IsActive)
-                                    {
-                                        <span class="badge bg-success">Kích hoạt</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">Tắt</span>
-                                    }
-                                </td>
-                                <td>
-                                    <a href="@Url.Action("EditMap", new { id = item.Id })" class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                </td>
-                            </tr>
+                            <a href="@Url.Action("Index")" class="btn btn-sm btn-ghost-secondary">
+                                <i class="ti ti-x me-1"></i>Xóa lọc
+                            </a>
                         }
-                    </tbody>
-                </table>
+                    </form>
+                </div>
             </div>
 
-            <!-- Pagination -->
-            @if (Model.TotalCount > Model.PageSize)
+            @if (Model.Items.Any())
             {
-                <nav aria-label="Page navigation" class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        @for (int i = 1; i <= Math.Ceiling((double)Model.TotalCount / Model.PageSize); i++)
-                        {
-                            var routeValues = new Dictionary<string, object>
+                <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                        <thead>
+                            <tr>
+                                <th>Gian hàng</th>
+                                <th>Vĩ độ</th>
+                                <th>Kinh độ</th>
+                                <th>Bán kính (m)</th>
+                                <th>Địa chỉ</th>
+                                <th>Cập nhật</th>
+                                <th>Trạng thái</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
                             {
-                                { "page", i },
-                                { "pageSize", Model.PageSize },
-                                { "stallName", Model.StallName ?? "" },
-                                { "isActive", Model.IsActive }
-                            };
-                            <li class="page-item @(i == Model.Page ? "active" : "")">
-                                <a class="page-link" href="@Url.Action("Index", routeValues)">@i</a>
-                            </li>
-                        }
-                    </ul>
-                </nav>
+                                <tr>
+                                    <td class="fw-medium">@(item.StallName ?? item.StallId.ToString())</td>
+                                    <td class="text-muted"><code>@item.Latitude.ToString("F6")</code></td>
+                                    <td class="text-muted"><code>@item.Longitude.ToString("F6")</code></td>
+                                    <td class="text-muted">@item.RadiusMeters</td>
+                                    <td class="text-muted">@(string.IsNullOrEmpty(item.Address) ? "–" : item.Address)</td>
+                                    <td class="text-muted">@item.UpdatedAt?.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge bg-success-lt text-success">Hoạt động</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-lt text-danger">Tạm dừng</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="@Url.Action("EditMap", new { id = item.Id })"
+                                           class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
+                                            <i class="ti ti-pencil"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (Model.TotalCount > Model.PageSize)
+                {
+                    <div class="card-footer d-flex align-items-center">
+                        <p class="m-0 text-muted">
+                            @{
+                                var totalPages = (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize);
+                            }
+                            Trang @Model.Page / @totalPages
+                        </p>
+                        <ul class="pagination m-0 ms-auto">
+                            @for (int i = 1; i <= (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize); i++)
+                            {
+                                var routeValues = new Dictionary<string, object>
+                                {
+                                    { "page", i },
+                                    { "pageSize", Model.PageSize },
+                                    { "stallName", Model.StallName ?? "" },
+                                    { "isActive", Model.IsActive }
+                                };
+                                <li class="page-item @(i == Model.Page ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", routeValues)">@i</a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
             }
-        }
-        else
-        {
-            <div class="alert alert-info text-center">
-                <i class="bi bi-info-circle me-2"></i>Chưa có dữ liệu vị trí nào
-            </div>
-        }
+            else
+            {
+                <div class="empty">
+                    <div class="empty-icon">
+                        <i class="ti ti-map-pin-off"></i>
+                    </div>
+                    <p class="empty-title">Chưa có dữ liệu vị trí</p>
+                    <p class="empty-subtitle text-muted">Tạo vị trí đầu tiên cho gian hàng của bạn.</p>
+                    <div class="empty-action">
+                        <a href="@Url.Action("CreateMap")" class="btn btn-primary">
+                            <i class="ti ti-plus me-1"></i>Tạo vị trí mới
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+
     </div>
 </div>

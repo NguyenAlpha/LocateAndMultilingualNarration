@@ -1,23 +1,17 @@
+@model Web.Models.HomeViewModel
 @{
-    ViewData["Title"] = "Home";
-    var isLoggedIn = !string.IsNullOrWhiteSpace(Context.Session.GetString("AuthToken"));
-    var userRole = Context.Session.GetString("UserRole") ?? "";
-    var userPlan = Context.Session.GetString("UserPlan") ?? "";
-    var userPlanExpiresAtStr = Context.Session.GetString("UserPlanExpiresAt") ?? "";
-    var planIsExpired = DateTimeOffset.TryParse(userPlanExpiresAtStr, out var planExpiry)
-                        && planExpiry <= DateTimeOffset.UtcNow;
-    var effectivePlan = (planIsExpired && userPlan != "Free") ? "Free" : userPlan;
+    ViewData["Title"] = "Trang chủ";
 }
 
 <div class="text-center">
 
     <!-- Hero Section -->
-    <div class="row mb-5">
+    <div class="row mb-5" data-aos="fade-up">
         <div class="col-12">
             <div class="card bg-primary text-white">
                 <div class="card-body py-5 text-center">
-                    <h1 class="display-4 fw-bold mb-3">Enterprise Management System</h1>
-                    <p class="lead mb-0">A comprehensive solution for managing your business operations, stalls, and resources efficiently.</p>
+                    <h1 class="display-4 fw-bold mb-3">Hệ thống Quản lý Doanh nghiệp</h1>
+                    <p class="lead mb-0">Giải pháp toàn diện để quản lý doanh nghiệp, gian hàng và tài nguyên một cách hiệu quả.</p>
                 </div>
             </div>
         </div>
@@ -25,52 +19,79 @@
 
     <!-- Quick Stats -->
     <div class="row mb-5">
-        <div class="col-md-3 col-sm-6 mb-4">
+        <div class="col-md-3 col-sm-6 mb-4" data-aos="fade-up" data-aos-delay="0">
             <div class="card stats-card h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Total Businesses</h6>
-                            <h2 class="stats-number mb-0">248</h2>
+                            <h6 class="text-muted mb-2">Tổng Doanh nghiệp</h6>
+                            <h2 class="stats-number mb-0">
+                                @if (Model.IsLoggedIn)
+                                {
+                                    @Model.TotalBusinesses
+                                }
+                                else
+                                {
+                                    <span class="text-muted fs-4">–</span>
+                                }
+                            </h2>
                         </div>
                         <i class="bi bi-building stats-icon text-primary"></i>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
+        <div class="col-md-3 col-sm-6 mb-4" data-aos="fade-up" data-aos-delay="100">
             <div class="card stats-card success h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Active Stalls</h6>
-                            <h2 class="stats-number mb-0">1,452</h2>
+                            <h6 class="text-muted mb-2">Tổng Gian hàng</h6>
+                            <h2 class="stats-number mb-0">
+                                @if (Model.IsLoggedIn)
+                                {
+                                    @Model.TotalStalls
+                                }
+                                else
+                                {
+                                    <span class="text-muted fs-4">–</span>
+                                }
+                            </h2>
                         </div>
                         <i class="bi bi-shop stats-icon text-success"></i>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
+        <div class="col-md-3 col-sm-6 mb-4" data-aos="fade-up" data-aos-delay="200">
             <div class="card stats-card warning h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Registered Users</h6>
-                            <h2 class="stats-number mb-0">3,847</h2>
+                            <h6 class="text-muted mb-2">Người dùng đăng ký</h6>
+                            <h2 class="stats-number mb-0">
+                                @if (Model.IsAdmin)
+                                {
+                                    @Model.TotalUsers
+                                }
+                                else
+                                {
+                                    <span class="text-muted fs-4">–</span>
+                                }
+                            </h2>
                         </div>
                         <i class="bi bi-people stats-icon text-warning"></i>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
+        <div class="col-md-3 col-sm-6 mb-4" data-aos="fade-up" data-aos-delay="300">
             <div class="card stats-card info h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Languages</h6>
-                            <h2 class="stats-number mb-0">12</h2>
+                            <h6 class="text-muted mb-2">Ngôn ngữ hỗ trợ</h6>
+                            <h2 class="stats-number mb-0">@Model.TotalLanguages</h2>
                         </div>
                         <i class="bi bi-translate stats-icon text-info"></i>
                     </div>
@@ -79,17 +100,56 @@
         </div>
     </div>
 
-    <!-- Pricing Section (guests only) -->
-    @if (!isLoggedIn)
+    <!-- Subscription banner cho BusinessOwner đã đăng nhập -->
+    @if (Model.IsLoggedIn && Model.UserRole == "BusinessOwner")
     {
-        <div class="row mb-5 text-start">
+        <div class="row mb-4" data-aos="fade-up">
+            <div class="col-12">
+                @{
+                    var bannerCss = Model.PlanIsExpired ? "alert-warning" :
+                        Model.EffectivePlan == "Pro" ? "alert-success" :
+                        Model.EffectivePlan == "Basic" ? "alert-info" : "alert-secondary";
+                    var planBadge = Model.EffectivePlan switch
+                    {
+                        "Pro" => "bg-success",
+                        "Basic" => "bg-info",
+                        _ => "bg-secondary"
+                    };
+                }
+                <div class="alert @bannerCss d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <i class="ti ti-credit-card me-2"></i>
+                        Gói hiện tại:
+                        <span class="badge @planBadge text-white ms-1">@Model.EffectivePlan</span>
+                        @if (Model.PlanIsExpired)
+                        {
+                            <span class="ms-2 text-danger fw-semibold">— Đã hết hạn</span>
+                        }
+                        else if (Model.PlanExpiresAt.HasValue)
+                        {
+                            <span class="ms-2 text-muted">— hết hạn @Model.PlanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy")</span>
+                        }
+                    </div>
+                    <a asp-controller="Subscription" asp-action="Plans" class="btn btn-sm btn-primary">
+                        <i class="ti ti-layout-grid me-1"></i>
+                        @(Model.EffectivePlan == "Free" || Model.PlanIsExpired ? "Nâng cấp gói" : "Xem bảng giá")
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Pricing Section (chỉ hiển thị cho khách chưa đăng nhập) -->
+    @if (!Model.IsLoggedIn)
+    {
+        <div class="row mb-5 text-start" data-aos="fade-up">
             <div class="col-12 text-center mb-4">
                 <h2 class="fw-bold">Chọn gói phù hợp với bạn</h2>
                 <p class="text-muted">Thanh toán hàng tháng, huỷ bất cứ lúc nào</p>
             </div>
 
             <!-- Free -->
-            <div class="col-md-4 col-lg-4 mb-3">
+            <div class="col-md-4 col-lg-4 mb-3" data-aos="zoom-in" data-aos-delay="0">
                 <div class="card shadow-sm h-100">
                     <div class="card-header text-center py-3">
                         <div class="h3 mb-0">Free</div>
@@ -113,7 +173,7 @@
             </div>
 
             <!-- Basic -->
-            <div class="col-md-4 col-lg-4 mb-3">
+            <div class="col-md-4 col-lg-4 mb-3" data-aos="zoom-in" data-aos-delay="100">
                 <div class="card shadow-sm h-100">
                     <div class="card-header text-center py-3">
                         <div class="h3 mb-0">Basic</div>
@@ -139,7 +199,7 @@
             </div>
 
             <!-- Pro -->
-            <div class="col-md-4 col-lg-4 mb-3">
+            <div class="col-md-4 col-lg-4 mb-3" data-aos="zoom-in" data-aos-delay="200">
                 <div class="card shadow-lg border-primary h-100 position-relative">
                     <div class="position-absolute top-0 start-50 translate-middle">
                         <span class="badge bg-primary px-3 py-1">Phổ biến nhất</span>
@@ -169,158 +229,106 @@
         </div>
     }
 
-    <!-- Quick Access -->
-    @if (isLoggedIn)
+    <!-- Quick Access (chỉ hiển thị khi đã đăng nhập) -->
+    @if (Model.IsLoggedIn)
     {
-    <div class="row mb-5">
-        <div class="col-12">
-            <h2 class="mb-4">Quick Access</h2>
-        </div>
+        <div class="row mb-5">
+            <div class="col-12" data-aos="fade-up">
+                <h2 class="mb-4">Truy cập nhanh</h2>
+            </div>
 
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100 hover-shadow">
-                <div class="card-body text-center py-4">
-                    <div class="rounded-circle bg-primary-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="bi bi-building fs-1 text-primary"></i>
+            <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="0">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center py-4">
+                        <div class="rounded-circle bg-primary-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-building fs-1 text-primary"></i>
+                        </div>
+                        <h5 class="card-title">Quản lý Doanh nghiệp</h5>
+                        <p class="card-text text-muted">Quản lý toàn bộ doanh nghiệp, chi tiết và các gian hàng liên kết từ một nơi tập trung.</p>
+                        <a asp-controller="Business" asp-action="Index" class="btn btn-outline-primary">Quản lý Doanh nghiệp</a>
                     </div>
-                    <h5 class="card-title">Business Management</h5>
-                    <p class="card-text text-muted">Manage all business entities, their details, and associated stalls from a centralized location.</p>
-                    <a asp-controller="Business" asp-action="Index" class="btn btn-outline-primary">Manage Businesses</a>
                 </div>
             </div>
-        </div>
 
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100 hover-shadow">
-                <div class="card-body text-center py-4">
-                    <div class="rounded-circle bg-success-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="bi bi-shop fs-1 text-success"></i>
+            <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center py-4">
+                        <div class="rounded-circle bg-success-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-shop fs-1 text-success"></i>
+                        </div>
+                        <h5 class="card-title">Quản lý Gian hàng</h5>
+                        <p class="card-text text-muted">Cấu hình và tổ chức gian hàng, thiết lập vị trí và quản lý tài nguyên trên tất cả địa điểm.</p>
+                        <a asp-controller="Stall" asp-action="Index" class="btn btn-outline-success">Quản lý Gian hàng</a>
                     </div>
-                    <h5 class="card-title">Stall Management</h5>
-                    <p class="card-text text-muted">Configure and organize stalls, set locations, and manage inventory across all venues.</p>
-                    <a asp-controller="Stall" asp-action="Index" class="btn btn-outline-success">Manage Stalls</a>
                 </div>
             </div>
-        </div>
 
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100 hover-shadow">
-                <div class="card-body text-center py-4">
-                    <div class="rounded-circle bg-warning-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="bi bi-mic fs-1 text-warning"></i>
+            <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center py-4">
+                        <div class="rounded-circle bg-warning-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-mic fs-1 text-warning"></i>
+                        </div>
+                        <h5 class="card-title">Nội dung Thuyết minh</h5>
+                        <p class="card-text text-muted">Quản lý kịch bản thuyết minh đa ngôn ngữ và nội dung audio cho từng gian hàng.</p>
+                        <a asp-controller="Narration" asp-action="StallNarrationContents" class="btn btn-outline-warning">Quản lý Thuyết minh</a>
                     </div>
-                    <h5 class="card-title">Narration Contents</h5>
-                    <p class="card-text text-muted">Manage multilingual narration scripts and audio content for each stall.</p>
-                    <a asp-controller="Narration" asp-action="StallNarrationContents" class="btn btn-outline-warning">Manage Narration</a>
                 </div>
             </div>
-        </div>
 
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100 hover-shadow">
-                <div class="card-body text-center py-4">
-                    <div class="rounded-circle bg-danger-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="bi bi-map fs-1 text-danger"></i>
+            <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="0">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center py-4">
+                        <div class="rounded-circle bg-danger-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-map fs-1 text-danger"></i>
+                        </div>
+                        <h5 class="card-title">Vị trí Gian hàng</h5>
+                        <p class="card-text text-muted">Xem và quản lý vị trí gian hàng trên bản đồ tương tác để dễ dàng theo dõi.</p>
+                        <a asp-controller="StallLocation" asp-action="Index" class="btn btn-outline-danger">Quản lý Vị trí</a>
                     </div>
-                    <h5 class="card-title">Stall Location</h5>
-                    <p class="card-text text-muted">View and manage stall locations on interactive maps for better visualization.</p>
-                    <a asp-controller="StallLocation" asp-action="Index" class="btn btn-outline-danger">Manage Locations</a>
                 </div>
             </div>
-        </div>
 
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card h-100 hover-shadow">
-                <div class="card-body text-center py-4">
-                    <div class="rounded-circle bg-secondary-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                        <i class="bi bi-images fs-1 text-secondary"></i>
+            <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="card h-100 hover-shadow">
+                    <div class="card-body text-center py-4">
+                        <div class="rounded-circle bg-secondary-lt d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-images fs-1 text-secondary"></i>
+                        </div>
+                        <h5 class="card-title">Media Gian hàng</h5>
+                        <p class="card-text text-muted">Tải lên và quản lý hình ảnh, tệp media cho từng gian hàng.</p>
+                        <a asp-controller="StallMedia" asp-action="Index" class="btn btn-outline-secondary">Quản lý Media</a>
                     </div>
-                    <h5 class="card-title">Stall Media</h5>
-                    <p class="card-text text-muted">Upload and manage images and media files for each stall.</p>
-                    <a asp-controller="StallMedia" asp-action="Index" class="btn btn-outline-secondary">Manage Media</a>
                 </div>
             </div>
-        </div>
 
-    </div>
+        </div>
     }
 
-    <!-- Recent Activity -->
-    <div class="row">
-        <div class="col-lg-8 mb-4">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Activity</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        <div class="list-group-item d-flex align-items-center">
-                            <div class="rounded-circle bg-success-lt p-2 me-3">
-                                <i class="bi bi-plus-circle text-success"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-0">New business "Sunrise Enterprises" registered</p>
-                                <small class="text-muted">2 hours ago</small>
-                            </div>
-                        </div>
-                        <div class="list-group-item d-flex align-items-center">
-                            <div class="rounded-circle bg-info-lt p-2 me-3">
-                                <i class="bi bi-pencil text-info"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-0">Stall #A-142 location updated</p>
-                                <small class="text-muted">5 hours ago</small>
-                            </div>
-                        </div>
-                        <div class="list-group-item d-flex align-items-center">
-                            <div class="rounded-circle bg-warning-lt p-2 me-3">
-                                <i class="bi bi-person-plus text-warning"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-0">New user "john.doe@example.com" added</p>
-                                <small class="text-muted">1 day ago</small>
-                            </div>
-                        </div>
-                        <div class="list-group-item d-flex align-items-center">
-                            <div class="rounded-circle bg-primary-lt p-2 me-3">
-                                <i class="bi bi-upload text-primary"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-0">Audio content "Welcome Message" uploaded</p>
-                                <small class="text-muted">2 days ago</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 mb-4">
+    <!-- Trạng thái hệ thống -->
+    <div class="row" data-aos="fade-up">
+        <div class="col-lg-4 mb-4 mx-auto">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">System Status</h5>
+                    <h5 class="mb-0"><i class="ti ti-server me-2"></i>Trạng thái Hệ thống</h5>
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span>Server Status</span>
-                        <span class="badge bg-success">Online</span>
+                        <span>API Server</span>
+                        <span class="badge bg-success">Trực tuyến</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span>Database</span>
-                        <span class="badge bg-success">Connected</span>
+                        <span>Cơ sở dữ liệu</span>
+                        <span class="badge bg-success">Đã kết nối</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span>API Services</span>
-                        <span class="badge bg-success">Running</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span>Last Backup</span>
-                        <span class="text-muted">Today, 03:00 AM</span>
+                        <span>Azure Speech / Blob</span>
+                        <span class="badge bg-success">Đang chạy</span>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span>System Version</span>
-                        <span class="badge bg-secondary">v2.4.1</span>
+                        <span>Phiên bản</span>
+                        <span class="badge bg-secondary">v1.0.0</span>
                     </div>
                 </div>
             </div>

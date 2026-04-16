@@ -90,7 +90,7 @@ namespace Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Deactivate(Guid id, int page = 1, int pageSize = 10, string? search = null, Guid? businessId = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ToggleActive(Guid id, int page = 1, int pageSize = 10, string? search = null, Guid? businessId = null, CancellationToken cancellationToken = default)
         {
             var detailResult = await _stallApiClient.GetStallAsync(id, cancellationToken);
             if (detailResult?.Success != true || detailResult.Data == null)
@@ -100,6 +100,7 @@ namespace Web.Controllers
             }
 
             var detail = detailResult.Data;
+            var newStatus = !detail.IsActive;
             var updateResult = await _stallApiClient.UpdateStallAsync(id, new StallUpdateDto
             {
                 Name = detail.Name,
@@ -107,16 +108,16 @@ namespace Web.Controllers
                 Slug = detail.Slug,
                 ContactEmail = detail.ContactEmail,
                 ContactPhone = detail.ContactPhone,
-                IsActive = false
+                IsActive = newStatus
             }, cancellationToken);
 
             if (updateResult?.Success != true)
             {
-                TempData["ErrorMessage"] = updateResult?.Error?.Message ?? "Không thể vô hiệu hóa stall.";
+                TempData["ErrorMessage"] = updateResult?.Error?.Message ?? "Không thể thay đổi trạng thái stall.";
                 return RedirectToAction(nameof(Index), new { page, pageSize, search, businessId });
             }
 
-            TempData["SuccessMessage"] = "Stall đã được vô hiệu hóa.";
+            TempData["SuccessMessage"] = newStatus ? "Stall đã được kích hoạt." : "Stall đã được vô hiệu hóa.";
             return RedirectToAction(nameof(Index), new { page, pageSize, search, businessId });
         }
 
