@@ -23,9 +23,10 @@ public class QrCode
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Thời hạn sử dụng của mã QR (ví dụ: 7 ngày)
+    /// Số ngày hiệu lực kể từ thời điểm thiết bị quét QR.
+    /// Thời hạn truy cập = UsedAt + ValidDays.
     /// </summary>
-    public DateTime ExpiryAt { get; set; }
+    public int ValidDays { get; set; }
 
     /// <summary>
     /// Đã được sử dụng chưa

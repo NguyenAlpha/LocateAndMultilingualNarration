@@ -23,7 +23,7 @@ public class QrCodeConfiguration : IEntityTypeConfiguration<QrCode>
                .IsRequired()
                .HasDefaultValueSql("GETUTCDATE()");   // Mặc định là thời gian UTC hiện tại
 
-        builder.Property(x => x.ExpiryAt)
+        builder.Property(x => x.ValidDays)
                .IsRequired();
 
         builder.Property(x => x.IsUsed)
@@ -45,7 +45,7 @@ public class QrCodeConfiguration : IEntityTypeConfiguration<QrCode>
         builder.HasIndex(x => x.Code)
                .IsUnique();
 
-        // Index hỗ trợ query theo trạng thái và thời hạn
-        builder.HasIndex(x => new { x.IsUsed, x.ExpiryAt });
+        // Index hỗ trợ query theo trạng thái
+        builder.HasIndex(x => x.IsUsed);
     }
 }

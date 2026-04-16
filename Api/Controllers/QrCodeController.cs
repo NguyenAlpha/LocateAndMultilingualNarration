@@ -35,9 +35,10 @@ public class QrCodeController(AppDbContext db) : AppControllerBase
         if (expired.HasValue)
         {
             var now = DateTime.UtcNow;
+            // "Hết hạn" = đã dùng VÀ thời hạn truy cập (UsedAt + ValidDays) đã qua
             query = expired.Value
-                ? query.Where(q => q.ExpiryAt <= now)
-                : query.Where(q => q.ExpiryAt > now);
+                ? query.Where(q => q.IsUsed && q.UsedAt!.Value.AddDays(q.ValidDays) <= now)
+                : query.Where(q => !q.IsUsed || q.UsedAt!.Value.AddDays(q.ValidDays) > now);
         }
 
         var total = await query.CountAsync(ct);
@@ -50,7 +51,10 @@ public class QrCodeController(AppDbContext db) : AppControllerBase
                 Id = q.Id,
                 Code = q.Code,
                 CreatedAt = q.CreatedAt,
-                ExpiryAt = q.ExpiryAt,
+                ValidDays = q.ValidDays,
+                AccessExpiresAt = q.IsUsed && q.UsedAt.HasValue
+                    ? q.UsedAt.Value.AddDays(q.ValidDays)
+                    : (DateTime?)null,
                 IsUsed = q.IsUsed,
                 UsedAt = q.UsedAt,
                 UsedByDeviceId = q.UsedByDeviceId,
@@ -72,8 +76,8 @@ public class QrCodeController(AppDbContext db) : AppControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateQrCode([FromBody] QrCodeCreateDto request, CancellationToken ct = default)
     {
-        if (request.ExpiryAt <= DateTime.UtcNow)
-            return this.BadRequestResult("Ngày hết hạn phải lớn hơn thời điểm hiện tại.", "ExpiryAt");
+        if (request.ValidDays <= 0)
+            return this.BadRequestResult("Số ngày hiệu lực phải lớn hơn 0.", "ValidDays");
 
         string code;
         do
@@ -84,7 +88,7 @@ public class QrCodeController(AppDbContext db) : AppControllerBase
         var qrCode = new QrCode
         {
             Code = code,
-            ExpiryAt = request.ExpiryAt,
+            ValidDays = request.ValidDays,
             Note = request.Note
         };
 
@@ -96,12 +100,40 @@ public class QrCodeController(AppDbContext db) : AppControllerBase
             Id = qrCode.Id,
             Code = qrCode.Code,
             CreatedAt = qrCode.CreatedAt,
-            ExpiryAt = qrCode.ExpiryAt,
+            ValidDays = qrCode.ValidDays,
+            AccessExpiresAt = null,
             IsUsed = qrCode.IsUsed,
             Note = qrCode.Note
         };
 
         return this.CreatedResult(dto);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetQrCode(Guid id, CancellationToken ct = default)
+    {
+        var q = await db.QrCodes.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        if (q is null)
+            return this.NotFoundResult("Mã QR không tồn tại.");
+
+        var dto = new QrCodeDetailDto
+        {
+            Id = q.Id,
+            Code = q.Code,
+            CreatedAt = q.CreatedAt,
+            ValidDays = q.ValidDays,
+            AccessExpiresAt = q.IsUsed && q.UsedAt.HasValue
+                ? q.UsedAt.Value.AddDays(q.ValidDays)
+                : (DateTime?)null,
+            IsUsed = q.IsUsed,
+            UsedAt = q.UsedAt,
+            UsedByDeviceId = q.UsedByDeviceId,
+            Note = q.Note
+        };
+
+        return this.OkResult(dto);
     }
 
     [HttpGet("{id:guid}/image")]
@@ -150,14 +182,14 @@ public class QrCodeController(AppDbContext db) : AppControllerBase
         if (qrCode.IsUsed)
             return this.OkResult(new { isValid = false, message = "Mã QR đã được sử dụng." });
 
-        if (qrCode.ExpiryAt <= DateTime.UtcNow)
-            return this.OkResult(new { isValid = false, message = "Mã QR đã hết hạn." });
+        var usedAt = DateTime.UtcNow;
+        var expiryAt = usedAt.AddDays(qrCode.ValidDays);
 
         qrCode.IsUsed = true;
-        qrCode.UsedAt = DateTime.UtcNow;
+        qrCode.UsedAt = usedAt;
         qrCode.UsedByDeviceId = request.DeviceId;
         await db.SaveChangesAsync(ct);
 
-        return this.OkResult(new { isValid = true, message = "OK", expiryAt = qrCode.ExpiryAt });
+        return this.OkResult(new { isValid = true, message = "OK", expiryAt });
     }
 }
