@@ -41,27 +41,45 @@ namespace Web.Controllers
         public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
         {
             // Gọi song song để giảm latency
-            var businessesTask = _businessApiClient.GetBusinessesAsync(1, 5, null, cancellationToken);
-            var stallsTask = _stallApiClient.GetStallsAsync(1, 5, null, null, cancellationToken);
-            var languagesTask = _languageApiClient.GetActiveLanguagesAsync(cancellationToken);
-            var narrationTask = _narrationContentApiClient.GetContentsAsync(1, 1, null, null, null, null, cancellationToken);
+            var businessesTask      = _businessApiClient.GetBusinessesAsync(1, 5, null, cancellationToken);
+            var stallsTask          = _stallApiClient.GetStallsAsync(1, 5, null, null, cancellationToken);
+            var languagesTask       = _languageApiClient.GetActiveLanguagesAsync(cancellationToken);
+            var narrationTask       = _narrationContentApiClient.GetContentsAsync(1, 1, null, null, null, null, cancellationToken);
+            var usersTask           = _userApiClient.GetUsersAsync(1, 1, null, null, null, cancellationToken);
+            var qrTotalTask         = _qrCodeApiClient.GetQrCodesAsync(1, 1, null, null, cancellationToken);
+            var qrUsedTask          = _qrCodeApiClient.GetQrCodesAsync(1, 1, true, null, cancellationToken);
+            // pageSize=100 để lấy TotalCount + tính tổng doanh thu (tối đa 100 đơn đầu)
+            var completedOrdersTask = _subscriptionOrderApiClient.GetOrdersAsync(1, 100, null, "Completed", null, cancellationToken);
+            var recentOrdersTask    = _subscriptionOrderApiClient.GetOrdersAsync(1, 5, null, null, null, cancellationToken);
 
-            await Task.WhenAll(businessesTask, stallsTask, languagesTask, narrationTask);
+            await Task.WhenAll(businessesTask, stallsTask, languagesTask, narrationTask,
+                usersTask, qrTotalTask, qrUsedTask, completedOrdersTask, recentOrdersTask);
 
-            var businesses = await businessesTask;
-            var stalls = await stallsTask;
-            var languages = await languagesTask;
-            var narrations = await narrationTask;
+            var businesses      = await businessesTask;
+            var stalls          = await stallsTask;
+            var languages       = await languagesTask;
+            var narrations      = await narrationTask;
+            var users           = await usersTask;
+            var qrTotal         = await qrTotalTask;
+            var qrUsed          = await qrUsedTask;
+            var completedOrders = await completedOrdersTask;
+            var recentOrders    = await recentOrdersTask;
 
             var vm = new AdminDashboardViewModel
             {
-                TotalBusinesses = businesses?.Data?.TotalCount ?? 0,
-                TotalStalls = stalls?.Data?.TotalCount ?? 0,
-                ActiveLanguages = languages?.Data?.Count ?? 0,
+                TotalBusinesses       = businesses?.Data?.TotalCount ?? 0,
+                TotalStalls           = stalls?.Data?.TotalCount ?? 0,
+                ActiveLanguages       = languages?.Data?.Count ?? 0,
                 TotalNarrationContents = narrations?.Data?.TotalCount ?? 0,
-                RecentBusinesses = businesses?.Data?.Items?.ToList() ?? [],
-                RecentStalls = stalls?.Data?.Items?.ToList() ?? [],
-                Languages = languages?.Data?.ToList() ?? [],
+                TotalUsers            = users?.Data?.TotalCount ?? 0,
+                TotalQrCodes          = qrTotal?.Data?.TotalCount ?? 0,
+                UsedQrCodes           = qrUsed?.Data?.TotalCount ?? 0,
+                CompletedOrders       = completedOrders?.Data?.TotalCount ?? 0,
+                TotalRevenue          = completedOrders?.Data?.Items?.Sum(o => o.Amount) ?? 0,
+                RecentBusinesses      = businesses?.Data?.Items?.ToList() ?? [],
+                RecentStalls          = stalls?.Data?.Items?.ToList() ?? [],
+                Languages             = languages?.Data?.ToList() ?? [],
+                RecentOrders          = recentOrders?.Data?.Items?.ToList() ?? [],
             };
 
             return View(vm);
@@ -178,8 +196,6 @@ namespace Web.Controllers
 
             return RedirectToAction(nameof(UserRoleManagement), new { page, pageSize, search, roleFilter, isActiveFilter });
         }
-
-        public IActionResult Statistics() => View();
 
         [HttpGet]
         public async Task<IActionResult> QrCodes(

@@ -1,24 +1,24 @@
 @model Web.Models.UserRoleManagementViewModel
 @{
-    ViewData["Title"] = "User & Role Management";
+    ViewData["Title"] = "Quản lý User & Role";
     var totalPages = Model.PageSize > 0 ? (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize) : 1;
     var startItem = Model.TotalCount == 0 ? 0 : (Model.Page - 1) * Model.PageSize + 1;
     var endItem = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
 }
 
 <!-- Page Header -->
-<div class="page-header">
+<div class="page-header" data-aos="fade-up">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
-            <li class="breadcrumb-item">Admin</li>
-            <li class="breadcrumb-item active" aria-current="page">User & Role Management</li>
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item">Quản trị</li>
+            <li class="breadcrumb-item active" aria-current="page">Quản lý User &amp; Role</li>
         </ol>
     </nav>
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="bi bi-people me-2"></i>User & Role Management</h1>
+        <h1><i class="bi bi-people me-2"></i>Quản lý User &amp; Role</h1>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-            <i class="bi bi-person-plus me-1"></i>Add New User
+            <i class="bi bi-person-plus me-1"></i>Thêm User mới
         </button>
     </div>
 </div>
@@ -39,21 +39,21 @@
 }
 
 <!-- Tabs -->
-<ul class="nav nav-tabs mb-4" id="userManagementTabs" role="tablist">
+<ul class="nav nav-tabs mb-4" id="userManagementTabs" role="tablist" data-aos="fade-up" data-aos-delay="50">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
-            <i class="bi bi-people me-1"></i>Users
+            <i class="bi bi-people me-1"></i>Người dùng
             <span class="badge bg-secondary ms-1">@Model.TotalCount</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="roles-tab" data-bs-toggle="tab" data-bs-target="#roles" type="button" role="tab">
-            <i class="bi bi-shield-lock me-1"></i>Roles
+            <i class="bi bi-shield-lock me-1"></i>Vai trò
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button" role="tab">
-            <i class="bi bi-key me-1"></i>Permissions
+            <i class="bi bi-key me-1"></i>Quyền hạn
         </button>
     </li>
 </ul>
@@ -96,17 +96,17 @@
         </form>
 
         <!-- Users Table -->
-        <div class="table-container">
+        <div class="table-container" data-aos="fade-up" data-aos-delay="100">
             <div class="table-responsive">
                 <table class="table table-hover" id="usersTable">
                     <thead>
                         <tr>
-                            <th scope="col">User</th>
+                            <th scope="col">Người dùng</th>
                             <th scope="col">Email</th>
-                            <th scope="col">Role</th>
+                            <th scope="col">Vai trò</th>
                             <th scope="col">Trạng thái</th>
                             <th scope="col">Đăng nhập cuối</th>
-                            <th scope="col">Hành động</th>
+                            <th scope="col">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -139,11 +139,11 @@
                                 <td>
                                     @if (u.IsActive)
                                     {
-                                        <span class="badge bg-success">Active</span>
+                                        <span class="badge bg-success">Hoạt động</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger">Inactive</span>
+                                        <span class="badge bg-danger">Tạm dừng</span>
                                     }
                                 </td>
                                 <td>
@@ -278,13 +278,13 @@
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th scope="col">Permission</th>
+                            <th scope="col">Quyền hạn</th>
                             <th scope="col" class="text-center">Admin</th>
                             <th scope="col" class="text-center">BusinessOwner</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr class="table-light"><td colspan="3"><strong>Business Management</strong></td></tr>
+                        <tr class="table-light"><td colspan="3"><strong>Quản lý Doanh nghiệp</strong></td></tr>
                         <tr>
                             <td>Xem tất cả Business</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
@@ -295,7 +295,7 @@
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
                             <td class="text-center"><i class="bi bi-dash-circle text-muted" title="Chỉ business của mình"></i></td>
                         </tr>
-                        <tr class="table-light"><td colspan="3"><strong>Stall Management</strong></td></tr>
+                        <tr class="table-light"><td colspan="3"><strong>Quản lý Gian hàng</strong></td></tr>
                         <tr>
                             <td>Xem / Tạo / Sửa Stall</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
@@ -312,7 +312,7 @@
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
                         </tr>
-                        <tr class="table-light"><td colspan="3"><strong>User Management</strong></td></tr>
+                        <tr class="table-light"><td colspan="3"><strong>Quản lý Người dùng</strong></td></tr>
                         <tr>
                             <td>Xem / Tạo / Đổi role / Toggle active</td>
                             <td class="text-center"><i class="bi bi-check-circle-fill text-success"></i></td>
