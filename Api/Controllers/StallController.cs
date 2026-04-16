@@ -319,6 +319,40 @@ namespace Api.Controllers
             return this.OkResult(result);
         }
 
+        /// <summary>
+        /// Kích hoạt hoặc vô hiệu hóa stall
+        /// </summary>
+        /// <param name="id">Id của stall</param>
+        /// <returns>Stall sau khi cập nhật trạng thái</returns>
+        /// <response code="200">Cập nhật thành công</response>
+        /// <response code="401">Không xác thực</response>
+        /// <response code="403">Không có quyền truy cập</response>
+        /// <response code="404">Không tìm thấy stall</response>
+        [HttpPatch("{id:guid}/toggle-active")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
+        public async Task<IActionResult> ToggleActive(Guid id)
+        {
+            if (!TryGetUserId(out var userId))
+                return this.UnauthorizedResult("Không xác thực");
+
+            var stall = await _context.Stalls
+                .Include(s => s.Business)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (stall == null)
+                return this.NotFoundResult("Không tìm thấy stall");
+
+            if (!IsAdmin() && stall.Business.OwnerUserId != userId)
+                return this.ForbiddenResult("Không có quyền truy cập");
+
+            stall.IsActive = !stall.IsActive;
+            stall.UpdatedAt = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var timeZone = GetTimeZone();
+            return this.OkResult(MapStallDetail(stall, timeZone));
+        }
+
         private static StallDetailDto MapStallDetail(Api.Domain.Entities.Stall stall, TimeZoneInfo timeZone)
         {
             return new StallDetailDto

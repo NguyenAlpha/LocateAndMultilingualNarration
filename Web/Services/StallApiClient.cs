@@ -56,5 +56,15 @@ namespace Web.Services
             }
             catch (HttpRequestException) { return null; }
         }
+
+        public async Task<ApiResult<StallDetailDto>?> ToggleActiveAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var response = await _httpClient.PatchAsync($"api/stall/{id}/toggle-active", null, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<StallDetailDto>>(cancellationToken: cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
+        }
     }
 }
