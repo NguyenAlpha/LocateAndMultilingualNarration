@@ -7,6 +7,8 @@ namespace Web.Filters
 {
     public class TokenExpirationFilter : IAsyncActionFilter
     {
+        private readonly ApiClient _apiClient;
+
         private static readonly string[] _publicPaths =
         [
             "/Auth/Login",
@@ -18,12 +20,16 @@ namespace Web.Filters
             "/Subscription/Success",
         ];
 
+        public TokenExpirationFilter(ApiClient apiClient)
+        {
+            _apiClient = apiClient;
+        }
+
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             var path = context.HttpContext.Request.Path;
 
-            // Bỏ qua các trang public
-            if (_publicPaths.Any(p => path.StartsWithSegments(p)))
+            if (_publicPaths.Any(p => path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase)))
             {
                 await next();
                 return;
@@ -31,25 +37,27 @@ namespace Web.Filters
 
             var session = context.HttpContext.Session;
             var token = session.GetString(ApiClient.TokenSessionKey);
+            var returnUrl = context.HttpContext.Request.Path + context.HttpContext.Request.QueryString;
 
-            // Chưa đăng nhập → redirect Login
             if (string.IsNullOrWhiteSpace(token))
             {
-                context.Result = new RedirectToActionResult("Login", "Auth", null);
+                context.Result = new RedirectToActionResult("Login", "Auth", new { returnUrl });
                 return;
             }
 
-            // Token hết hạn → xóa session, redirect Login
             var expiresAtValue = session.GetString(ApiClient.TokenExpiresAtSessionKey);
-            if (DateTimeOffset.TryParse(expiresAtValue, out var expiresAt) && expiresAt <= DateTimeOffset.Now)
+            if (DateTimeOffset.TryParse(expiresAtValue, out var expiresAt) && expiresAt <= DateTimeOffset.UtcNow)
             {
-                session.Clear();
-                context.Result = new RedirectToActionResult("Login", "Auth", null);
-                return;
+                var refreshed = await _apiClient.RefreshAsync();
+                if (!refreshed)
+                {
+                    session.Clear();
+                    context.Result = new RedirectToActionResult("Login", "Auth", new { returnUrl });
+                    return;
+                }
             }
 
-            // Các route /Admin/* chỉ dành cho Admin
-            if (path.StartsWithSegments("/Admin"))
+            if (path.StartsWithSegments("/Admin", StringComparison.OrdinalIgnoreCase))
             {
                 var role = session.GetString(ApiClient.UserRoleSessionKey);
                 if (role != "Admin")

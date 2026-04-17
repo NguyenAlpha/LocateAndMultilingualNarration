@@ -50,7 +50,7 @@ namespace Web.Services
             session.SetString(RefreshTokenSessionKey, response.RefreshToken);
             session.SetString(RefreshTokenExpiresAtSessionKey, response.RefreshTokenExpiresAt.ToString("O"));
             session.SetString(UserNameSessionKey, response.UserName ?? string.Empty);
-            session.SetString(UserRoleSessionKey, response.Roles.FirstOrDefault() ?? string.Empty);
+            session.SetString(UserRoleSessionKey, response.Roles?.FirstOrDefault() ?? string.Empty);
         }
 
         public void ClearToken()
@@ -88,6 +88,37 @@ namespace Web.Services
         {
             var value = _httpContextAccessor.HttpContext?.Session.GetString(TokenExpiresAtSessionKey);
             return DateTimeOffset.TryParse(value, out var parsed) ? parsed : null;
+        }
+
+        public async Task<bool> RefreshAsync(CancellationToken cancellationToken = default)
+        {
+            var session = _httpContextAccessor.HttpContext?.Session;
+            if (session == null) return false;
+
+            var refreshToken = session.GetString(RefreshTokenSessionKey);
+            if (string.IsNullOrWhiteSpace(refreshToken)) return false;
+
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/auth/refresh",
+                    new RefreshTokenRequestDto { RefreshToken = refreshToken }, cancellationToken);
+
+                if (!response.IsSuccessStatusCode) return false;
+
+                var result = await response.Content.ReadFromJsonAsync<ApiResult<RefreshResponseDto>>(cancellationToken: cancellationToken);
+                if (result?.Success != true || result.Data == null) return false;
+
+                session.SetString(TokenSessionKey, result.Data.Token);
+                session.SetString(TokenExpiresAtSessionKey, result.Data.ExpiresAt.ToString("O"));
+                session.SetString(RefreshTokenSessionKey, result.Data.RefreshToken);
+                session.SetString(RefreshTokenExpiresAtSessionKey, result.Data.RefreshTokenExpiresAt.ToString("O"));
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
