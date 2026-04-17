@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.DTOs.Businesses;
+using Shared.DTOs.Geo;
 using Shared.DTOs.QrCodes;
 using Shared.DTOs.Users;
 using Web.Models;
@@ -8,7 +8,6 @@ using Web.Services;
 
 namespace Web.Controllers
 {
-    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private readonly BusinessApiClient _businessApiClient;
@@ -19,6 +18,7 @@ namespace Web.Controllers
         private readonly SubscriptionOrderApiClient _subscriptionOrderApiClient;
         private readonly UserApiClient _userApiClient;
         private readonly QrCodeApiClient _qrCodeApiClient;
+        private readonly DeviceApiClient _deviceApiClient;
 
         public AdminController(
             BusinessApiClient businessApiClient,
@@ -28,7 +28,8 @@ namespace Web.Controllers
             SubscriptionApiClient subscriptionApiClient,
             SubscriptionOrderApiClient subscriptionOrderApiClient,
             UserApiClient userApiClient,
-            QrCodeApiClient qrCodeApiClient)
+            QrCodeApiClient qrCodeApiClient,
+            DeviceApiClient deviceApiClient)
         {
             _businessApiClient = businessApiClient;
             _stallApiClient = stallApiClient;
@@ -38,6 +39,7 @@ namespace Web.Controllers
             _subscriptionOrderApiClient = subscriptionOrderApiClient;
             _userApiClient = userApiClient;
             _qrCodeApiClient = qrCodeApiClient;
+            _deviceApiClient = deviceApiClient;
         }
 
         public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
@@ -327,6 +329,25 @@ namespace Web.Controllers
                 code     = newResult.Data.Code,
                 imageUrl = Url.Action("GetQrImage", "Admin", new { id = newResult.Data.Id })
             });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ActiveDevices(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        {
+            if (withinMinutes < 1) withinMinutes = 1;
+            if (withinMinutes > 60) withinMinutes = 60;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
+            ViewBag.WithinMinutes = withinMinutes;
+            return View(result?.Data ?? new ActiveDevicesSummaryDto { WithinMinutes = withinMinutes, AsOf = DateTimeOffset.UtcNow });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ActiveDevicesData(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        {
+            if (withinMinutes < 1) withinMinutes = 1;
+            if (withinMinutes > 60) withinMinutes = 60;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
+            return Json(result);
         }
 
         [HttpGet]

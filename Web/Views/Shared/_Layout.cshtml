@@ -195,6 +195,12 @@
                                                     <i class="ti ti-refresh me-2"></i>Tạo QR tự động
                                                 </a>
                                             </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "ActiveDevices" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="ActiveDevices">
+                                                    <i class="ti ti-radio me-2"></i>Thiết bị online
+                                                </a>
+                                            </li>
                                         </ul>
                                     </div>
                                 </li>

@@ -48,6 +48,17 @@ namespace Web.Filters
                 return;
             }
 
+            // Các route /Admin/* chỉ dành cho Admin
+            if (path.StartsWithSegments("/Admin"))
+            {
+                var role = session.GetString(ApiClient.UserRoleSessionKey);
+                if (role != "Admin")
+                {
+                    context.Result = new RedirectToActionResult("Index", "Home", null);
+                    return;
+                }
+            }
+
             await next();
         }
     }

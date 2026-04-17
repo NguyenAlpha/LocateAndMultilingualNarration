@@ -82,6 +82,11 @@ builder.Services.AddHttpClient<StallGeoFenceApiClient>(client =>
     client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 }).AddHttpMessageHandler<AuthTokenHandler>();
 
+builder.Services.AddHttpClient<DeviceApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
