@@ -2,10 +2,10 @@
 
 ## Project Overview
 
-**Tên:** Hệ thống Thuyết minh Tự động Đa ngôn ngữ – Phố Ẩm Thực  
-**Mục đích:** App mobile tự động phát audio thuyết minh khi khách đến gần gian hàng (geofencing), kết hợp web admin cho doanh nghiệp quản lý nội dung đa ngôn ngữ.  
-**Framework:** .NET 10.0 toàn bộ.  
-**IDE:** Visual Studio Community 2026.  
+**Tên:** Hệ thống Thuyết minh Tự động Đa ngôn ngữ – Phố Ẩm Thực
+**Mục đích:** App mobile tự động phát audio thuyết minh khi khách đến gần gian hàng (geofencing), kết hợp web admin cho doanh nghiệp quản lý nội dung đa ngôn ngữ.
+**Framework:** .NET 10.0 toàn bộ.
+**IDE:** Visual Studio Community 2026.
 **Git:** nhánh `master` (stable), `dev` (integration), feature branches từ `dev`.
 
 ---
@@ -39,40 +39,50 @@ Web (MVC)      ──HTTP──▶  API (ASP.NET Core)  ──Azure SDK──▶
 
 ## Các Module Chính
 
-### API – Controllers (17 controllers)
+### API – Controllers (18 controllers + 1 base, `Api/Controllers/`)
 
 | Controller | Route | Auth |
 |-----------|-------|------|
-| AuthController | `/api/auth` | Anonymous |
-| GeoController | `/api/geo/stalls`, `/api/geo/nearest-stall` | **AllowAnonymous** |
+| AuthController | `/api/auth` | Anonymous (register-business-owner / login / refresh / logout) |
+| AppControllerBase | — | Abstract base (helpers: `TryGetUserId`, `IsAdmin`, `IsBusinessOwner`, `GetTimeZone`, `ConvertFromUtc`) |
+| GeoController | `/api/geo` | Hỗn hợp: `GET stalls` = AllowAnonymous; `GET active-devices` = AdminOnly |
 | DevicePreferenceController | `/api/device-preference` | **AllowAnonymous** |
-| QrCodeController | `/api/qrcodes` | AdminOnly (trừ `POST /verify` là AllowAnonymous) |
-| UserController | `/api/users` | [Authorize(Policy=AdminOnly)] |
-| BusinessController | `/api/business` | [Authorize] |
-| StallController | `/api/stall` | [Authorize] |
-| StallLocationController | `/api/stall-location` | [Authorize] |
-| StallGeoFenceController | `/api/stall-geofence` | [Authorize] |
-| StallMediaController | `/api/stall-media` | [Authorize] |
-| LanguageController | `/api/languages` | [Authorize(Roles="Admin")] |
-| TtsVoiceProfileController | `/api/tts-voice-profiles` | [Authorize] |
-| StallNarrationContentController | `/api/stall-narration-content` | [Authorize] |
-| NarrationAudioController | `/api/narration-audio` | [Authorize] |
-| SubscriptionOrderController | `/api/subscription-orders` | [Authorize] |
+| DeviceLocationLogController | `/api/device-location-log` | **AllowAnonymous** – POST `batch` tối đa 500 điểm GPS |
+| QrCodeController | `/api/qrcodes` | `[Authorize(AdminOnly)]` (trừ `POST /verify` = AllowAnonymous) |
+| UserController | `/api/User` | `[Authorize]` class-level; action-level tự check `IsAdmin()` |
+| BusinessController | `/api/Business` | `[Authorize]`; `PUT {id}/subscription` = AdminOnly |
+| StallController | `/api/Stall` | `[Authorize]` (Admin hoặc owner business) |
+| StallLocationController | `/api/stall-location` | `[Authorize]` |
+| StallGeoFenceController | `/api/stall-geo-fence` | `[Authorize]` (lưu ý route dùng `stall-geo-fence`, không phải `stall-geofence`) |
+| StallMediaController | `/api/stall-media` | `[Authorize]` (có `POST upload` multipart) |
+| LanguageController | `/api/languages` | AdminOnly; `GET active` = AllowAnonymous |
+| TtsVoiceProfileController | `/api/tts-voice-profiles` | **Chỉ có 1 action** `GET active` = AllowAnonymous (chưa có CRUD admin) |
+| StallNarrationContentController | `/api/stall-narration-content` | `[Authorize]` – có `GET {id}/tts-status`, `POST {id}/retry-tts` |
+| NarrationAudioController | `/api/narration-audio` | `[Authorize]` – chỉ có `PUT {id}/upload` (upload audio người thật) |
+| SubscriptionOrderController | `/api/subscription-orders` | `POST` = AdminOrBusinessOwner; `GET` = AdminOnly |
+| ⚠️ StallsController | `/api/stalls` | **AllowAnonymous – DEAD/DUPLICATE** (trùng `GeoController.GetAllStalls`, không wrap `ApiResult`, không kiểm QR, nên xoá) |
 
 **Application Services** (`Api/Application/Services/`):
-- `JwtService` – sinh JWT, hash refresh token (SHA256)
-- `GeoService` – Haversine, tìm stall gần nhất
-- `NarrationAudioService` – Azure TTS + Blob upload
-- `AzureTranslationService` – Azure Translator v3.0
-- `TtsBackgroundService` – Hosted service xử lý TTS jobs bất đồng bộ (DB polling, job claiming, retry/reset logic)
+- `JwtService` – sinh JWT HS256, refresh token 64-byte random, hash SHA256
+- `GeoService` – resolve DevicePreference, filter narration theo language + voice; có Haversine nhưng hiện không còn endpoint `nearest-stall`
+- `NarrationAudioService` – Azure TTS + Blob upload (`CreateOrUpdateFromTtsAsync`)
+- `AzureTranslationService` – wrapper Azure Translator v3.0 (chuẩn hoá code về 2 ký tự)
+- `TtsBackgroundService` – **Hosted service** `PeriodicTimer(5s)`, claim batch 5 job Pending → Processing, retry sau `StaleThreshold=10min`
 
-### API – Entities (20 entities, `Api/Domain/Entities/`)
+### API – Entities (22 entities, `Api/Domain/Entities/`)
 
 ```
-User, Role, UserRole, RefreshToken, Business, BusinessOwnerProfile, EmployeeProfile
-Stall, StallLocation, StallGeoFence, StallMedia, Language, TtsVoiceProfile, StallNarrationContent, NarrationAudio
-DevicePreference, SubscriptionOrder, QrCode
+User, Role, UserRole, RefreshToken,
+Business, BusinessOwnerProfile, EmployeeProfile,
+Stall, StallLocation, StallGeoFence, StallMedia,
+Language, TtsVoiceProfile, StallNarrationContent, NarrationAudio,
+DevicePreference, DeviceLocationLog, ScanLog,
+SubscriptionOrder, QrCode, QrCodeConfiguration
 ```
+
+Ngoài ra: `TtsJobStatus` là **static class hằng số** (`None/Pending/Processing/Completed/Failed`), không phải entity. `ScanLog` đã có migration nhưng chưa controller nào dùng.
+
+⚠️ **Cảnh báo namespace:** `QrCode.cs` và `QrCodeConfiguration.cs` đang dùng namespace `LocateAndMultilingualNarration.Domain.Entities` trong khi mọi entity khác là `Api.Domain.Entities`. Không lỗi runtime nhưng inconsistency.
 
 ### API – Subscription System (`Api/Domain/SubscriptionPlan.cs`)
 
@@ -89,8 +99,8 @@ GetPrice(plan)      // 0 / 199_000m / 499_000m
 ```
 
 **Business rules áp dụng trong API:**
-- `StallController.CreateStall`: kiểm tra số stall hiện tại < `GetMaxStalls(effectivePlan)` trước khi tạo (Admin bypass)
-- `StallNarrationContentController`: chặn tạo nội dung TTS nếu Free plan; khi tạo/cập nhật thành công → set `TtsStatus = Pending` để background service xử lý (không gọi TTS trực tiếp nữa)
+- `StallController.CreateStall`: kiểm tra số stall < `GetMaxStalls(effectivePlan)` (Admin bypass)
+- `StallNarrationContentController`: chặn tạo content TTS nếu Free plan; tạo/cập nhật xong → set `TtsStatus = Pending` để `TtsBackgroundService` xử lý (không gọi TTS trực tiếp)
 - `SubscriptionOrderController.CreateOrder`: chặn downgrade khi plan hiện tại còn hạn (`PlanRank(request.Plan) < PlanRank(business.Plan)`)
 
 **Effective plan logic** (dùng nhất quán ở mọi nơi):
@@ -99,157 +109,160 @@ var planIsExpired = business.PlanExpiresAt.HasValue && business.PlanExpiresAt.Va
 var effectivePlan = (planIsExpired && business.Plan != "Free") ? "Free" : business.Plan;
 ```
 
-### API – UserController (`/api/users`) [AdminOnly]
+### API – UserController (`/api/User`) [Authorize]
 
-- `GET /api/users/roles` – danh sách roles kèm `UserCount`
-- `GET /api/users` – danh sách users có phân trang, filter theo role/status/search
-- `POST /api/users` – Admin tạo user mới (body: `AdminCreateUserDto`)
-- `PUT /api/users/{id}/toggle-active` – bật/tắt IsActive
-- `PUT /api/users/{id}/role` – đổi role (body: `UserRoleUpdateDto`)
-- `GET /api/users/{id}` – chi tiết user
-
-### API – StallNarrationContentController – TTS endpoints (bổ sung)
-
-- `GET /api/stall-narration-content/{id}/tts-status` – poll trạng thái TTS (trả `TtsStatusDto`)
-- `POST /api/stall-narration-content/{id}/retry-tts` – retry job TTS thất bại
+- `GET /api/User/roles` – danh sách roles kèm `UserCount`
+- `GET /api/User` – users có phân trang, filter theo role/status/search
+- `POST /api/User` – Admin tạo user (body: `AdminCreateUserDto`)
+- `PATCH /api/User/{id}/toggle-active` – bật/tắt IsActive
+- `PUT /api/User/{id}/role` – đổi role (body: `UserRoleUpdateDto`)
+- `GET /api/User/{id}` – chi tiết user (logic nội bộ: cho phép Admin hoặc chính chủ user)
 
 ### API – SubscriptionOrderController (`/api/subscription-orders`)
 
-- `POST /api/subscription-orders` [AdminOrBusinessOwner]: Mock payment — strip spaces, nếu đúng 16 chữ số → `Completed`, else → `Failed`. Khi thành công: cập nhật `business.Plan` và `business.PlanExpiresAt`. Nếu business đang có plan active, extend từ `PlanExpiresAt` hiện tại (không bắt đầu từ now).
-- `GET /api/subscription-orders` [AdminOnly]: Danh sách có phân trang, filter theo `plan`, `status`, `businessId`.
+- `POST /api/subscription-orders` [AdminOrBusinessOwner]: Mock payment — strip spaces, nếu đúng 16 chữ số → `Completed`, else → `Failed`. Khi thành công: cập nhật `business.Plan` và `business.PlanExpiresAt`. Nếu business đang có plan active, extend từ `PlanExpiresAt` hiện tại.
+- `GET /api/subscription-orders` [AdminOnly]: Phân trang, filter `plan` / `status` / `businessId`.
 
 ### Shared – DTOs (`Shared/DTOs/`)
 
-17 nhóm: Auth, Business, Stall, Language, TtsVoiceProfile, Narration, Geo, StallGeoFence, StallLocation, StallMedia, DevicePreference, **SubscriptionOrders**, **Users**, **QrCodes**, VisitorPreference, VisitorLocationLog, Common.
+Nhóm: Auth, Businesses, Common, DeviceLocationLogs, DevicePreferences, Geo, Languages, Narrations, QrCodes, StallGeoFences, StallLocations, StallMedia, Stalls, SubscriptionOrders, TtsVoiceProfiles, Users.
 
 **QrCodes**:
-- `QrCodeCreateDto` – ValidDays (int, số ngày hiệu lực), Note
-- `QrCodeDetailDto` – Id, Code, CreatedAt, ValidDays, AccessExpiresAt (null nếu chưa quét, = UsedAt+ValidDays nếu đã quét), IsUsed, UsedAt, UsedByDeviceId, Note
+- `QrCodeCreateDto` – `ValidDays` (số ngày hiệu lực), `Note`
+- `QrCodeDetailDto` – Id, Code, CreatedAt, ValidDays, AccessExpiresAt (null nếu chưa quét, `=UsedAt+ValidDays` nếu đã quét), IsUsed, UsedAt, UsedByDeviceId, Note
 - `QrCodeVerifyRequestDto` – Code, DeviceId
 
 **SubscriptionOrders**:
 - `SubscriptionOrderCreateDto` – BusinessId, Plan, CardNumber, CardExpiry, CardCvv, CardHolder
 - `SubscriptionOrderDetailDto` – Id, BusinessId, BusinessName, Plan, Amount, Status, CardLastFour, PaidAt, PlanStartAt, PlanEndAt
 
-**Users** (mới):
+**Users**:
 - `UserListItemDto` – Id, UserName, Email, Roles, IsActive, LastLoginAt, CreatedAt
+- `UserDetailDto` – Id, UserName, Email, PhoneNumber, Roles, IsActive, LastLoginAt, CreatedAt, DisplayName, Sex, DateOfBirth, LockoutEnd, BusinessOwnerProfile, EmployeeProfile
 - `AdminCreateUserDto` – UserName, Email, Password, PhoneNumber, RoleName
 - `UserRoleUpdateDto` – RoleName
 - `RoleListItemDto` – Id, Name, UserCount
 
-**Narration** (cập nhật):
-- `StallNarrationContentDetailDto` có thêm `TtsStatus` và `TtsError`
-- `TtsStatusDto` – Id, TtsStatus, TtsError, Audios (list NarrationAudioDetailDto)
+**Narrations**:
+- `StallNarrationContentDetailDto` có `TtsStatus` và `TtsError`
+- `TtsStatusDto` – Id, TtsStatus, TtsError, Audios (list `NarrationAudioDetailDto`)
 
-**Business** (cập nhật):
-- `BusinessDetailDto` có thêm `Plan` và `PlanExpiresAt`
+**Businesses**:
+- `BusinessDetailDto` có `Plan` và `PlanExpiresAt`
 - `SubscriptionUpdateDto` (Admin dùng) – Plan, PlanExpiresAt
 
-### Web – Controllers (`Web/Controllers/`)
+**Geo** (thêm mới):
+- `ActiveDeviceItemDto`, `ActiveDevicesSummaryDto` – cho dashboard Active Devices
 
-`AuthController`, `HomeController`, `BusinessController`, `StallController`, `StallLocationController`, `StallGeoFenceController`, `StallMediaController`, `NarrationController`, `AdminController` (User & Role management tích hợp), `DocsController`, **`SubscriptionController`**
+**DeviceLocationLogs**:
+- `DeviceLocationLogBatchDto` – DeviceId, list `LocationPointDto` (Lat/Lng/At)
 
-Web giao tiếp API qua `Web/Services/` – mỗi domain có `*ApiClient.cs` riêng. `AuthTokenHandler` (DelegatingHandler) tự inject JWT vào mọi request. `TokenExpirationFilter` kiểm tra token còn hạn.
+### Web – Controllers (`Web/Controllers/`) – 11 controllers
 
-### Web – Services (`Web/Services/`)
+`AuthController`, `HomeController`, `AdminController` (tích hợp: Dashboard, UserRoleManagement, QrCodes, AutoQr, ActiveDevices, Subscription, SubscriptionOrders), `BusinessController`, `StallController`, `StallLocationController`, `StallGeoFenceController`, `StallMediaController`, `NarrationController`, `SubscriptionController`, `DocsController`.
+
+Web giao tiếp API qua `Web/Services/` – mỗi domain có `*ApiClient.cs` riêng. `AuthTokenHandler` (DelegatingHandler) tự inject JWT + header `X-TimeZoneId: SE Asia Standard Time` vào mọi request. `TokenExpirationFilter` (global filter) kiểm token còn hạn với path không public, nếu hết hạn thì gọi `RefreshAsync`.
+
+### Web – Services (`Web/Services/`) – 15 files
 
 | Service | Mục đích |
 |---------|---------|
-| `ApiClient` | Base client, quản lý session (AuthToken, UserRole, UserName, **UserPlan**, **UserPlanExpiresAt**) |
-| `BusinessApiClient` | CRUD business |
+| `ApiClient` | Base client, quản session + login/register/refresh |
+| `AuthTokenHandler` | DelegatingHandler inject Bearer + timezone header |
+| `BusinessApiClient` | CRUD business + `plan/sortBy/sortDir` filters |
 | `StallApiClient` | CRUD stall |
-| `LanguageApiClient` | Lấy ngôn ngữ active |
-| `StallNarrationContentApiClient` | CRUD narration content + `GetTtsStatusAsync`, `RetryTtsAsync` |
-| `SubscriptionApiClient` | `UpdateSubscriptionAsync` – Admin cập nhật plan cho business |
-| `SubscriptionOrderApiClient` | `CreateOrderAsync`, `GetOrdersAsync` – thanh toán mock + lịch sử |
-| `UserApiClient` | `GetUsersAsync`, `GetRolesAsync`, `CreateUserAsync`, `ToggleActiveAsync`, `UpdateRoleAsync`, `GetUserDetailAsync` – Admin quản lý user/role |
-| `QrCodeApiClient` | `GetQrCodesAsync`, `GetQrCodeAsync`, `CreateQrCodeAsync`, `DeleteQrCodeAsync`, `GetQrCodeImageAsync` – Admin quản lý mã QR |
+| `StallLocationApiClient` | CRUD stall location |
+| `StallGeoFenceApiClient` | CRUD geofence (endpoint `api/stall-geo-fence`) |
+| `StallMediaApiClient` | Upload/delete media |
+| `LanguageApiClient` | `GetActiveLanguagesAsync` |
+| `StallNarrationContentApiClient` | CRUD content + `GetTtsStatusAsync`, `RetryTtsAsync` |
+| `NarrationAudioApiClient` | `UploadHumanAudioAsync` (multipart) |
+| `SubscriptionApiClient` | `UpdateSubscriptionAsync` – Admin cập nhật plan |
+| `SubscriptionOrderApiClient` | `CreateOrderAsync`, `GetOrdersAsync` |
+| `UserApiClient` | Users & roles – Admin |
+| `QrCodeApiClient` | QR CRUD + `GetQrCodeImageAsync` |
+| `DeviceApiClient` | `GetActiveDevicesAsync` → `/api/geo/active-devices` |
 
-**Session keys quan trọng** (hằng số trong `ApiClient`):
-- `TokenSessionKey` = `"AuthToken"`
-- `UserRoleSessionKey` = `"UserRole"`
-- `UserNameSessionKey` = `"UserName"`
-- `UserPlanSessionKey` = `"UserPlan"`
-- `UserPlanExpiresAtSessionKey` = `"UserPlanExpiresAt"`
+**Session keys** (hằng số trong `ApiClient`):
+- `TokenSessionKey` = `"AuthToken"`, `TokenExpiresAtSessionKey` = `"AuthTokenExpiresAt"`
+- `RefreshTokenSessionKey` = `"RefreshToken"`, `RefreshTokenExpiresAtSessionKey` = `"RefreshTokenExpiresAt"`
+- `UserNameSessionKey` = `"UserName"`, `UserRoleSessionKey` = `"UserRole"`
+- `UserPlanSessionKey` = `"UserPlan"`, `UserPlanExpiresAtSessionKey` = `"UserPlanExpiresAt"`
 
-`StoreUserPlan(plan, expiresAt)` – gọi sau login (nếu BusinessOwner) và sau payment thành công để cập nhật session.
+`StoreUserPlan(plan, expiresAt)` – gọi sau login (nếu BusinessOwner) và sau payment thành công.
+Session config: `IdleTimeout = 30 phút`, `HttpOnly`, `IsEssential`, `SecurePolicy = Always`, `SameSite = Strict`.
 
 ### Web – SubscriptionController
 
 | Action | Route | Ghi chú |
 |--------|-------|---------|
-| `Plans` | GET `/Subscription/Plans` | Public. Nhận query `?highlight=X&businessId=Y` (businessId để pre-select ở Checkout) |
-| `Checkout` | GET `/Subscription/Checkout?plan=X[&businessId=Y]` | Yêu cầu login + BusinessOwner/Admin. Fetch tất cả business của user. Pre-select businessId nếu có. |
-| `ProcessPayment` | POST `/Subscription/ProcessPayment` | Gọi API tạo order. Thành công → cập nhật session plan + redirect Success. |
-| `Success` | GET `/Subscription/Success` | Trang xác nhận. |
+| `Plans` | GET `/Subscription/Plans` | Public. Query `?highlight=X&businessId=Y` |
+| `Checkout` | GET `/Subscription/Checkout?plan=X[&businessId=Y]` | Yêu cầu login + BusinessOwner/Admin |
+| `ProcessPayment` | POST `/Subscription/ProcessPayment` | Gọi API → thành công cập nhật session plan |
+| `Success` | GET `/Subscription/Success` | Trang xác nhận (hiện không yêu cầu login – nên siết lại) |
 
-### Web – Views
+### Web – Views (`Web/Views/`)
 
-**Subscription views** (`Web/Views/Subscription/`):
-- `Plans.cshtml` – 3 card: Free, Basic, Pro. Public. Không có logic "Đang dùng". Nút Đăng ký → Checkout (kèm businessId nếu có). Nếu chưa login → redirect Login với returnUrl.
-- `Checkout.cshtml` – 2 cột: Order Summary | Card form. Nếu user có nhiều business → radio card selector với badge plan hiện tại + ngày hết hạn. Hiện alert đỏ + disable nút nếu business đang dùng plan cao hơn (chặn downgrade).
-- `Success.cshtml` – Trang thành công với plan badge + order ID.
+- `Admin/`: `Dashboard.cshtml`, `UserRoleManagement.cshtml`, `Subscription.cshtml`, `SubscriptionOrders.cshtml`, `QrCodes.cshtml`, `AutoQr.cshtml`, `ActiveDevices.cshtml`
+- `Auth/`: `Login.cshtml`, `Register.cshtml`
+- `Business/`: `BusinessManagement.cshtml`
+- `Home/`: `Index.cshtml`, `Privacy.cshtml`, `Error.cshtml`
+- `Narration/`: `StallNarrationContentManagement.cshtml`, `show.cshtml`
+- `Stall/`: `StallManagement.cshtml`
+- `StallGeoFence/`: `StallGeoFenceIndex.cshtml`
+- `StallLocation/`: `StallLocationIndex.cshtml`, `StallLocationMap.cshtml`
+- `StallMedia/`: `StallMediaManagement.cshtml`
+- `Subscription/`: `Plans.cshtml`, `Checkout.cshtml`, `Success.cshtml`
+- `Shared/`: `_Layout.cshtml`, `Error.cshtml`, `_ValidationScriptsPartial.cshtml`
 
-**Admin views** (`Web/Views/Admin/`):
-- `Subscription.cshtml` – Admin quản lý plan cho từng business (table + edit modal).
-- `SubscriptionOrders.cshtml` – Lịch sử đơn thanh toán: stats cards (doanh thu, đơn thành công/thất bại) + table filter theo plan/status.
-- `UserRoleManagement.cshtml` – Quản lý user & role thực (live data từ API): search/filter, phân trang, đổi role, toggle active, tạo user mới. Dùng `UserRoleManagementViewModel` (`Web/Models/`).
-- `QrCodes.cshtml` – Tạo/xem/xoá mã QR: stats cards, table (cột "Hiệu lực": badge "N ngày" nếu chưa quét, ngày cụ thể nếu đã quét), create modal (nhập ValidDays), view QR image modal. Dùng `AdminQrCodesViewModel`.
-- `AutoQr.cshtml` – Kiosk tạo QR tự động: nhập ValidDays → bắt đầu → hiển thị QR → JS poll 2s → khi khách quét xong tự tạo mã mới liên tục.
+**Home** (`Home/Index.cshtml`):
+- Chưa login: bảng giá 3 card (Free/Basic/Pro)
+- Đã login + BusinessOwner: banner plan (badge, ngày hết hạn, nút Nâng cấp)
 
-**Narration views** (`Web/Views/Narration/`):
-- `show.cshtml` – hiển thị TTS status badge, live banner trạng thái job, error alert, và auto-refresh qua JS polling.
-- `StallNarrationContentManagement.cshtml` – bảng content có cột TTS status badge.
-
-**Business views** (`Web/Views/Business/`):
-- `BusinessManagement.cshtml` – Table có thêm cột **Plan** (badge màu + ngày hết hạn/Hết hạn) và nút **Đổi gói** → `/Subscription/Plans?businessId={id}`.
-
-**Home** (`Web/Views/Home/Index.cshtml`):
-- Khi **chưa login**: hiện bảng giá 3 card (Free/Basic/Pro) ngay trên trang home (marketing).
-- Khi **đã login + BusinessOwner**: hiện subscription status banner (plan badge, ngày hết hạn, nút Nâng cấp/Xem bảng giá).
-
-**StallLocation views** (`Web/Views/StallLocation/`):
-- `StallLocationMap.cshtml` – toggle hiện/ẩn tên gian hàng; marker phân biệt: xanh=đang chọn, đỏ=user, xám=public stall khác.
-
-**Layout** (`Web/Views/Shared/_Layout.cshtml`):
-- Sidebar BusinessOwner: hiện badge plan dưới logo (bg-secondary=Free, bg-info=Basic, bg-success=Pro, bg-warning=Hết hạn).
-- Admin sidebar dropdown: có link "Subscription" và "Đơn đăng ký".
-- Management dropdown: có link "Bảng giá" (tất cả user).
+**ViewModels** (`Web/Models/`): `LoginViewModel`, `RegisterViewModel`, `HomeViewModel`, `AdminDashboardViewModel`, `BusinessManagementViewModel`, `BusinessFormViewModel`, `StallManagementViewModel`, `StallFormViewModel`, `StallLocationManagementViewModel`, `StallLocationFormViewModel`, `StallGeoFenceManagementViewModel`, `StallGeoFenceFormViewModel`, `StallMediaManagementViewModel`, `StallMediaFormViewModel`, `StallNarrationContentManagementViewModel`, `StallNarrationContentShowViewModel`, `SubscriptionManagementViewModel` / `SubscriptionFormViewModel`, `SubscriptionPlanViewModel` (gồm `PlansViewModel`, `BusinessSelectItem`, `CheckoutViewModel`, `SubscriptionOrdersViewModel`), `UserRoleManagementViewModel`, `AdminQrCodesViewModel`, `ErrorViewModel`.
 
 ### Mobile – Pages & ViewModels
 
-**Flow thực tế:** `ScanPage` → `LanguagePage` → `MapPage`
+**Flow thực tế:** `LoadingPage` (splash) → kiểm QR + language → `ScanPage` (nếu chưa có/hết hạn QR) → `LanguagePage` (nếu chưa có preference) → `//MainPage` hoặc `//MapPage`.
 
 | Page | ViewModel | Ghi chú |
 |------|-----------|---------|
+| LoadingPage | – (code-behind) | Quyết định điều hướng splash |
 | ScanPage | ScanViewModel | Quét QR để active app |
-| LanguagePage | LanguageViewModel | Chọn ngôn ngữ + giọng đọc (search/filter), lưu DevicePreference, navigate thẳng MapPage |
-| MainPage | MainViewModel | Shell điều hướng; quick action "Gian hàng" → StallListPage |
-| MapPage | MapViewModel | Bản đồ + geofence + audio |
-| StallListPage | StallListViewModel | Danh sách gian hàng có search + phân trang |
-| StallPopup | – | Popup chi tiết gian hàng |
+| LanguagePage | LanguageViewModel | Chọn ngôn ngữ + voice trong cùng trang, lưu DevicePreference + LocalPreference |
+| MainPage | MainViewModel | Shell home; quick action → StallListPage |
+| MapPage | MapViewModel | Bản đồ + geofence + audio queue |
+| StallListPage | StallListViewModel | Search + phân trang (⚠️ ViewModel chưa được đăng ký DI, resolve qua `ServiceHelper` sẽ lỗi) |
+| ProfilePage | ProfileViewModel | Đổi ngôn ngữ/voice/speechRate |
+| StallPopup | dùng chung MapViewModel | Popup chi tiết gian hàng |
 
-**Mobile Services** (`Mobile/Services/`) – 13 services:
+**Mobile Services** (`Mobile/Services/`) – 14 services:
 
 ```
-DeviceService              – Tạo/lấy DeviceId (Preferences)
-DevicePreferenceApiService – Lưu/tải preference theo DeviceId lên API
-QrService                  – Verify QR qua API + lưu/kiểm tra quyền truy cập (Preferences: qr_verified + qr_expiry)
-LanguageService            – Fetch active languages, memory cache (implements ILanguageService)
-VoiceService               – Fetch voice profiles theo language
-StallService               – Cache-first: SQLite → API sync, in-memory cache (implements IStallService)
-AudioGuideService          – Play/Pause/Resume/Stop audio
-AudioCacheService          – Download & cache audio files local
-LocalStallRepository       – SQLite CRUD (upsert, query)
-SyncService                – Orchestrate: API → SQLite → audio download
-SyncBackgroundService      – Timer 3 phút + connectivity trigger
-LocationLogService         – Thu thập GPS theo batch, gửi lên API thống kê di chuyển
-AuthService                – ⚠️ KHÔNG SỬ DỤNG
+DeviceService              – GetOrCreateDeviceId (Preferences key "device_id") + GetDeviceInfo
+DevicePreferenceApiService – GET/POST /api/device-preference
+LocalPreferenceService     – Lưu DevicePreference vào Preferences (8 key "pref_*"), offline-first
+QrService                  – Verify QR qua API + lưu "qr_verified"/"qr_expiry" (Preferences)
+LanguageService            – GET /api/languages/active, cache 15 phút
+VoiceService               – GET /api/tts-voice-profiles/active?languageId=...
+StallService               – Cache-first: memory → SQLite → API /api/geo/stalls, cache 10 phút
+AudioGuideService          – Wrap Plugin.Maui.Audio; event PlaybackCompleted
+AudioCacheService          – Download MP3 về {AppDataDirectory}/audio/{lang}/{stallId}.mp3
+SyncService                – Orchestrate API → SQLite → audio (semaphore 3 song song)
+SyncBackgroundService      – PeriodicTimer: StallSyncInterval=3 phút, FlushInterval=1 phút + ConnectivityChanged
+LocationLogService         – Buffer GPS in-memory, batch POST /api/device-location-log/batch, sample 5s, max 500 điểm
+GpsPollingService          – Vòng lặp Geolocation delay 1s, event LocationUpdated (dùng trong MapViewModel)
+LocalStallRepository       – SQLite stalls.db3 (LocalDb/), upsert batch có diff check
+AuthService                – ⚠️ DEAD CODE — vẫn có file nhưng DI đã comment, không flow nào gọi
 ```
 
 **Interfaces** (`Mobile/Services/`):
-- `IStallService` – GetAllStallsAsync, GetFeaturedStallsAsync, GetStallByIdAsync, RefreshAsync
-- `ILanguageService` – GetActiveLanguagesAsync, RefreshAsync
+- `IStallService`, `ILanguageService`, `IVoiceService`, `IAudioGuideService`, `IAudioCacheService`, `ISyncService`, `ISyncBackgroundService`, `ILocationLogService`, `IGpsPollingService`, `IQrService`, `ILocalPreferenceService`, `IDeviceService`, `IDevicePreferenceApiService`, `ILocalStallRepository`.
+
+**DI Registration** (`MauiProgram.cs`):
+- **Singleton** cho tất cả services trên (ngoại trừ AuthService đã comment).
+- **Transient ViewModel**: MainViewModel, MapViewModel, LanguageViewModel, ScanViewModel, ProfileViewModel, StallListViewModel.
+- **Transient Page**: MapPage, LoadingPage, LanguagePage, StallPopup, ProfilePage. `ScanPage`, `MainPage`, `StallListPage` dùng `ServiceHelper.GetService<VM>()` trong ctor không tham số.
 
 **Mobile Local DB** (`Mobile/LocalDb/`): SQLite via `sqlite-net-pcl`. `LocalStall` schema, `LocalStallRepository` upsert batch.
 
@@ -257,6 +270,13 @@ AuthService                – ⚠️ KHÔNG SỬ DỤNG
 1. Đọc SQLite → hiển thị ngay
 2. Async: gọi `/api/geo/stalls?deviceId=X` → upsert SQLite → refresh UI
 3. Offline: dùng SQLite data đã có
+
+**Phân biệt Preference storage:**
+- `DeviceService` → lưu 1 key `device_id` (GUID) trong `Preferences`.
+- `LocalPreferenceService` → 8 key `pref_language_id / pref_language_code / pref_language_name / pref_language_display_name / pref_language_flag_code / pref_voice_id / pref_speech_rate / pref_auto_play` – snapshot DevicePreferenceDetailDto.
+- `QrService` → `qr_verified`, `qr_expiry`.
+- `LanguageHelper` → `app_selected_language`, `app_selected_voice` (⚠️ trùng với `LocalPreferenceService`, nên hợp nhất).
+- **Không dùng `SecureStorage`** ở đâu.
 
 ---
 
@@ -267,11 +287,11 @@ AuthService                – ⚠️ KHÔNG SỬ DỤNG
 - Mobile dùng thẳng DTO từ Shared – không có Model layer riêng.
 
 ### Authentication
-- JWT Bearer (30 phút) + Refresh Token (30 ngày, hash SHA256 lưu DB).
+- JWT Bearer (`ClockSkew = Zero`) + Refresh Token 30 ngày (hash SHA256 lưu DB).
 - Password: `BCrypt.Net-Next`.
 - Roles: `Admin`, `BusinessOwner`. Mobile hoàn toàn anonymous.
-- Mobile dùng `DeviceId` (SecureStorage) không dùng user account.
-- **Login chấp nhận email hoặc username** – `AuthController` thử lookup theo username trước, nếu không có thì lookup theo email.
+- Mobile dùng `DeviceId` (Preferences, không phải SecureStorage) không dùng user account.
+- **Login chấp nhận email hoặc username** – `AuthController` dùng `NormalizedEmail == X || NormalizedUserName == X`.
 
 ### Authorization
 
@@ -284,22 +304,21 @@ AuthService                – ⚠️ KHÔNG SỬ DỤNG
 
 **Cách dùng trên action/controller:**
 ```csharp
-[Authorize(Policy = AppPolicies.AdminOnly)]           // chỉ Admin
-[Authorize(Policy = AppPolicies.AdminOrBusinessOwner)] // Admin hoặc BusinessOwner
-[AllowAnonymous]                                       // không cần token (Mobile endpoints)
+[Authorize(Policy = AppPolicies.AdminOnly)]
+[Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
+[AllowAnonymous]
 ```
 
-**Base class `AppControllerBase`** (`Api/Controllers/AppControllerBase.cs`) cung cấp helper methods cho tất cả controller kế thừa:
+**Base class `AppControllerBase`** cung cấp helpers cho mọi controller kế thừa:
 - `TryGetUserId(out Guid userId)` – lấy UserId từ JWT claim `NameIdentifier`
-- `IsAdmin()` – kiểm tra role Admin
-- `IsBusinessOwner()` – kiểm tra role BusinessOwner
-- `GetTimeZone()` – đọc header `X-TimeZoneId`, fallback về `SE Asia Standard Time`
-- `ConvertFromUtc(...)` – convert DateTimeOffset/DateTime từ UTC sang timezone client
+- `IsAdmin()`, `IsBusinessOwner()`
+- `GetTimeZone()` – đọc header `X-TimeZoneId`, fallback `SE Asia Standard Time`
+- `ConvertFromUtc(...)` – convert UTC → timezone client
 
-**Quy tắc phân quyền theo tầng dữ liệu (Business rule):**
-- `Admin` thấy và thao tác được tất cả dữ liệu.
-- `BusinessOwner` chỉ thao tác được dữ liệu thuộc business của mình — check bằng `business.OwnerUserId == userId` sau khi lấy entity kèm `.Include(s => s.Business)`.
-- `DevicePreferenceController` và `GeoController` phải giữ `[AllowAnonymous]` — Mobile gọi không có token.
+**Quy tắc phân quyền theo tầng dữ liệu:**
+- `Admin` thấy và thao tác tất cả dữ liệu.
+- `BusinessOwner` chỉ thao tác dữ liệu business của mình — check `business.OwnerUserId == userId` sau khi `.Include(s => s.Business)`.
+- `DevicePreferenceController`, `DeviceLocationLogController`, `GeoController.GetAllStalls`, `QrCodeController.VerifyQrCode` phải giữ `[AllowAnonymous]` — Mobile gọi không có token.
 
 ### Response format (API)
 ```json
@@ -309,20 +328,19 @@ AuthService                – ⚠️ KHÔNG SỬ DỤNG
 Luôn wrap trong `ApiResult<T>`. List dùng `PagedResult<T>`.
 
 ### Mobile MVVM
-- ViewModels kế thừa `ObservableObject` (CommunityToolkit.Maui).
+- ViewModels kế thừa `ObservableObject` (CommunityToolkit.Mvvm).
 - Commands dùng `[RelayCommand]` attribute.
-- DI qua `MauiProgram.cs`: Singleton cho services, Transient cho ViewModels/Pages.
+- DI qua `MauiProgram.cs`: **Singleton** cho services, **Transient** cho ViewModels/Pages.
 - HttpClient timeout: **10 giây**.
 
 ### Database
 - EF Core 10.0 Fluent API, cấu hình trong `Api/Infrastructure/Persistence/Configurations/`.
-- Nếu `ConnectionString` rỗng → dùng InMemory (dev/test).
+- `Program.cs` CHỈ đăng ký SQL Server nếu có connection string — **không tự fallback InMemory**. Nếu thiếu connection string → runtime lỗi.
 - **Không dùng SQL Server GEOGRAPHY** – tính khoảng cách bằng Haversine C#.
 
 ### API Query Extensions (`Api/Infrastructure/Persistence/Extensions/`)
 
-Thay vì viết query dài lặp đi lặp lại, dùng extension methods trên `IQueryable<TEntity>`.  
-**Quy tắc:** Khi cần query lặp lại trên một entity → thêm method vào file extension tương ứng, không inline trong controller/service.
+Khi cần query lặp lại trên một entity → thêm method vào file extension tương ứng, không inline trong controller/service.
 
 | File | Entity | Methods |
 |------|--------|---------|
@@ -338,7 +356,7 @@ Thay vì viết query dài lặp đi lặp lại, dùng extension methods trên 
 - `IsActiveByIdAsync` – trả `bool`, check tồn tại + `IsActive = true`
 - `*ExistsAsync` – trả `bool`, kiểm tra unique field
 
-**Lưu ý quan trọng:** Extension không chain được `.Include()`. Nếu query cần `.Include()` để load navigation property thì **giữ nguyên query inline**, không ép dùng extension.
+**Lưu ý:** Extension không chain được `.Include()`. Query cần `.Include()` thì giữ nguyên inline.
 
 ### API Pagination
 - Query params: `page` (default 1), `pageSize` (default 10, max 100).
@@ -359,20 +377,32 @@ Thay vì viết query dài lặp đi lặp lại, dùng extension methods trên 
 
 ## Key NuGet Packages
 
-**API:** `BCrypt.Net-Next 4.1.0`, `Azure.Storage.Blobs 12.25.0`, `Microsoft.CognitiveServices.Speech 1.48.2`, `Microsoft.EntityFrameworkCore 10.0.5`, `Swashbuckle.AspNetCore 10.1.5`, `QRCoder 1.6.0`
+**API** (`Api.csproj`, .NET 10.0):
+- `BCrypt.Net-Next 4.1.0`, `Azure.Storage.Blobs 12.25.0`
+- `Microsoft.AspNetCore.Authentication.JwtBearer 10.0.2`, `Microsoft.AspNetCore.OpenApi 10.0.2`
+- `Microsoft.CognitiveServices.Speech 1.48.2`
+- `Microsoft.EntityFrameworkCore 10.0.5` (+ Design / InMemory / SqlServer)
+- `QRCoder 1.6.0`, `Swashbuckle.AspNetCore.SwaggerUI 10.1.5`, `System.IdentityModel.Tokens.Jwt 8.15.0`
 
-**Mobile:** `Mapsui.Maui 5.0.2`, `Plugin.Maui.Audio 4.0.0`, `ZXing.Net.Maui 0.7.4`, `sqlite-net-pcl 1.9.172`, `CommunityToolkit.Maui 14.0.1`, `SkiaSharp.Views.Maui.Controls 3.119.2`
+**Mobile** (`Mobile.csproj`):
+- `CommunityToolkit.Maui 14.0.1`, `Microsoft.Maui.Controls 10.0.51`
+- `Mapsui.Maui 5.0.2`, `SkiaSharp.Views.Maui.Controls 3.119.2`
+- `Plugin.Maui.Audio 4.0.0`, `ZXing.Net.Maui 0.7.4` + `ZXing.Net.Maui.Controls 0.7.4`
+- `sqlite-net-pcl 1.9.172`, `SQLitePCLRaw.bundle_green 2.1.10`
+- `Microsoft.Extensions.Http 10.0.5`, `Microsoft.Extensions.Logging.Debug 10.0.5`
 
-**Web:** `Microsoft.Extensions.Http` (HttpClientFactory)
+**Web** (`Web.csproj`):
+- `Microsoft.VisualStudio.Web.CodeGeneration.Design 10.0.2`
+- `NuGet.Packaging 7.3.1`, `NuGet.Protocol 7.3.1`
+- `IHttpClientFactory` lấy từ `Microsoft.NET.Sdk.Web` meta-package.
 
-**Web Frontend Stack:**
-- **Tabler** (CDN) – Admin UI kit dựa trên Bootstrap 5, dùng **default theme**
+**Web Frontend Stack** (qua CDN trong `_Layout.cshtml`):
+- **Tabler 1.0.0-beta20** – Admin UI kit dựa trên Bootstrap 5 (CDN jsdelivr)
 - **Bootstrap 5** (bundled trong Tabler)
-- **Bootstrap Icons** (`bi-*`) – icon set cho các view cũ
-- **Tabler Icons** (`ti-*`) – icon set ưu tiên cho các view mới
-- **jQuery** – JavaScript utility, form validation
-- **jQuery Validation + Unobtrusive** – client-side validation cho Razor forms
-- Customize qua CSS variables trong `wwwroot/css/site.css` (nếu cần override màu)
+- **Tabler Icons 3.19.0** webfont (`ti ti-*`) – icon ưu tiên cho view mới
+- **Bootstrap Icons 1.11.1** (`bi bi-*`) – icon cho view cũ
+- **AOS 2.3.4** – Animate On Scroll
+- **jQuery + Validation + Unobtrusive** – local qua LibMan (`~/lib/`)
 
 **Lưu ý badge trong dark sidebar:** Luôn thêm `text-white` khi dùng badge trong sidebar (`data-bs-theme="dark"`) để tránh text bị ẩn.
 
@@ -384,8 +414,11 @@ Thay vì viết query dài lặp đi lặp lại, dùng extension methods trên 
 |-|-----|
 | API (dev) | `http://localhost:5299` |
 | Web (dev) | `https://localhost:7188` |
-| Swagger | `http://localhost:5299/swagger` (Development only) |
+| API (prod mặc định trong `appsettings.json`) | `https://locateandmultilingualnarration-amgrfua6fbd7gnce.eastasia-01.azurewebsites.net/` |
+| Swagger | `http://localhost:5299/swagger` (Development) |
 | Android emulator → API | `http://10.0.2.2:5299` |
+
+`Mobile/DevConfig.cs` hiện đặt `http://10.0.2.2:5299` (Android emulator). Khi deploy hoặc chạy trên thiết bị thật, đổi sang IP laptop hoặc URL production.
 
 **Timezone mặc định:** SE Asia Standard Time (UTC+7).
 
@@ -393,26 +426,63 @@ Thay vì viết query dài lặp đi lặp lại, dùng extension methods trên 
 
 ## Những gì CHƯA làm (Backlog)
 
-- Background GPS polling liên tục (geofence auto-trigger)
+- Background GPS polling khi app inactive (GpsPollingService hiện chỉ chạy khi MapPage active)
 - Bookmark gian hàng yêu thích
 - Xem menu/thực đơn gian hàng
-- Dashboard thống kê (VisitorLocationLog đã có, cần aggregate)
+- Dashboard thống kê thực (DeviceLocationLog đã có, cần aggregate)
 - Audit log
 - Role Collaborator
-- Dashboard thống kê Web Admin (hiện chỉ có stats card tĩnh)
-- Scheduler tự động áp dụng plan khi plan cũ hết hạn (hiện tại dùng effective plan logic đọc tại runtime)
+- Scheduler tự động áp dụng plan khi plan cũ hết hạn (hiện dùng effective plan logic tại runtime)
+- CRUD admin cho TTS voice profiles (mới chỉ có `GET active`)
+- CRUD admin cho Language (seed fix-cứng)
+
+---
+
+## Vấn đề Kỹ thuật Đã Biết (Technical Debt / Known Issues)
+
+### Bảo mật / nghiêm trọng
+- **`StallsController` (`/api/stalls`) là endpoint `AllowAnonymous` trùng chức năng GeoController**, trả `StallMapDto` không wrap `ApiResult`, không kiểm QR. Nên xoá sau khi verify Mobile không gọi.
+- **Azure Blob container được set `PublicAccessType.Blob`** trong `NarrationAudioService` và `NarrationAudioController` — file audio public với mọi người có URL. Cân nhắc chuyển sang `None` + SAS URL (cần refactor Mobile audio player để chấp nhận SAS token).
+
+### Race condition
+- **`TtsBackgroundService` claim job không nguyên tử** (SELECT rồi UPDATE riêng) — nếu chạy nhiều instance API sẽ xử lý job trùng, upload Blob trùng. Nên dùng `ExecuteUpdateAsync` với WHERE Status='Pending' để atomic.
+- **`QrCodeController.VerifyQrCode` set `IsUsed=true` không atomic** — 2 thiết bị scan cùng lúc đều nhận `isValid=true`. Dùng `ExecuteUpdateAsync` với WHERE `IsUsed=0`.
+- **Mobile `SyncService.IsSyncing` là bool non-volatile** và `FlushAsync` không có lock — 2 tick (ConnectivityChanged + Timer) có thể fire song song gây duplicate POST.
+- **`MapViewModel` subscribe event Singleton nhưng không unsubscribe** → memory leak và audio duplicate khi điều hướng lại. Cần Implement `IDisposable` + gỡ event trong `OnDisappearing`.
+- **`SyncService.LastUpdated` luôn set = `DateTimeOffset.UtcNow` cho stall mới** → `LocalStallRepository.HasChanged` luôn trả true → ghi toàn bộ SQLite mỗi 3 phút. Cần dùng timestamp thật từ API hoặc bỏ so sánh.
+
+### Flow / UX
+- **`Web/Views/StallLocation/StallLocationMap.cshtml`** gọi API trực tiếp từ JS và cố đọc JWT từ `localStorage` — mà Web lưu JWT trong **Session server-side**. Flow create/update location trên bản đồ KHÔNG chạy được. Sửa: submit qua Controller Action hoặc proxy endpoint.
+- **`AdminController`** chưa có `[Authorize]` attribute — chỉ dựa vào `TokenExpirationFilter`; nên bổ sung policy-level để defense-in-depth.
+- **`LanguageHelper` (Mobile) và `LocalPreferenceService` trùng key** cho language/voice — nguy cơ out-of-sync.
+
+### Dead / Duplicate code
+- `Api/Controllers/StallsController.cs` – duplicate của `GeoController`
+- `Api/Controllers/DevicePreferenceController.cs` có 2 action `Save` và `Upsert` trùng chức năng
+- `Mobile/Services/AuthService.cs` – vẫn còn file, DI đã comment
+- `Api/Domain/Entities/ScanLog.cs` – có migration, không controller nào dùng
+
+### Đã fix (commit gần đây)
+- ✅ `UserDetailDto` lộ `PasswordHash`/`SecurityStamp`/`ConcurrencyStamp` — xoá khỏi DTO và mapping trong `UserController`
+- ✅ `Mobile/DevConfig.cs` hardcode URL production → đổi về `http://10.0.2.2:5299`
+- ✅ `StallLocationController` fallback `ApiBaseUrl` trỏ sai → đổi về `http://localhost:5299/`
+- ✅ `QrService.IsAccessValid()` dùng `DateTimeOffset.TryParse` + `RoundtripKind` thay cho `DateTime.TryParse`
+- ✅ `StallListViewModel` đăng ký Transient trong `MauiProgram.cs`
+- ✅ `GpsPollingService` xoá `.ContinueWith(_ => { })` nuốt cancellation
+- ✅ `AudioGuideService.Pause/Resume/Stop` thêm `_playerLock` + tách `StopInternal` để tránh race với `PlayAsync`
+- ✅ `AdminController.StartAutoQr` thêm `[ValidateAntiForgeryToken]` + view gửi header `RequestVerificationToken`
+- ✅ `ZXing.Net.Maui` gỡ khỏi `Api.csproj` và `Web.csproj` (chỉ còn Mobile)
 
 ---
 
 ## Cảnh báo Quan Trọng
 
-- `AuthService` **có trong code nhưng KHÔNG thuộc flow chính**. Khách không cần đăng nhập. Không thêm logic login vào Mobile trừ khi được yêu cầu rõ ràng.
+- `AuthService` (Mobile) **dead code** – khách không đăng nhập. Không thêm logic login vào Mobile trừ khi được yêu cầu rõ ràng.
 - Khi thêm entity mới → phải thêm migration EF Core và cập nhật `AppDbContext`.
-- Khi thêm DTO mới → thêm vào project `Shared`, không tạo DTO riêng trong từng project.
-- `GeoController` endpoints phải giữ `[AllowAnonymous]` – Mobile gọi không có token.
-- `DevicePreferenceController` phải giữ `[AllowAnonymous]`.
-- `QrCodeController.VerifyQrCode` (`POST /api/qrcodes/verify`) phải giữ `[AllowAnonymous]` — Mobile gọi trước khi vào app.
-- **QR là vé vào app**: Admin tạo mã QR với `ValidDays` (số ngày hiệu lực). Khách quét → API tính `expiryAt = UsedAt + ValidDays` → Mobile lưu qua `IQrService.SaveAccess(expiryAt)` → `LoadingPage` check `IsAccessValid()` mỗi lần mở app. QR là one-time use (`IsUsed=true` sau lần quét đầu).
-- **AutoQr kiosk**: `GET /Admin/AutoQr` + actions `StartAutoQr` (POST) và `PollAutoQr` (GET) trong AdminController. JS poll mỗi 2 giây, khi phát hiện QR đã dùng tự tạo mã mới.
-- **Subscription downgrade bị chặn hoàn toàn tại API**: không thể đăng ký plan thấp hơn khi plan hiện tại còn hạn. Checkout view cũng disable nút submit phía client khi phát hiện tình huống này.
-- **Mock payment**: Số thẻ sau khi strip spaces phải đúng 16 chữ số → `Completed`. Ít hơn/nhiều hơn → `Failed`. Đây là demo, không có gateway thật.
+- Khi thêm DTO mới → đặt trong project `Shared`, không tạo DTO riêng trong từng project.
+- `GeoController.GetAllStalls`, `DevicePreferenceController`, `DeviceLocationLogController`, `QrCodeController.VerifyQrCode` phải giữ `[AllowAnonymous]` – Mobile gọi không có token.
+- **QR là vé vào app**: Admin tạo mã với `ValidDays`. Khách quét → API tính `AccessExpiresAt = UsedAt + ValidDays` → Mobile lưu qua `IQrService.SaveAccess(expiryAt)` → `LoadingPage` check `IsAccessValid()` mỗi lần mở app. QR là **one-time use** (`IsUsed=true` sau lần quét đầu).
+- **AutoQr kiosk**: `GET /Admin/AutoQr` + `StartAutoQr` (POST) + `PollAutoQr` (GET). JS poll mỗi 2s, khi phát hiện QR đã dùng tự tạo mã mới.
+- **Subscription downgrade bị chặn tại API**: không đăng ký được plan thấp hơn khi plan hiện tại còn hạn. Checkout view cũng disable nút submit client-side.
+- **Mock payment**: số thẻ strip spaces = 16 chữ số → `Completed`, khác → `Failed`. Demo only.
+- **Web không lưu JWT vào `localStorage`** — lưu trong ASP.NET Session server-side. JS trong view không cần (và không được) gửi `Authorization` header trực tiếp.
