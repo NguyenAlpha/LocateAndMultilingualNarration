@@ -42,14 +42,14 @@ public static class MauiProgram
 
         builder.Services.AddHttpClient(string.Empty, client =>
         {
-            client.BaseAddress = new Uri("http://10.0.2.2:5299");
+            client.BaseAddress = new Uri(DevConfig.ApiBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 
         // Cấu hình named HttpClient mà các service đang sử dụng (ApiHttp)
         builder.Services.AddHttpClient("ApiHttp", client =>
         {
-            client.BaseAddress = new Uri("http://10.0.2.2:5299");
+            client.BaseAddress = new Uri(DevConfig.ApiBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 

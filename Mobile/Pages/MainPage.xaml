@@ -45,19 +45,7 @@
                            LineBreakMode="WordWrap"/>
                 </VerticalStackLayout>
 
-                <!-- Nút Khám phá gần tôi (gọn hơn) -->
-                <Button Text="Khám phá gần tôi" 
-                        BackgroundColor="White"
-                        TextColor="#4F46E5"
-                        CornerRadius="30"
-                        FontAttributes="Bold"
-                        HeightRequest="52"
-                        FontSize="16.5"
-                        Command="{Binding ExploreNearMeCommand}">
-                    <Button.Shadow>
-                        <Shadow Brush="Black" Offset="0,5" Radius="10" Opacity="0.12"/>
-                    </Button.Shadow>
-                </Button>
+
             </VerticalStackLayout>
         </Grid>
 
@@ -148,15 +136,13 @@
         </ScrollView>
 
         <!-- ==================== BOTTOM NAVIGATION BAR ==================== -->
-        <Grid Grid.Row="2" 
-              BackgroundColor="White" 
+        <Grid Grid.Row="2"
+              BackgroundColor="White"
               HeightRequest="76"
               Padding="8,8,8,12"
               ColumnSpacing="0">
 
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
@@ -189,51 +175,6 @@
                     </ImageButton>
                 </Frame>
                 <Label Text="Ngôn ngữ" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
-            </VerticalStackLayout>
-
-            <!-- Âm thanh 
-            <VerticalStackLayout Grid.Column="2" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
-                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
-                    </Frame.Shadow>
-                    <ImageButton BackgroundColor="Transparent" Command="{Binding AudioCommand}">
-                        <ImageButton.Source>
-                            <FontImageSource Glyph="🔊" Color="#F59E0B" Size="28"/>
-                        </ImageButton.Source>
-                    </ImageButton>
-                </Frame>
-                <Label Text="Âm thanh" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
-            </VerticalStackLayout> -->
-
-            <!-- Gian hàng (đổi từ Âm thanh) -->
-            <VerticalStackLayout Grid.Column="2" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
-                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
-                    </Frame.Shadow>
-                    <ImageButton BackgroundColor="Transparent" Command="{Binding StallListCommand}">
-                        <ImageButton.Source>
-                            <FontImageSource Glyph="🏪" Color="#F59E0B" Size="28"/>
-                        </ImageButton.Source>
-                    </ImageButton>
-                </Frame>
-                <Label Text="Gian hàng" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
-            </VerticalStackLayout>
-
-            <!-- Hồ sơ -->
-            <VerticalStackLayout Grid.Column="3" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
-                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
-                    </Frame.Shadow>
-                    <ImageButton BackgroundColor="Transparent" Command="{Binding ProfileCommand}">
-                        <ImageButton.Source>
-                            <FontImageSource Glyph="👤" Color="#8B5CF6" Size="28"/>
-                        </ImageButton.Source>
-                    </ImageButton>
-                </Frame>
-                <Label Text="Hồ sơ" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
             </VerticalStackLayout>
         </Grid>
     </Grid>
