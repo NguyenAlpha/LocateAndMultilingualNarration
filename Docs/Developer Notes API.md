@@ -12,6 +12,7 @@ Tài liệu giải thích luồng hoạt động và các quyết định kỹ t
 - [SD-A04: Xác thực Mã QR (Mobile)](#sd-a04-xác-thực-mã-qr-mobile)
 - [SD-A05: Thanh toán & Kích hoạt Plan](#sd-a05-thanh-toán--kích-hoạt-plan)
 - [SD-A06: Lấy danh sách Gian hàng (Geo)](#sd-a06-lấy-danh-sách-gian-hàng-geo)
+- [SD-A07: Heartbeat Thiết bị & Lấy Thiết bị Đang Hoạt Động](#sd-a07-heartbeat-thiết-bị--lấy-thiết-bị-đang-hoạt-động)
 
 ---
 
@@ -80,3 +81,17 @@ Endpoint `GET /api/geo/stalls` cũng `[AllowAnonymous]` — Mobile gọi không 
 **Chọn audio:** Với mỗi stall, `PickAudioUrl` chọn audio theo thứ tự ưu tiên: khớp `VoiceId` của thiết bị → audio do TTS sinh (`IsTts = true`) → bất kỳ audio có URL. Mỗi stall chỉ trả về một `AudioUrl` duy nhất phù hợp nhất với thiết bị đó.
 
 Mobile nhận danh sách, upsert vào SQLite local để dùng offline, rồi hiển thị marker trên bản đồ.
+
+---
+
+## SD-A07: Heartbeat Thiết bị & Lấy Thiết bị Đang Hoạt Động
+
+Tính năng này gồm hai phần ghép lại — một phần chạy ngầm mỗi khi Mobile gọi API (heartbeat), một phần là endpoint Admin dùng để thống kê.
+
+**Heartbeat (Phần A):** `GeoController.GetAllStalls` được Mobile gọi định kỳ mỗi 3 phút qua `SyncBackgroundService`. Thay vì tạo endpoint ping riêng, heartbeat được tích hợp ngay vào luồng này: sau khi `GeoService` trả về kết quả, controller gọi `ExecuteUpdateAsync` để set `LastSeenAt = now` cho `DevicePreference` có `DeviceId` tương ứng. Đây là một câu `UPDATE` trực tiếp không load entity — nếu thiết bị chưa có bản ghi `DevicePreference` thì lệnh update không làm gì (không tạo mới). Overhead gần như không đáng kể so với query stalls đã có.
+
+**Tại sao dùng `LastSeenAt` trong `DevicePreference` thay vì bảng riêng?** `DevicePreference` đã tồn tại với trường `LastSeenAt` có nghĩa là "lần cuối thiết bị này liên hệ hệ thống". Tái sử dụng trường này tránh tạo bảng mới chỉ để lưu timestamp — đơn giản, không tốn thêm storage, không cần migration.
+
+**Lấy thiết bị active (Phần B):** Endpoint `GET /api/geo/active-devices?withinMinutes=N` chỉ dành cho Admin (`[Authorize(Policy = AdminOnly)]`). Controller tính `threshold = now − N phút` rồi query `DevicePreferences` theo `LastSeenAt >= threshold`. Kết quả trả về `ActiveDevicesSummaryDto` gồm `ActiveCount`, `WithinMinutes`, `AsOf` (thời điểm truy vấn), và mảng `Devices` với thông tin cơ bản của từng thiết bị. Tham số `withinMinutes` được clamp trong `[1, 60]` phía API.
+
+**Cửa sổ thời gian nên chọn bao nhiêu?** Vì `SyncBackgroundService` chạy mỗi 3 phút, cửa sổ mặc định 5 phút đủ để bắt thiết bị đang online ngay cả khi một chu kỳ sync bị trễ nhẹ. Cửa sổ ngắn hơn (1–2 phút) chỉ thích hợp để xem thiết bị "vừa mới" hoạt động.

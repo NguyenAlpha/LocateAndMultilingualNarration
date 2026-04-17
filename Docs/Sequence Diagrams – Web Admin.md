@@ -20,6 +20,7 @@
 | [SD-W16](#sd-w16-kiosk-tạo-qr-tự-động) | Kiosk Tạo QR Tự Động |
 | [SD-W17](#sd-w17-admin-cập-nhật-subscription-business) | Admin cập nhật Subscription Business |
 | [SD-W18](#sd-w18-lịch-sử-đơn-đăng-ký) | Lịch sử Đơn đăng ký |
+| [SD-W19](#sd-w19-theo-dõi-thiết-bị-online) | Theo dõi Thiết bị Online |
 
 ---
 
@@ -798,4 +799,50 @@ sequenceDiagram
     Note over CTR: Tính stats từ trang hiện tại:<br/>TotalRevenue (Completed), TotalCompleted, TotalFailed
     CTR-->>VIEW: Render bảng lịch sử + stats cards
     VIEW-->>ADMIN: Bảng đơn + filter Plan/Status + phân trang
+```
+
+---
+
+### SD-W19: Theo dõi Thiết bị Online
+
+```mermaid
+sequenceDiagram
+    actor ADMIN as Admin
+    participant VIEW as ActiveDevices View
+    participant JS as JavaScript (polling)
+    participant CTR as AdminController
+    participant SVC as DeviceApiClient
+    participant API as GET /api/geo/active-devices
+
+    %% Tải trang lần đầu
+    ADMIN->>VIEW: Truy cập /Admin/ActiveDevices?withinMinutes=5
+    VIEW->>CTR: GET /Admin/ActiveDevices?withinMinutes=5
+    CTR->>SVC: GetActiveDevicesAsync(withinMinutes=5)
+    SVC->>API: GET /api/geo/active-devices?withinMinutes=5
+    API-->>SVC: ApiResult<ActiveDevicesSummaryDto> {activeCount, devices[]}
+    SVC-->>CTR: ActiveDevicesSummaryDto
+    CTR-->>VIEW: Render ActiveDevices.cshtml (model=summary, ViewBag.WithinMinutes=5)
+    VIEW-->>ADMIN: Bảng thiết bị + stats cards + countdown bar
+
+    %% Vòng lặp tự động làm mới (mỗi 20 giây)
+    VIEW->>JS: Khởi động countdown + progress bar
+    loop Mỗi 20 giây
+        JS->>CTR: GET /Admin/ActiveDevicesData?withinMinutes={current}
+        CTR->>SVC: GetActiveDevicesAsync(withinMinutes)
+        SVC->>API: GET /api/geo/active-devices?withinMinutes=...
+        API-->>SVC: ActiveDevicesSummaryDto mới nhất
+        CTR-->>JS: JSON {success, data: {activeCount, devices[]}}
+        JS-->>VIEW: Cập nhật DOM (số đếm, bảng, timestamp)
+        JS->>JS: Reset countdown về 20s + reset progress bar
+    end
+
+    %% Admin thay đổi cửa sổ thời gian
+    ADMIN->>VIEW: Chọn dropdown "10 phút qua"
+    VIEW->>JS: change event → withinMinutes = 10
+    JS->>CTR: GET /Admin/ActiveDevicesData?withinMinutes=10
+    CTR->>SVC: GetActiveDevicesAsync(10)
+    SVC->>API: GET /api/geo/active-devices?withinMinutes=10
+    API-->>SVC: ActiveDevicesSummaryDto với cửa sổ 10 phút
+    CTR-->>JS: JSON response
+    JS-->>VIEW: Cập nhật toàn bộ UI + reset countdown
 ```

@@ -1,9 +1,5 @@
 # CLAUDE.md – Project Context
 
-Đây là file hướng dẫn cho Claude Code. Đọc file này trước khi làm bất kỳ task nào.
-
----
-
 ## Project Overview
 
 **Tên:** Hệ thống Thuyết minh Tự động Đa ngôn ngữ – Phố Ẩm Thực  
@@ -62,13 +58,6 @@ Web (MVC)      ──HTTP──▶  API (ASP.NET Core)  ──Azure SDK──▶
 | StallNarrationContentController | `/api/stall-narration-content` | [Authorize] |
 | NarrationAudioController | `/api/narration-audio` | [Authorize] |
 | SubscriptionOrderController | `/api/subscription-orders` | [Authorize] |
-| VisitorPreferenceController | `/api/visitor-preference` | [Authorize] |
-| VisitorLocationLogController | `/api/visitor-location-log` | [Authorize] |
-
-```
-VisitorLocationLogController và VisitorPreferenceController hiện tại không dùng vì user không cần đăng nhập
-và sẽ có 1 bảng mới để lưu lịch sử di chuyển của user để phục vụ thống kê trên web.
-```
 
 **Application Services** (`Api/Application/Services/`):
 - `JwtService` – sinh JWT, hash refresh token (SHA256)
@@ -80,32 +69,10 @@ và sẽ có 1 bảng mới để lưu lịch sử di chuyển của user để 
 ### API – Entities (20 entities, `Api/Domain/Entities/`)
 
 ```
-User, Role, UserRole, RefreshToken
-Business, BusinessOwnerProfile, EmployeeProfile
-Stall, StallLocation, StallGeoFence, StallMedia
-Language, TtsVoiceProfile, StallNarrationContent, NarrationAudio
-DevicePreference
-SubscriptionOrder
-QrCode                                                 ← vé vào app cho Mobile
-VisitorProfile, VisitorPreference, VisitorLocationLog  ← dự định xóa
+User, Role, UserRole, RefreshToken, Business, BusinessOwnerProfile, EmployeeProfile
+Stall, StallLocation, StallGeoFence, StallMedia, Language, TtsVoiceProfile, StallNarrationContent, NarrationAudio
+DevicePreference, SubscriptionOrder, QrCode
 ```
-
-**StallNarrationContent** có thêm 2 fields TTS tracking:
-- `TtsStatus` (string) – trạng thái job: `None` / `Pending` / `Processing` / `Completed` / `Failed`
-- `TtsError` (string?) – thông báo lỗi nếu `TtsStatus = "Failed"`
-
-**TtsJobStatus** (`Api/Domain/Entities/TtsJobStatus.cs`) – static class hằng số:
-```csharp
-TtsJobStatus.None       // không cần TTS (Free plan)
-TtsJobStatus.Pending    // đã queue, chưa xử lý
-TtsJobStatus.Processing // đang xử lý
-TtsJobStatus.Completed  // hoàn thành
-TtsJobStatus.Failed     // thất bại
-```
-
-**Business entity** có thêm 2 fields subscription:
-- `Plan` (string, default `"Free"`) – gói hiện tại của business
-- `PlanExpiresAt` (DateTimeOffset?) – thời điểm plan hết hạn; `null` nếu Free
 
 ### API – Subscription System (`Api/Domain/SubscriptionPlan.cs`)
 

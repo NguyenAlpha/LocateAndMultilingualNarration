@@ -8,6 +8,7 @@
 | [SD-A04](#sd-a04-xác-thực-mã-qr-mobile) | Xác thực Mã QR (Mobile) |
 | [SD-A05](#sd-a05-thanh-toán--kích-hoạt-plan) | Thanh toán & Kích hoạt Plan |
 | [SD-A06](#sd-a06-lấy-danh-sách-gian-hàng-geo) | Lấy danh sách Gian hàng (Geo) |
+| [SD-A07](#sd-a07-heartbeat-thiết-bị--lấy-thiết-bị-đang-hoạt-động) | Heartbeat Thiết bị & Lấy Thiết bị Đang Hoạt Động |
 
 ---
 
@@ -252,4 +253,45 @@ sequenceDiagram
 
     Note over MOBILE: Upsert vào SQLite local
     Note over MOBILE: Hiển thị marker trên bản đồ
+```
+
+---
+
+### SD-A07: Heartbeat Thiết bị & Lấy Thiết bị Đang Hoạt Động
+
+```mermaid
+sequenceDiagram
+    participant MOBILE as Mobile App
+    participant ADMIN as Web Admin
+    participant CTR as GeoController
+    participant SVC as GeoService
+    participant DB as Database
+
+    %% ── Phần A: Heartbeat (xảy ra mỗi khi Mobile gọi geo/stalls) ──
+    Note over MOBILE,DB: Phần A — Heartbeat (piggyback trên GetAllStalls)
+
+    MOBILE->>CTR: GET /api/geo/stalls?deviceId=ABC123
+    CTR->>SVC: GetAllStallsAsync(deviceId)
+    SVC->>DB: Resolve ngôn ngữ + query stalls (như SD-A06)
+    DB-->>SVC: Danh sách StallLocation
+    SVC-->>CTR: List<GeoStallDto>
+
+    Note over CTR: Heartbeat: cập nhật LastSeenAt cho thiết bị
+    CTR->>DB: ExecuteUpdateAsync<br/>WHERE DeviceId = "ABC123"<br/>SET LastSeenAt = now
+    Note over DB: Direct SQL UPDATE — không load entity,<br/>chỉ cập nhật nếu DevicePreference tồn tại
+
+    CTR-->>MOBILE: 200 ApiResult<List<GeoStallDto>>
+
+    %% ── Phần B: Admin lấy danh sách thiết bị đang hoạt động ──
+    Note over ADMIN,DB: Phần B — Admin query thiết bị active
+
+    ADMIN->>CTR: GET /api/geo/active-devices?withinMinutes=5
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+
+    CTR->>CTR: threshold = now − 5 phút
+    CTR->>DB: SELECT DeviceId, Platform, DeviceModel, Manufacturer, LastSeenAt<br/>FROM DevicePreferences<br/>WHERE LastSeenAt >= threshold<br/>ORDER BY LastSeenAt DESC
+
+    DB-->>CTR: Danh sách DevicePreference active
+
+    CTR-->>ADMIN: 200 ApiResult<ActiveDevicesSummaryDto><br/>{activeCount, withinMinutes, asOf, devices[]}
 ```
