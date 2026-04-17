@@ -115,6 +115,7 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddTransient<StallListViewModel>(builder.Services);
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng

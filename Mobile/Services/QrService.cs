@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -131,19 +132,21 @@ public class QrService : IQrService
             return false;
         }
 
-        // Parse thời hạn — nếu lỗi parse (data bị corrupt) thì coi như hết hạn để an toàn.
+        // Parse thời hạn — dùng DateTimeOffset để loại bỏ ambiguity về timezone/Kind.
+        // "O" format lưu ở SaveAccess giữ offset chính xác; DateTime.TryParse sẽ sai ở device non-UTC.
         var raw = Preferences.Get(ExpiryKey, string.Empty);
-        if (!DateTime.TryParse(raw, out var expiry))
+        if (!DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var expiry))
         {
             _logger.LogWarning("[QrService] Không parse được ExpiryAt='{Raw}' → coi như hết hạn.", raw);
             return false;
         }
 
-        var valid = expiry > DateTime.UtcNow;
+        var now = DateTimeOffset.UtcNow;
+        var valid = expiry > now;
         if (valid)
             _logger.LogInformation("[QrService] Quyền truy cập còn hiệu lực. ExpiryAt={ExpiryAt:O}", expiry);
         else
-            _logger.LogInformation("[QrService] QR đã hết hạn. ExpiryAt={ExpiryAt:O}, Now={Now:O}", expiry, DateTime.UtcNow);
+            _logger.LogInformation("[QrService] QR đã hết hạn. ExpiryAt={ExpiryAt:O}, Now={Now:O}", expiry, now);
 
         return valid;
     }

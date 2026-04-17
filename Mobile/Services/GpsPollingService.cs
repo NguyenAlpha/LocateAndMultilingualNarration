@@ -76,7 +76,14 @@ public class GpsPollingService : IGpsPollingService
                 _logger.LogWarning("[GPS] Tick #{Tick} lỗi: {Message}", tickCount, ex.Message);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1), ct).ContinueWith(_ => { });
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
 
         _logger.LogInformation("[GPS] Dừng sau {Tick} tick", tickCount);
