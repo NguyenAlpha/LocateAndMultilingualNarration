@@ -27,8 +27,7 @@ namespace Shared.DTOs.Users
         public bool IsActive { get; set; }
         public IEnumerable<string> Roles { get; set; } = new List<string>();
         public BusinessOwnerProfileDto? BusinessOwnerProfile { get; set; }
-        public VisitorProfileDto? VisitorProfile { get; set; }
-        public EmployeeProfileDto? EmployeeProfile { get; set; }
+public EmployeeProfileDto? EmployeeProfile { get; set; }
     }
 
     public class BusinessOwnerProfileDto

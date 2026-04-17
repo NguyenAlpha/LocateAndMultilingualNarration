@@ -28,13 +28,10 @@
 
         // Navigation
         public BusinessOwnerProfile? BusinessOwnerProfile { get; set; }
-        public VisitorProfile? VisitorProfile { get; set; }
-        public VisitorPreference? VisitorPreference { get; set; }
         public EmployeeProfile? EmployeeProfile { get; set; }
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public ICollection<Business> Businesses { get; set; } = new List<Business>();
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
-        public ICollection<VisitorLocationLog> VisitorLocationLogs { get; set; } = new List<VisitorLocationLog>();
 
     }
 }

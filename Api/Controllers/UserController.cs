@@ -269,7 +269,6 @@ namespace Api.Controllers
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.BusinessOwnerProfile)
-                .Include(u => u.VisitorProfile)
                 .Include(u => u.EmployeeProfile)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
@@ -320,13 +319,6 @@ namespace Api.Controllers
                     OwnerName = user.BusinessOwnerProfile.OwnerName,
                     ContactInfo = user.BusinessOwnerProfile.ContactInfo,
                     CreatedAt = ConvertFromUtc(user.BusinessOwnerProfile.CreatedAt, timeZone)
-                },
-                VisitorProfile = user.VisitorProfile == null ? null : new VisitorProfileDto
-                {
-                    Id = user.VisitorProfile.Id,
-                    UserId = user.VisitorProfile.UserId,
-                    LanguageId = user.VisitorProfile.LanguageId,
-                    CreatedAt = ConvertFromUtc(user.VisitorProfile.CreatedAt, timeZone)
                 },
                 EmployeeProfile = user.EmployeeProfile == null ? null : new EmployeeProfileDto
                 {

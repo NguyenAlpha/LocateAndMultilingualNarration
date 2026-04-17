@@ -61,11 +61,6 @@ namespace Api.Infrastructure.Persistence.Configurations
              .HasForeignKey<BusinessOwnerProfile>(p => p.UserId)
              .OnDelete(DeleteBehavior.Cascade);
 
-            b.HasOne(x => x.VisitorProfile)
-             .WithOne(p => p.User)
-             .HasForeignKey<VisitorProfile>(p => p.UserId)
-             .OnDelete(DeleteBehavior.Cascade);
-
             b.HasOne(x => x.EmployeeProfile)
              .WithOne(p => p.User)
              .HasForeignKey<EmployeeProfile>(p => p.UserId)
