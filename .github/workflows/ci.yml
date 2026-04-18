@@ -44,6 +44,10 @@ jobs:
         run: dotnet ef migrations has-pending-model-changes --project Api/Api.csproj
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__default: "Server=localhost;Database=ci;User Id=sa;Password=ci;"
+          Jwt__Key: "ci-placeholder-key-must-be-at-least-32-chars"
+          Jwt__Issuer: "ci"
+          Jwt__Audience: "ci"
 
       - name: Build Web
         run: dotnet build Web/Web.csproj --no-restore --configuration Release
