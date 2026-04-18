@@ -14,7 +14,7 @@ namespace Mobile.ViewModels;
 ///   - Xử lý sự kiện chọn gian hàng và thông báo cho View di chuyển bản đồ
 ///   - Điều khiển phát/tạm dừng/dừng audio thuyết minh
 /// </summary>
-public class MapViewModel : INotifyPropertyChanged
+public class MapViewModel : INotifyPropertyChanged, IDisposable
 {
     // Service lấy dữ liệu gian hàng từ API
     private readonly IStallService _stallService;
@@ -359,6 +359,12 @@ public class MapViewModel : INotifyPropertyChanged
     /// Kích hoạt sự kiện PropertyChanged để thông báo cho UI cập nhật property tương ứng.
     /// [CallerMemberName] tự động điền tên property đang gọi, không cần truyền thủ công.
     /// </summary>
+    public void Dispose()
+    {
+        _audioGuideService.PlaybackCompleted -= OnPlaybackCompleted;
+        _gpsPollingService.LocationUpdated -= OnLocationUpdated;
+    }
+
     void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

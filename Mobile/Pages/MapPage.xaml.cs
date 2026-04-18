@@ -190,6 +190,7 @@ public partial class MapPage : ContentPage
         try
         {
             _viewModel.StopPolling();
+            _viewModel.Dispose();
         }
         catch (Exception ex)
         {
