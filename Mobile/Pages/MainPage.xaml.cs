@@ -1,5 +1,4 @@
-﻿using Mobile.Helpers;
-using Mobile.ViewModels;
+﻿using Mobile.ViewModels;
 
 namespace Mobile
 {
@@ -7,10 +6,10 @@ namespace Mobile
     {
         private readonly MainViewModel _viewModel;
 
-        public MainPage()
+        public MainPage(MainViewModel viewModel)
         {
             InitializeComponent();
-            _viewModel = ServiceHelper.GetService<MainViewModel>();
+            _viewModel = viewModel;
             BindingContext = _viewModel;
         }
 

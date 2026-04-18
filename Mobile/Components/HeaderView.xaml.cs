@@ -1,4 +1,4 @@
-﻿using Mobile.Helpers;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Mobile.Services;
 
 namespace Mobile.Components;
@@ -37,7 +37,7 @@ public partial class HeaderView : Grid
 #if DEBUG
     private async void OnDebugResetDeviceId(object? sender, EventArgs e)
     {
-        var deviceService = ServiceHelper.GetService<IDeviceService>();
+        var deviceService = Handler?.MauiContext?.Services.GetRequiredService<IDeviceService>();
         deviceService.ResetDeviceId();
         var newId = deviceService.GetOrCreateDeviceId();
         await Application.Current!.Windows[0].Page!.DisplayAlertAsync(

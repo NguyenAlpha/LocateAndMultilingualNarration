@@ -76,8 +76,11 @@ public static class MauiProgram
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<LoadingPage>();
+        builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<ProfilePage>();
+        builder.Services.AddTransient<ScanPage>();
+        builder.Services.AddTransient<StallListPage>();
         builder.Services.AddTransient<StallPopup>();
 
         ConfigureLogging(builder.Logging);

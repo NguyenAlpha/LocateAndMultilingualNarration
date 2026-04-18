@@ -1,5 +1,4 @@
 using Microsoft.Maui.ApplicationModel;
-using Mobile.Helpers;
 using Mobile.ViewModels;
 using ZXing.Net.Maui;
 
@@ -12,12 +11,10 @@ public partial class ScanPage : ContentPage
 
     private readonly ScanViewModel _viewModel;
 
-    public ScanPage()
+    public ScanPage(ScanViewModel viewModel)
     {
         InitializeComponent();
-
-        // Lấy ViewModel từ DI thay vì new() để đảm bảo các service được inject đúng.
-        _viewModel = ServiceHelper.GetService<ScanViewModel>();
+        _viewModel = viewModel;
         BindingContext = _viewModel;
 
         // Set options một lần duy nhất — không thay đổi trong suốt vòng đời trang.
