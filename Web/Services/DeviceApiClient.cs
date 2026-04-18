@@ -16,4 +16,15 @@ public class DeviceApiClient(HttpClient httpClient)
         }
         catch (HttpRequestException) { return null; }
     }
+
+    public async Task<bool> ResetDeviceAsync(string deviceId, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsync(
+                $"api/device-preference/{Uri.EscapeDataString(deviceId)}/reset", null, ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException) { return false; }
+    }
 }

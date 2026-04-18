@@ -29,6 +29,11 @@ public interface IDevicePreferenceApiService
     // API mới cho ProfilePage: tự lấy deviceId hiện tại và trả về ApiResult wrapper.
     Task<DevicePreferenceDetailDto?> GetByDeviceIdAsync(CancellationToken ct = default);
     Task<ApiResult<DevicePreferenceDetailDto>> UpsertAsync(DevicePreferenceUpsertDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Kiểm tra cờ reset từ API. Nếu server đặt NeedsReset=true thì trả về true (API tự xóa cờ).
+    /// </summary>
+    Task<bool> CheckAndClearResetFlagAsync(CancellationToken ct = default);
 }
 
 /// <summary>
@@ -121,6 +126,21 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
         {
             return null;
         }
+    }
+
+    public async Task<bool> CheckAndClearResetFlagAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.GetAsync(
+                $"api/device-preference/reset-flag?deviceId={Uri.EscapeDataString(deviceId)}", ct);
+            if (!response.IsSuccessStatusCode) return false;
+            var result = await response.Content.ReadFromJsonAsync<ApiResult<bool>>(cancellationToken: ct);
+            return result?.Data ?? false;
+        }
+        catch { return false; }
     }
 
     public async Task<ApiResult<DevicePreferenceDetailDto>> UpsertAsync(DevicePreferenceUpsertDto dto, CancellationToken ct = default)

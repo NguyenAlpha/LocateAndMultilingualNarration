@@ -25,16 +25,22 @@ public class SyncBackgroundService : ISyncBackgroundService
 {
     private readonly ISyncService _syncService;
     private readonly ILocationLogService _locationLogService;
+    private readonly IDevicePreferenceApiService _devicePreferenceApiService;
     private readonly ILogger<SyncBackgroundService> _logger;
 
     private CancellationTokenSource? _cts;
     private static readonly TimeSpan StallSyncInterval = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan FlushInterval = TimeSpan.FromMinutes(1);
 
-    public SyncBackgroundService(ISyncService syncService, ILocationLogService locationLogService, ILogger<SyncBackgroundService> logger)
+    public SyncBackgroundService(
+        ISyncService syncService,
+        ILocationLogService locationLogService,
+        IDevicePreferenceApiService devicePreferenceApiService,
+        ILogger<SyncBackgroundService> logger)
     {
         _syncService = syncService;
         _locationLogService = locationLogService;
+        _devicePreferenceApiService = devicePreferenceApiService;
         _logger = logger;
     }
 
@@ -109,6 +115,7 @@ public class SyncBackgroundService : ISyncBackgroundService
                     if (!await stallTask) break;
                     _logger.LogInformation("SyncBackgroundService: stall sync tick");
                     await _syncService.SyncAsync(ct);
+                    await CheckResetFlagAsync(ct);
                     stallTask = stallTimer.WaitForNextTickAsync(ct).AsTask();
                 }
 
@@ -128,6 +135,24 @@ public class SyncBackgroundService : ISyncBackgroundService
     /// </summary>
     /// <param name="sender">Nguồn phát sinh sự kiện.</param>
     /// <param name="e">Thông tin thay đổi kết nối mạng.</param>
+    private async Task CheckResetFlagAsync(CancellationToken ct)
+    {
+        try
+        {
+            var needsReset = await _devicePreferenceApiService.CheckAndClearResetFlagAsync(ct);
+            if (!needsReset) return;
+
+            _logger.LogInformation("SyncBackgroundService: nhận lệnh reset từ admin — xóa Preferences và về LoadingPage");
+            Preferences.Clear();
+            await MainThread.InvokeOnMainThreadAsync(() =>
+                Shell.Current.GoToAsync("//LoadingPage"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "SyncBackgroundService: lỗi khi kiểm tra reset flag");
+        }
+    }
+
     private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
     {
         // Chỉ sync khi mạng vừa được khôi phục.

@@ -30,6 +30,8 @@
     </div>
 </div>
 
+@Html.AntiForgeryToken()
+
 <div class="page-body">
     <div class="container-xl">
 
@@ -117,13 +119,14 @@
                             <th>Device ID</th>
                             <th>Hoạt động lúc</th>
                             <th>Cách đây</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="device-table-body">
                         @if (!Model.Devices.Any())
                         {
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">
+                                <td colspan="7" class="text-center text-muted py-4">
                                     <i class="ti ti-devices-off me-2"></i>
                                     Không có thiết bị nào hoạt động trong cửa sổ này
                                 </td>
@@ -166,6 +169,13 @@
                                         {
                                             <span class="badge bg-yellow-lt">@((secsAgo / 60)) phút trước</span>
                                         }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger btn-reset-device"
+                                                data-device-id="@d.DeviceId"
+                                                title="Reset thiết bị về trạng thái mới">
+                                            <i class="ti ti-refresh-alert"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             }
@@ -240,6 +250,7 @@
                 <td><code class="text-muted" style="font-size:.8rem;">${shortDeviceId(d.deviceId)}</code></td>
                 <td class="text-muted small">${toLocalTime(d.lastSeenAt)}</td>
                 <td>${secondsAgoLabel(d.lastSeenAt)}</td>
+                <td><button class="btn btn-sm btn-danger btn-reset-device" data-device-id="${d.deviceId}" title="Reset thiết bị"><i class="ti ti-refresh-alert"></i></button></td>
             </tr>`).join('');
     }
 
@@ -299,5 +310,39 @@
 
     // ---- Bootstrap ----
     startCountdown();
+
+    // ---- Reset device ----
+    const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+    document.getElementById('device-table-body').addEventListener('click', async function (e) {
+        const btn = e.target.closest('.btn-reset-device');
+        if (!btn) return;
+
+        const deviceId = btn.dataset.deviceId;
+        if (!confirm(`Reset thiết bị ${deviceId.substring(0, 16)}…?\nThiết bị sẽ về trạng thái mới trong tối đa 3 phút.`)) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            const form = new FormData();
+            form.append('deviceId', deviceId);
+            form.append('__RequestVerificationToken', antiForgeryToken);
+
+            const res = await fetch('/Admin/ResetDevice', { method: 'POST', body: form });
+            const json = await res.json();
+
+            if (json.success) {
+                btn.innerHTML = '<i class="ti ti-check text-success"></i>';
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ti ti-refresh-alert"></i>';
+                alert('Reset thất bại: ' + json.message);
+            }
+        } catch {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-refresh-alert"></i>';
+        }
+    });
 </script>
 }

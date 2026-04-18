@@ -47,6 +47,9 @@ namespace Api.Infrastructure.Persistence.Configurations
             b.Property(x => x.LastSeenAt)
              .HasColumnType("datetimeoffset");
 
+            b.Property(x => x.NeedsReset)
+             .HasDefaultValue(false);
+
             b.HasOne(x => x.Language)
              .WithMany(l => l.DevicePreferences)
              .HasForeignKey(x => x.LanguageId)

@@ -353,6 +353,17 @@ namespace Web.Controllers
             return Json(result);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetDevice([FromForm] string deviceId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId))
+                return Json(new { success = false, message = "deviceId không hợp lệ" });
+
+            var ok = await _deviceApiClient.ResetDeviceAsync(deviceId, cancellationToken);
+            return Json(new { success = ok, message = ok ? "Đã gửi lệnh reset" : "Reset thất bại" });
+        }
+
         [HttpGet]
         public async Task<IActionResult> Subscription(
             int page = 1, int pageSize = 10, string? search = null, string? plan = null, CancellationToken cancellationToken = default)

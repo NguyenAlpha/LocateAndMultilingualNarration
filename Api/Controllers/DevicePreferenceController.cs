@@ -1,3 +1,4 @@
+using Api.Authorization;
 using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Api.Infrastructure.Persistence.Extensions;
@@ -10,7 +11,6 @@ namespace Api.Controllers
 {
     [ApiController]
     [Route("api/device-preference")]
-    [AllowAnonymous]
     public class DevicePreferenceController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -23,6 +23,7 @@ namespace Api.Controllers
         }
 
         [HttpGet("{deviceId}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetByDeviceId(string deviceId)
         {
             _logger.LogInformation("Lấy device preference cho deviceId: {DeviceId}", deviceId);
@@ -39,6 +40,7 @@ namespace Api.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> Upsert([FromBody] DevicePreferenceUpsertDto request)
         {
             _logger.LogInformation("Upsert device preference cho deviceId: {DeviceId}", request.DeviceId);
@@ -99,6 +101,45 @@ namespace Api.Controllers
             preference.Language = language;
 
             return this.OkResult(MapToDetail(preference));
+        }
+
+        [HttpGet("reset-flag")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetResetFlag([FromQuery] string deviceId)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId))
+                return this.BadRequestResult("deviceId là bắt buộc", "deviceId");
+
+            var preference = await _context.DevicePreferences
+                .FirstOrDefaultAsync(x => x.DeviceId == deviceId);
+
+            if (preference is null)
+                return this.OkResult(false);
+
+            var needsReset = preference.NeedsReset;
+            if (needsReset)
+            {
+                await _context.DevicePreferences
+                    .Where(x => x.DeviceId == deviceId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.NeedsReset, false));
+            }
+
+            return this.OkResult(needsReset);
+        }
+
+        [HttpPost("{deviceId}/reset")]
+        [Authorize(Policy = AppPolicies.AdminOnly)]
+        public async Task<IActionResult> RequestReset(string deviceId)
+        {
+            var updated = await _context.DevicePreferences
+                .Where(x => x.DeviceId == deviceId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.NeedsReset, true));
+
+            if (updated == 0)
+                return this.NotFoundResult("Không tìm thấy thiết bị");
+
+            _logger.LogInformation("Admin yêu cầu reset thiết bị: {DeviceId}", deviceId);
+            return this.OkResult(true);
         }
 
         private static DevicePreferenceDetailDto MapToDetail(Api.Domain.Entities.DevicePreference p) => new()
