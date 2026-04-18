@@ -18,6 +18,7 @@ namespace Web.Filters
             "/Home/Privacy",
             "/Subscription/Plans",
             "/Subscription/Success",
+            "/",
         ];
 
         public TokenExpirationFilter(ApiClient apiClient)

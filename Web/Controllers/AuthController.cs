@@ -70,7 +70,7 @@ namespace Web.Controllers
                 return Redirect(returnUrl);
 
             return role == "Admin"
-                ? RedirectToAction("Index", "Admin")
+                ? RedirectToAction("Dashboard", "Admin")
                 : RedirectToAction("Index", "Home");
         }
 

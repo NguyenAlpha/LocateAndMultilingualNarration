@@ -42,6 +42,8 @@ namespace Web.Controllers
             _deviceApiClient = deviceApiClient;
         }
 
+        public IActionResult Index() => RedirectToAction("Dashboard");
+
         public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
         {
             // Gọi song song để giảm latency
