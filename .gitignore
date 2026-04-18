@@ -363,7 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /.env
 Api/appsettings.Development.json
-/.github
 .claude/settings.local.json
 /Mobile/.idea
 *.sql
