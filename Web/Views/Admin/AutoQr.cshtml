@@ -2,6 +2,8 @@
     ViewData["Title"] = "Tạo QR tự động";
 }
 
+@Html.AntiForgeryToken()
+
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
@@ -118,9 +120,13 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang tạo...';
 
         try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const res = await fetch('/Admin/StartAutoQr', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
                 body: JSON.stringify({ validDays })
             });
             const data = await res.json();

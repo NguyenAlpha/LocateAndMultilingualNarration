@@ -18,7 +18,7 @@ namespace Web.Services
             string? search, string? role, bool? isActive,
             CancellationToken cancellationToken = default)
         {
-            var url = $"api/users?page={page}&pageSize={pageSize}";
+            var url = $"api/user?page={page}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(search))
                 url += $"&search={Uri.EscapeDataString(search)}";
             if (!string.IsNullOrWhiteSpace(role))
@@ -39,7 +39,7 @@ namespace Web.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("api/users", dto, cancellationToken);
+                var response = await _httpClient.PostAsJsonAsync("api/user", dto, cancellationToken);
                 return await response.Content.ReadFromJsonAsync<ApiResult<UserListItemDto>>(cancellationToken: cancellationToken);
             }
             catch (HttpRequestException) { return null; }
@@ -51,7 +51,7 @@ namespace Web.Services
         {
             try
             {
-                var response = await _httpClient.PatchAsync($"api/users/{userId}/toggle-active", null, cancellationToken);
+                var response = await _httpClient.PatchAsync($"api/user/{userId}/toggle-active", null, cancellationToken);
                 return await response.Content.ReadFromJsonAsync<ApiResult<object>>(cancellationToken: cancellationToken);
             }
             catch (HttpRequestException) { return null; }
@@ -63,7 +63,7 @@ namespace Web.Services
         {
             try
             {
-                var response = await _httpClient.PutAsJsonAsync($"api/users/{userId}/role", dto, cancellationToken);
+                var response = await _httpClient.PutAsJsonAsync($"api/user/{userId}/role", dto, cancellationToken);
                 return await response.Content.ReadFromJsonAsync<ApiResult<UserListItemDto>>(cancellationToken: cancellationToken);
             }
             catch (HttpRequestException) { return null; }
@@ -74,7 +74,7 @@ namespace Web.Services
         {
             try
             {
-                return await _httpClient.GetFromJsonAsync<ApiResult<List<RoleListItemDto>>>("api/users/roles", cancellationToken);
+                return await _httpClient.GetFromJsonAsync<ApiResult<List<RoleListItemDto>>>("api/user/roles", cancellationToken);
             }
             catch (HttpRequestException) { return null; }
         }

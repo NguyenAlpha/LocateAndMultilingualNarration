@@ -47,7 +47,7 @@ namespace Web.Filters
             }
 
             var expiresAtValue = session.GetString(ApiClient.TokenExpiresAtSessionKey);
-            if (DateTimeOffset.TryParse(expiresAtValue, out var expiresAt) && expiresAt <= DateTimeOffset.UtcNow)
+            if (DateTimeOffset.TryParse(expiresAtValue, out var expiresAt) && expiresAt <= DateTimeOffset.UtcNow.AddMinutes(1))
             {
                 var refreshed = await _apiClient.RefreshAsync();
                 if (!refreshed)

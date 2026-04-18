@@ -12,7 +12,7 @@ using Shared.DTOs.Users;
 namespace Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/user")]
     [Authorize]
     public class UserController : AppControllerBase
     {

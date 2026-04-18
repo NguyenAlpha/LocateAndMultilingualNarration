@@ -49,7 +49,7 @@ Web (MVC)      ──HTTP──▶  API (ASP.NET Core)  ──Azure SDK──▶
 | DevicePreferenceController | `/api/device-preference` | **AllowAnonymous** |
 | DeviceLocationLogController | `/api/device-location-log` | **AllowAnonymous** – POST `batch` tối đa 500 điểm GPS |
 | QrCodeController | `/api/qrcodes` | `[Authorize(AdminOnly)]` (trừ `POST /verify` = AllowAnonymous) |
-| UserController | `/api/User` | `[Authorize]` class-level; action-level tự check `IsAdmin()` |
+| UserController | `/api/user` | `[Authorize]` class-level; action-level tự check `IsAdmin()` |
 | BusinessController | `/api/Business` | `[Authorize]`; `PUT {id}/subscription` = AdminOnly |
 | StallController | `/api/Stall` | `[Authorize]` (Admin hoặc owner business) |
 | StallLocationController | `/api/stall-location` | `[Authorize]` |
@@ -108,7 +108,7 @@ var planIsExpired = business.PlanExpiresAt.HasValue && business.PlanExpiresAt.Va
 var effectivePlan = (planIsExpired && business.Plan != "Free") ? "Free" : business.Plan;
 ```
 
-### API – UserController (`/api/User`) [Authorize]
+### API – UserController (`/api/user`) [Authorize]
 
 - `GET /api/User/roles` – danh sách roles kèm `UserCount`
 - `GET /api/User` – users có phân trang, filter theo role/status/search

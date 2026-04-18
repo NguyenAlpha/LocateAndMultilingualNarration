@@ -37,6 +37,14 @@ jobs:
       - name: Build Api
         run: dotnet build Api/Api.csproj --no-restore --configuration Release
 
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Check pending migrations
+        run: dotnet ef migrations has-pending-model-changes --project Api/Api.csproj
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+
       - name: Build Web
         run: dotnet build Web/Web.csproj --no-restore --configuration Release
 
