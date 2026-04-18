@@ -11,7 +11,7 @@ on:
 jobs:
   build-backend:
     name: Build Api & Web
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -42,7 +42,7 @@ jobs:
 
   build-mobile:
     name: Build Mobile (Android)
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
