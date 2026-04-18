@@ -1,3 +1,4 @@
+using Api.Application.Services;
 using Api.Authorization;
 using Api.Domain.Entities;
 using Api.Domain.Settings;
