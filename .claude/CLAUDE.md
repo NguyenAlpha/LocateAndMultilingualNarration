@@ -60,7 +60,6 @@ Web (MVC)      ──HTTP──▶  API (ASP.NET Core)  ──Azure SDK──▶
 | StallNarrationContentController | `/api/stall-narration-content` | `[Authorize]` – có `GET {id}/tts-status`, `POST {id}/retry-tts` |
 | NarrationAudioController | `/api/narration-audio` | `[Authorize]` – chỉ có `PUT {id}/upload` (upload audio người thật) |
 | SubscriptionOrderController | `/api/subscription-orders` | `POST` = AdminOrBusinessOwner; `GET` = AdminOnly |
-| ⚠️ StallsController | `/api/stalls` | **AllowAnonymous – DEAD/DUPLICATE** (trùng `GeoController.GetAllStalls`, không wrap `ApiResult`, không kiểm QR, nên xoá) |
 
 **Application Services** (`Api/Application/Services/`):
 - `JwtService` – sinh JWT HS256, refresh token 64-byte random, hash SHA256
