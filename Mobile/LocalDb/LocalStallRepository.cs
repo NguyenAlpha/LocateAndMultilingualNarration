@@ -153,8 +153,7 @@ public class LocalStallRepository : ILocalStallRepository
 
     // So sánh các trường đến từ API — bỏ qua LocalAudioPath vì đó là dữ liệu local.
     private static bool HasChanged(LocalStall old, LocalStall s) =>
-        old.LastUpdated      != s.LastUpdated
-        || old.StallName     != s.StallName
+        old.StallName        != s.StallName
         || old.Latitude      != s.Latitude
         || old.Longitude     != s.Longitude
         || old.RadiusMeters  != s.RadiusMeters
