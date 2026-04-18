@@ -9,8 +9,12 @@ namespace Web.Services
         public async Task<ApiResult<BusinessDetailDto>?> UpdateSubscriptionAsync(
             Guid businessId, SubscriptionUpdateDto request, CancellationToken ct = default)
         {
-            var response = await httpClient.PutAsJsonAsync($"api/business/{businessId}/subscription", request, ct);
-            return await response.Content.ReadFromJsonAsync<ApiResult<BusinessDetailDto>>(cancellationToken: ct);
+            try
+            {
+                var response = await httpClient.PutAsJsonAsync($"api/business/{businessId}/subscription", request, ct);
+                return await response.Content.ReadFromJsonAsync<ApiResult<BusinessDetailDto>>(cancellationToken: ct);
+            }
+            catch (HttpRequestException) { return null; }
         }
     }
 }

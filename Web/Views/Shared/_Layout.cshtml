@@ -12,7 +12,7 @@
     var effectivePlan = (planIsExpired && userPlan != "Free") ? "Free" : userPlan;
 }
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,9 +24,70 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
     <!-- Bootstrap Icons (các view cũ dùng class bi-*) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- AOS – Animate On Scroll -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
     @RenderSection("Styles", required: false)
+
+    <style>
+        /* Page load fade-in */
+        .page-wrapper { animation: pageFadeIn 0.3s ease-in; }
+        @@keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Card hover lift */
+        .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1) !important; }
+
+        /* Button hover lift */
+        .btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+        .btn:not(:disabled):hover { transform: translateY(-1px); }
+
+        /* Table row hover */
+        .table tbody tr { transition: background-color 0.15s ease; }
+
+        /* Sidebar nav link transition */
+        .navbar-vertical .nav-link { transition: background-color 0.15s ease, color 0.15s ease; }
+
+        /* Sidebar: enhanced active state */
+        .navbar-vertical .nav-link.active {
+            background-color: rgba(255,255,255,0.12) !important;
+            color: #fff !important;
+            font-weight: 600;
+            border-left: 3px solid rgba(255,255,255,0.6);
+            padding-left: calc(0.75rem - 3px) !important;
+        }
+        /* Active section toggle (parent of open collapse) */
+        .navbar-vertical .nav-link[data-bs-toggle="collapse"].section-active {
+            color: rgba(255,255,255,0.9) !important;
+            font-weight: 600;
+        }
+        /* Sub-nav indentation */
+        .navbar-vertical .nav-sub {
+            padding-left: 2.4rem;
+        }
+        .navbar-vertical .nav-sub .nav-link {
+            padding-top: 0.35rem;
+            padding-bottom: 0.35rem;
+            font-size: 0.875rem;
+        }
+        .navbar-vertical .nav-sub .nav-link.active {
+            border-left-width: 2px;
+        }
+
+        /* Collapse section arrow */
+        .nav-section-arrow {
+            margin-left: auto;
+            font-size: 0.8rem;
+            opacity: 0.55;
+            transition: transform 0.22s ease, opacity 0.22s ease;
+            flex-shrink: 0;
+        }
+        .nav-section-arrow.rotated {
+            transform: rotate(90deg);
+            opacity: 0.9;
+        }
+    </style>
 </head>
 <body class="antialiased">
     <div class="wrapper">
@@ -53,14 +114,14 @@
                     <div class="navbar-nav flex-row d-lg-none">
                         <div class="nav-item dropdown">
                             <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
-                                <span class="avatar avatar-sm">@userName.Substring(0, 1).ToUpper()</span>
+                                <span class="avatar avatar-sm">@(userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "?")</span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
                                 <div class="dropdown-header">@userName</div>
                                 <div class="dropdown-divider"></div>
                                 <form method="post" asp-controller="Auth" asp-action="Logout">
                                     <button type="submit" class="dropdown-item text-danger">
-                                        <i class="ti ti-logout me-2"></i>
+                                        <i class="ti ti-logout me-2"></i>Đăng xuất
                                     </button>
                                 </form>
                             </div>
@@ -71,123 +132,156 @@
                     <div class="collapse navbar-collapse" id="sidebar-menu">
                         <ul class="navbar-nav pt-lg-3">
 
-                            <!-- Home -->
+                            <!-- Trang chủ -->
                             <li class="nav-item">
                                 <a class="nav-link @(currentController == "Home" ? "active" : "")"
                                    asp-controller="Home" asp-action="Index">
                                     <span class="nav-link-icon d-md-none d-lg-inline-block">
                                         <i class="ti ti-home"></i>
                                     </span>
-                                    <span class="nav-link-title">Home</span>
+                                    <span class="nav-link-title">Trang chủ</span>
                                 </a>
                             </li>
 
                             @if (userRole == "Admin")
                             {
-                                <!-- Admin section -->
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle @(currentController == "Admin" ? "active" : "")"
-                                       href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button"
-                                       aria-expanded="@(currentController == "Admin" ? "true" : "false")">
+                                var adminOpen = currentController == "Admin";
+                                <!-- Quản trị -->
+                                <li class="nav-item">
+                                    <a class="nav-link @(adminOpen ? "section-active" : "")"
+                                       href="#sidebar-admin" data-bs-toggle="collapse" role="button"
+                                       aria-expanded="@(adminOpen ? "true" : "false")" aria-controls="sidebar-admin">
                                         <span class="nav-link-icon d-md-none d-lg-inline-block">
-                                            <i class="ti ti-speedometer"></i>
+                                            <i class="ti ti-shield"></i>
                                         </span>
-                                        <span class="nav-link-title">Admin</span>
+                                        <span class="nav-link-title">Quản trị</span>
+                                        <i class="ti ti-chevron-right nav-section-arrow @(adminOpen ? "rotated" : "")"></i>
                                     </a>
-                                    <div class="dropdown-menu @(currentController == "Admin" ? "show" : "")">
-                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "Dashboard" ? "active" : "")"
-                                           asp-controller="Admin" asp-action="Dashboard">
-                                            <i class="ti ti-layout-dashboard me-2"></i>Dashboard
-                                        </a>
-                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "UserRoleManagement" ? "active" : "")"
-                                           asp-controller="Admin" asp-action="UserRoleManagement">
-                                            <i class="ti ti-users me-2"></i>User &amp; Role Management
-                                        </a>
-                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "Statistics" ? "active" : "")"
-                                           asp-controller="Admin" asp-action="Statistics">
-                                            <i class="ti ti-chart-bar me-2"></i>Statistics
-                                        </a>
-                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "Subscription" ? "active" : "")"
-                                           asp-controller="Admin" asp-action="Subscription">
-                                            <i class="ti ti-credit-card me-2"></i>Subscription
-                                        </a>
-                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "SubscriptionOrders" ? "active" : "")"
-                                           asp-controller="Admin" asp-action="SubscriptionOrders">
-                                            <i class="ti ti-receipt me-2"></i>Đơn đăng ký
-                                        </a>
+                                    <div class="collapse @(adminOpen ? "show" : "")" id="sidebar-admin">
+                                        <ul class="navbar-nav nav-sub">
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "Dashboard" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="Dashboard">
+                                                    <i class="ti ti-layout-dashboard me-2"></i>Bảng điều khiển
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "UserRoleManagement" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="UserRoleManagement">
+                                                    <i class="ti ti-users me-2"></i>Quản lý User &amp; Role
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "Subscription" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="Subscription">
+                                                    <i class="ti ti-credit-card me-2"></i>Subscription
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "SubscriptionOrders" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="SubscriptionOrders">
+                                                    <i class="ti ti-receipt me-2"></i>Đơn đăng ký
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "QrCodes" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="QrCodes">
+                                                    <i class="ti ti-qrcode me-2"></i>Mã QR
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "AutoQr" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="AutoQr">
+                                                    <i class="ti ti-refresh me-2"></i>Tạo QR tự động
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "ActiveDevices" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="ActiveDevices">
+                                                    <i class="ti ti-radio me-2"></i>Thiết bị online
+                                                </a>
+                                            </li>
+                                        </ul>
                                     </div>
                                 </li>
                             }
 
-                            <!-- Management section -->
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "active" : "")"
-                                   href="#" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button"
-                                   aria-expanded="@(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "true" : "false")">
+                            <!-- Quản lý -->
+                            @{
+                                var mgmtControllers = new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration","Subscription"};
+                                var mgmtOpen = mgmtControllers.Contains(currentController);
+                            }
+                            <li class="nav-item">
+                                <a class="nav-link @(mgmtOpen ? "section-active" : "")"
+                                   href="#sidebar-management" data-bs-toggle="collapse" role="button"
+                                   aria-expanded="@(mgmtOpen ? "true" : "false")" aria-controls="sidebar-management">
                                     <span class="nav-link-icon d-md-none d-lg-inline-block">
                                         <i class="ti ti-settings"></i>
                                     </span>
-                                    <span class="nav-link-title">Management</span>
+                                    <span class="nav-link-title">Quản lý</span>
+                                    <i class="ti ti-chevron-right nav-section-arrow @(mgmtOpen ? "rotated" : "")"></i>
                                 </a>
-                                <div class="dropdown-menu @(new[]{"Business","Stall","StallLocation","StallGeoFence","StallMedia","Narration"}.Contains(currentController) ? "show" : "")">
-                                    @if (userRole == "Admin" || userRole == "BusinessOwner")
-                                    {
-                                        <a class="dropdown-item @(currentController == "Business" ? "active" : "")"
-                                           asp-controller="Business" asp-action="Index">
-                                            <i class="ti ti-building-store me-2"></i>Business Management
-                                        </a>
-                                    }
-                                    <a class="dropdown-item @(currentController == "Subscription" && currentAction == "Plans" ? "active" : "")"
-                                       asp-controller="Subscription" asp-action="Plans">
-                                        <i class="ti ti-layout-grid me-2"></i>Bảng giá
-                                    </a>
-                                    @if (userRole == "Admin")
-                                    {
-                                        <a class="dropdown-item @(currentController == "Admin" && currentAction == "Subscription" ? "active" : "")"
-                                           asp-controller="Admin" asp-action="Subscription">
-                                            <i class="ti ti-credit-card me-2"></i>Subscription
-                                        </a>
-                                    }
-                                    <a class="dropdown-item @(currentController == "Stall" ? "active" : "")"
-                                       asp-controller="Stall" asp-action="Index">
-                                            <i class="ti ti-building-store me-2"></i>Stall Management
-                                    </a>
-                                    <a class="dropdown-item @(currentController == "Narration" ? "active" : "")"
-                                       asp-controller="Narration" asp-action="StallNarrationContents">
-                                        <i class="ti ti-microphone me-2"></i>Narration Contents
-                                    </a>
-                                    <a class="dropdown-item @(currentController == "StallLocation" ? "active" : "")"
-                                       asp-controller="StallLocation" asp-action="Index">
-                                        <i class="ti ti-map-pin me-2"></i>Stall Location
-                                    </a>
-                                    <a class="dropdown-item @(currentController == "StallMedia" ? "active" : "")"
-                                       asp-controller="StallMedia" asp-action="Index">
-                                        <i class="ti ti-photo me-2"></i>Stall Media
-                                    </a>
+                                <div class="collapse @(mgmtOpen ? "show" : "")" id="sidebar-management">
+                                    <ul class="navbar-nav nav-sub">
+                                        @if (userRole == "Admin" || userRole == "BusinessOwner")
+                                        {
+                                            <li class="nav-item">
+                                                <a class="nav-link @(currentController == "Business" ? "active" : "")"
+                                                   asp-controller="Business" asp-action="Index">
+                                                    <i class="ti ti-building-store me-2"></i>Quản lý Doanh nghiệp
+                                                </a>
+                                            </li>
+                                        }
+                                        <li class="nav-item">
+                                            <a class="nav-link @(currentController == "Subscription" && currentAction == "Plans" ? "active" : "")"
+                                               asp-controller="Subscription" asp-action="Plans">
+                                                <i class="ti ti-layout-grid me-2"></i>Bảng giá
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link @(currentController == "Stall" ? "active" : "")"
+                                               asp-controller="Stall" asp-action="Index">
+                                                <i class="ti ti-building-store me-2"></i>Quản lý Gian hàng
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link @(currentController == "Narration" ? "active" : "")"
+                                               asp-controller="Narration" asp-action="StallNarrationContents">
+                                                <i class="ti ti-microphone me-2"></i>Nội dung Thuyết minh
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link @(currentController == "StallLocation" ? "active" : "")"
+                                               asp-controller="StallLocation" asp-action="Index">
+                                                <i class="ti ti-map-pin me-2"></i>Vị trí Gian hàng
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link @(currentController == "StallMedia" ? "active" : "")"
+                                               asp-controller="StallMedia" asp-action="Index">
+                                                <i class="ti ti-photo me-2"></i>Media Gian hàng
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
                             </li>
 
                         </ul>
 
-                        <!-- Bottom: user profile -->
-                        <div class="mt-auto d-none d-lg-block pb-3">
-                            <div class="nav-item dropdown">
-                                <a href="#" class="nav-link d-flex lh-1 text-reset p-0 px-2 py-2" data-bs-toggle="dropdown">
-                                    <span class="avatar avatar-sm me-2">@userName.Substring(0, 1).ToUpper()</span>
-                                    <div class="d-none d-xl-block ps-1">
-                                        <div class="text-white fw-medium">@userName</div>
-                                        <div class="mt-1 small text-white-50">@userRole</div>
-                                    </div>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                                    <div class="dropdown-header">@userName</div>
-                                    <div class="dropdown-divider"></div>
-                                    <form method="post" asp-controller="Auth" asp-action="Logout">
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i class="ti ti-logout me-2"></i>Logout
-                                        </button>
-                                    </form>
+                        <!-- Bottom: user profile + logout -->
+                        <div class="mt-auto d-none d-lg-block pb-3 px-2">
+                            <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm me-2 flex-shrink-0">@(userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "?")</span>
+                                <div class="d-none d-xl-block ps-1 overflow-hidden flex-grow-1">
+                                    <div class="text-white fw-medium text-truncate">@userName</div>
+                                    <div class="small text-white-50">@userRole</div>
                                 </div>
+                                <form method="post" asp-controller="Auth" asp-action="Logout" class="ms-auto ms-xl-2 flex-shrink-0">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-ghost-danger" title="Đăng xuất">
+                                        <i class="ti ti-logout"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -208,10 +302,10 @@
                         </a>
                         <div class="navbar-nav ms-auto">
                             <a class="nav-link" asp-controller="Auth" asp-action="Login">
-                                <i class="ti ti-login me-1"></i>Login
+                                <i class="ti ti-login me-1"></i>Đăng nhập
                             </a>
                             <a class="nav-link" asp-controller="Auth" asp-action="Register">
-                                <i class="ti ti-user-plus me-1"></i>Register
+                                <i class="ti ti-user-plus me-1"></i>Đăng ký
                             </a>
                         </div>
                     </div>
@@ -231,7 +325,7 @@
                     <div class="row text-center align-items-center">
                         <div class="col-12">
                             <p class="text-muted mb-0">
-                                &copy; @DateTime.Now.Year <strong>Enterprise Management System</strong>. All rights reserved.
+                                &copy; @DateTime.Now.Year <strong>Hệ thống Quản lý Doanh nghiệp</strong>. Bản quyền thuộc về nhóm phát triển.
                             </p>
                         </div>
                     </div>
@@ -248,18 +342,24 @@
     <!-- jQuery Validation -->
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <!-- AOS – Animate On Scroll -->
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
     <!-- Custom JS -->
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script>
-        // Sync JWT token to localStorage
-        $(document).ready(function () {
-            var serverToken = '@Html.Raw(Context.Session.GetString("AuthToken") ?? "")';
-            if (serverToken && serverToken.trim() !== '') {
-                localStorage.setItem('jwtToken', serverToken);
-            } else {
-                localStorage.removeItem('jwtToken');
-            }
+        // Khởi tạo AOS
+        AOS.init({ duration: 350, once: true, offset: 30 });
+
+        // Sidebar collapse arrow animation
+        document.querySelectorAll('.navbar-vertical [data-bs-toggle="collapse"]').forEach(function (toggle) {
+            var targetId = toggle.getAttribute('href') || toggle.dataset.bsTarget;
+            var collapseEl = targetId ? document.querySelector(targetId) : null;
+            if (!collapseEl) return;
+            var arrow = toggle.querySelector('.nav-section-arrow');
+            if (!arrow) return;
+            collapseEl.addEventListener('show.bs.collapse', function () { arrow.classList.add('rotated'); });
+            collapseEl.addEventListener('hide.bs.collapse', function () { arrow.classList.remove('rotated'); });
         });
     </script>
 

@@ -9,25 +9,29 @@ namespace Web.Controllers
     {
         private readonly ApiClient _apiClient;
         private readonly BusinessApiClient _businessApiClient;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(ApiClient apiClient, BusinessApiClient businessApiClient)
+        public AuthController(ApiClient apiClient, BusinessApiClient businessApiClient, ILogger<AuthController> logger)
         {
             _apiClient = apiClient;
             _businessApiClient = businessApiClient;
+            _logger = logger;
         }
 
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string? returnUrl = null)
         {
+            ViewBag.ReturnUrl = returnUrl;
             return View(new LoginViewModel());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null, CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
+                ViewBag.ReturnUrl = returnUrl;
                 return View(model);
             }
 
@@ -40,21 +44,34 @@ namespace Web.Controllers
             if (result?.Success != true || result.Data == null)
             {
                 ModelState.AddModelError(string.Empty, result?.Error?.Message ?? "Đăng nhập thất bại.");
+                ViewBag.ReturnUrl = returnUrl;
                 return View(model);
             }
 
             _apiClient.StoreToken(result.Data);
 
-            // Nếu là BusinessOwner thì lấy plan của business đầu tiên để hiển thị trên sidebar
-            var role = result.Data.Roles.FirstOrDefault() ?? string.Empty;
+            var role = result.Data.Roles?.FirstOrDefault() ?? string.Empty;
             if (role == "BusinessOwner")
             {
-                var businesses = await _businessApiClient.GetBusinessesAsync(1, 1, null, cancellationToken);
-                var firstBusiness = businesses?.Data?.Items?.FirstOrDefault();
-                _apiClient.StoreUserPlan(firstBusiness?.Plan ?? "Free", firstBusiness?.PlanExpiresAt);
+                try
+                {
+                    var businesses = await _businessApiClient.GetBusinessesAsync(1, 1, null, cancellationToken);
+                    var firstBusiness = businesses?.Data?.Items?.FirstOrDefault();
+                    _apiClient.StoreUserPlan(firstBusiness?.Plan ?? "Free", firstBusiness?.PlanExpiresAt);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Không thể lấy thông tin plan của business sau khi đăng nhập.");
+                    _apiClient.StoreUserPlan("Free", null);
+                }
             }
 
-            return RedirectToAction("Index", "Home");
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return role == "Admin"
+                ? RedirectToAction("Index", "Admin")
+                : RedirectToAction("Index", "Home");
         }
 
         [HttpGet]

@@ -163,7 +163,7 @@ namespace Api.Controllers
         /// <summary>
         /// Bật/tắt trạng thái IsActive của user. Admin không thể toggle bản thân.
         /// </summary>
-        [HttpPut("{id:guid}/toggle-active")]
+        [HttpPatch("{id:guid}/toggle-active")]
         [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> ToggleUserActive(Guid id)
         {
@@ -269,7 +269,6 @@ namespace Api.Controllers
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .Include(u => u.BusinessOwnerProfile)
-                .Include(u => u.VisitorProfile)
                 .Include(u => u.EmployeeProfile)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
@@ -295,9 +294,6 @@ namespace Api.Controllers
                 Email = user.Email,
                 NormalizedEmail = user.NormalizedEmail,
                 EmailConfirmed = user.EmailConfirmed,
-                PasswordHash = user.PasswordHash,
-                SecurityStamp = user.SecurityStamp,
-                ConcurrencyStamp = user.ConcurrencyStamp,
                 PhoneNumber = user.PhoneNumber,
                 PhoneNumberConfirmed = user.PhoneNumberConfirmed,
                 DisplayName = user.DisplayName,
@@ -320,13 +316,6 @@ namespace Api.Controllers
                     OwnerName = user.BusinessOwnerProfile.OwnerName,
                     ContactInfo = user.BusinessOwnerProfile.ContactInfo,
                     CreatedAt = ConvertFromUtc(user.BusinessOwnerProfile.CreatedAt, timeZone)
-                },
-                VisitorProfile = user.VisitorProfile == null ? null : new VisitorProfileDto
-                {
-                    Id = user.VisitorProfile.Id,
-                    UserId = user.VisitorProfile.UserId,
-                    LanguageId = user.VisitorProfile.LanguageId,
-                    CreatedAt = ConvertFromUtc(user.VisitorProfile.CreatedAt, timeZone)
                 },
                 EmployeeProfile = user.EmployeeProfile == null ? null : new EmployeeProfileDto
                 {

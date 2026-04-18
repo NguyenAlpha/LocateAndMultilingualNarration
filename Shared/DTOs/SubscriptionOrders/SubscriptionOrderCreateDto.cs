@@ -19,6 +19,7 @@ namespace Shared.DTOs.SubscriptionOrders
         public string CardExpiry { get; set; } = null!;    // "MM/YY"
 
         [Required]
+        [MinLength(3)]
         [MaxLength(4)]
         public string CardCvv { get; set; } = null!;       // 3-4 chữ số
 

@@ -90,33 +90,17 @@ namespace Web.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Deactivate(Guid id, int page = 1, int pageSize = 10, string? search = null, Guid? businessId = null, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ToggleActive(Guid id, int page = 1, int pageSize = 10, string? search = null, Guid? businessId = null, CancellationToken cancellationToken = default)
         {
-            var detailResult = await _stallApiClient.GetStallAsync(id, cancellationToken);
-            if (detailResult?.Success != true || detailResult.Data == null)
+            var result = await _stallApiClient.ToggleActiveAsync(id, cancellationToken);
+            if (result?.Success != true)
             {
-                TempData["ErrorMessage"] = detailResult?.Error?.Message ?? "Không lấy được thông tin stall.";
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không thể thay đổi trạng thái stall.";
                 return RedirectToAction(nameof(Index), new { page, pageSize, search, businessId });
             }
 
-            var detail = detailResult.Data;
-            var updateResult = await _stallApiClient.UpdateStallAsync(id, new StallUpdateDto
-            {
-                Name = detail.Name,
-                Description = detail.Description,
-                Slug = detail.Slug,
-                ContactEmail = detail.ContactEmail,
-                ContactPhone = detail.ContactPhone,
-                IsActive = false
-            }, cancellationToken);
-
-            if (updateResult?.Success != true)
-            {
-                TempData["ErrorMessage"] = updateResult?.Error?.Message ?? "Không thể vô hiệu hóa stall.";
-                return RedirectToAction(nameof(Index), new { page, pageSize, search, businessId });
-            }
-
-            TempData["SuccessMessage"] = "Stall đã được vô hiệu hóa.";
+            var isActive = result.Data?.IsActive ?? false;
+            TempData["SuccessMessage"] = isActive ? "Stall đã được kích hoạt." : "Stall đã được vô hiệu hóa.";
             return RedirectToAction(nameof(Index), new { page, pageSize, search, businessId });
         }
 

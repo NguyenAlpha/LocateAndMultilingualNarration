@@ -9,8 +9,12 @@ namespace Web.Services
         public async Task<ApiResult<SubscriptionOrderDetailDto>?> CreateOrderAsync(
             SubscriptionOrderCreateDto request, CancellationToken ct = default)
         {
-            var response = await httpClient.PostAsJsonAsync("api/subscription-orders", request, ct);
-            return await response.Content.ReadFromJsonAsync<ApiResult<SubscriptionOrderDetailDto>>(cancellationToken: ct);
+            try
+            {
+                var response = await httpClient.PostAsJsonAsync("api/subscription-orders", request, ct);
+                return await response.Content.ReadFromJsonAsync<ApiResult<SubscriptionOrderDetailDto>>(cancellationToken: ct);
+            }
+            catch (HttpRequestException) { return null; }
         }
 
         public async Task<ApiResult<PagedResult<SubscriptionOrderDetailDto>>?> GetOrdersAsync(
@@ -22,7 +26,12 @@ namespace Web.Services
             if (!string.IsNullOrEmpty(plan)) url += $"&plan={Uri.EscapeDataString(plan)}";
             if (!string.IsNullOrEmpty(status)) url += $"&status={Uri.EscapeDataString(status)}";
             if (businessId.HasValue) url += $"&businessId={businessId}";
-            return await httpClient.GetFromJsonAsync<ApiResult<PagedResult<SubscriptionOrderDetailDto>>>(url, ct);
+
+            try
+            {
+                return await httpClient.GetFromJsonAsync<ApiResult<PagedResult<SubscriptionOrderDetailDto>>>(url, ct);
+            }
+            catch (HttpRequestException) { return null; }
         }
     }
 }

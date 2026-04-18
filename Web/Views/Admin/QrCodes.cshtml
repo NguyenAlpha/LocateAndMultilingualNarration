@@ -1,0 +1,265 @@
+@model Web.Models.AdminQrCodesViewModel
+@{
+    ViewData["Title"] = "Mã QR";
+    var apiBase = ViewBag.ApiBaseUrl as string ?? "http://localhost:5299/";
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Admin</div>
+                <h2 class="page-title">Mã QR</h2>
+            </div>
+            <div class="col-auto ms-auto">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createQrModal">
+                    <i class="ti ti-qrcode me-1"></i>Tạo mã QR
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible mb-3" role="alert">
+                <i class="ti ti-check me-1"></i>@Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible mb-3" role="alert">
+                <i class="ti ti-alert-circle me-1"></i>@Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Stats -->
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Tổng mã QR</div>
+                        <div class="h1 mb-0">@Model.TotalCount</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="subheader">Đã sử dụng</div>
+                        <div class="h1 mb-0 text-success">@Model.TotalUsed</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Danh sách mã QR (@Model.TotalCount)</div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Ngày tạo</th>
+                            <th>Hiệu lực</th>
+                            <th>Trạng thái</th>
+                            <th>Ghi chú</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Items.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">Chưa có mã QR nào.</td>
+                            </tr>
+                        }
+                        @foreach (var item in Model.Items)
+                        {
+                            var accessExpired = item.IsUsed && item.AccessExpiresAt.HasValue && item.AccessExpiresAt.Value <= DateTime.UtcNow;
+                            <tr>
+                                <td>
+                                    <code class="fw-bold">****@(item.Code.Length >= 4 ? item.Code[^4..] : item.Code)</code>
+                                </td>
+                                <td class="text-muted">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (!item.IsUsed)
+                                    {
+                                        <span class="badge bg-blue-lt">@item.ValidDays ngày</span>
+                                    }
+                                    else if (item.AccessExpiresAt.HasValue && !accessExpired)
+                                    {
+                                        <span class="badge bg-success-lt">@item.AccessExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
+                                    }
+                                    else if (item.AccessExpiresAt.HasValue)
+                                    {
+                                        <span class="badge bg-danger-lt">@item.AccessExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") — Hết hạn</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.IsUsed && !accessExpired)
+                                    {
+                                        <span class="badge bg-success-lt">Đang dùng</span>
+                                    }
+                                    else if (item.IsUsed && accessExpired)
+                                    {
+                                        <span class="badge bg-secondary-lt">Hết hạn</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary-lt">Chưa dùng</span>
+                                    }
+                                </td>
+                                <td class="text-muted">@(item.Note ?? "—")</td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#viewQrModal"
+                                                data-qr-id="@item.Id"
+                                                data-qr-code="@item.Code"
+                                                title="Xem mã QR">
+                                            <i class="ti ti-qrcode"></i>
+                                        </button>
+                                        <form asp-action="DeleteQrCode" method="post"
+                                              onsubmit="return confirm('Xoá mã QR này?')">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="page" value="@Model.Page" />
+                                            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Xoá">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer d-flex align-items-center">
+                    <p class="m-0 text-muted">
+                        Trang <span>@Model.Page</span> / <span>@Model.TotalPages</span>
+                    </p>
+                    <ul class="pagination m-0 ms-auto">
+                        <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="QrCodes"
+                               asp-route-page="@(Model.Page - 1)"
+                               asp-route-pageSize="@Model.PageSize">
+                                <i class="ti ti-chevron-left"></i> Trước
+                            </a>
+                        </li>
+                        <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="QrCodes"
+                               asp-route-page="@(Model.Page + 1)"
+                               asp-route-pageSize="@Model.PageSize">
+                                Sau <i class="ti ti-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Create Modal -->
+<div class="modal modal-blur fade @(Model.ShowCreateModal ? "show" : "")"
+     id="createQrModal" tabindex="-1"
+     style="@(Model.ShowCreateModal ? "display:block;" : "")">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="CreateQrCode" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="ti ti-qrcode me-1"></i>Tạo mã QR mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (Model.ShowCreateModal && !string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger py-2">@Model.ErrorMessage</div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label required">Số ngày hiệu lực</label>
+                        <input type="number" class="form-control"
+                               name="ValidDays"
+                               value="@(Model.Create.ValidDays > 0 ? Model.Create.ValidDays.ToString() : "")"
+                               min="1" placeholder="VD: 30" required />
+                        <small class="text-muted">Thiết bị quét sẽ được dùng app trong số ngày này.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ghi chú (tuỳ chọn)</label>
+                        <input type="text" class="form-control" name="Note"
+                               value="@Model.Create.Note"
+                               placeholder="VD: Đợt phát hành tháng 4" maxlength="500" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-plus me-1"></i>Tạo mã QR
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@if (Model.ShowCreateModal)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+<!-- View QR Modal -->
+<div class="modal modal-blur fade" id="viewQrModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mã QR</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="text-muted mb-2">Code: <code id="qrCodeText"></code></p>
+                <img id="qrCodeImage" src="" alt="QR Code"
+                     class="img-fluid border rounded" style="max-width: 280px;" />
+                <div class="mt-3">
+                    <a id="qrDownloadLink" href="#" download class="btn btn-sm btn-outline-primary">
+                        <i class="ti ti-download me-1"></i>Tải về
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('viewQrModal').addEventListener('show.bs.modal', function (e) {
+            var btn = e.relatedTarget;
+            var id = btn.dataset.qrId;
+            var code = btn.dataset.qrCode;
+            var url = '/Admin/GetQrImage?id=' + id;
+
+            document.getElementById('qrCodeText').textContent = '****' + code.slice(-4);
+            document.getElementById('qrCodeImage').src = url;
+
+            var dl = document.getElementById('qrDownloadLink');
+            dl.href = url;
+            dl.download = 'qr-' + id + '.png';
+        });
+    </script>
+}

@@ -6,7 +6,7 @@
     Các trang phụ (đi sâu hơn) được đăng ký bằng Routing.RegisterRoute() trong code-behind.
 
     x:Class   : liên kết với lớp AppShell trong AppShell.xaml.cs
-    xmlns:local : ánh xạ namespace Mobile để tham chiếu đến các trang (StartPage, MainPage...)
+    xmlns:local : ánh xạ namespace Mobile để tham chiếu đến các trang (MainPage...)
     Title     : tiêu đề mặc định hiển thị trên thanh điều hướng của Shell
 -->
 <Shell
@@ -24,7 +24,7 @@
         trang chỉ được khởi tạo khi người dùng thực sự điều hướng đến, không tạo sẵn từ đầu.
 
         Title    : nhãn hiển thị (trên tab bar hoặc flyout menu nếu có)
-        Route    : định danh route dùng để điều hướng bằng Shell.GoToAsync("//StartPage")
+        Route    : định danh route dùng để điều hướng bằng Shell.GoToAsync("//LoadingPage")
                    Tiền tố "//" biểu thị đây là route tuyệt đối (absolute route) — trang gốc
         ContentTemplate : chỉ định lớp Page sẽ được tạo khi route này được kích hoạt
     -->

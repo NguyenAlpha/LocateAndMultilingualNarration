@@ -15,7 +15,11 @@ namespace Web.Services
 
         public async Task<ApiResult<IReadOnlyList<LanguageDetailDto>>?> GetActiveLanguagesAsync(CancellationToken cancellationToken = default)
         {
-            return await _httpClient.GetFromJsonAsync<ApiResult<IReadOnlyList<LanguageDetailDto>>>("api/languages/active", cancellationToken);
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ApiResult<IReadOnlyList<LanguageDetailDto>>>("api/languages/active", cancellationToken);
+            }
+            catch (HttpRequestException) { return null; }
         }
     }
 }

@@ -90,8 +90,8 @@ public class AudioGuideService : IAudioGuideService
 
         try
         {
-            // Dừng audio cũ trước khi phát nội dung mới.
-            await StopAsync(); // dừng audio cũ nếu có
+            // Dừng audio cũ trước khi phát nội dung mới (không tái sử dụng lock).
+            StopInternal();
             CurrentUrl = url;
 
             Stream? stream;
@@ -130,23 +130,37 @@ public class AudioGuideService : IAudioGuideService
 
     /// <summary>
     /// Tạm dừng audio hiện tại.
+    /// Lấy <see cref="_playerLock"/> để tránh race với <see cref="PlayAsync"/> đang dispose player.
     /// </summary>
-    public Task PauseAsync()
+    public async Task PauseAsync()
     {
-        // Chỉ gọi Pause nếu player đang tồn tại.
-        _player?.Pause();
-        return Task.CompletedTask;
+        await _playerLock.WaitAsync();
+        try
+        {
+            _player?.Pause();
+        }
+        finally
+        {
+            _playerLock.Release();
+        }
     }
 
     /// <summary>
     /// Tiếp tục phát audio đã tạm dừng.
+    /// Lấy <see cref="_playerLock"/> để tránh race với <see cref="PlayAsync"/> đang dispose player.
     /// </summary>
-    public Task ResumeAsync()
+    public async Task ResumeAsync()
     {
-        // Chỉ phát tiếp khi player tồn tại và đang ở trạng thái dừng/tạm dừng.
-        if (_player is { IsPlaying: false })
-            _player.Play();
-        return Task.CompletedTask;
+        await _playerLock.WaitAsync();
+        try
+        {
+            if (_player is { IsPlaying: false })
+                _player.Play();
+        }
+        finally
+        {
+            _playerLock.Release();
+        }
     }
 
     /// <summary>
@@ -157,26 +171,38 @@ public class AudioGuideService : IAudioGuideService
         => MainThread.BeginInvokeOnMainThread(() => PlaybackCompleted?.Invoke());
 
     /// <summary>
-    /// Dừng audio hiện tại và giải phóng bộ nhớ.
+    /// Dừng audio hiện tại và giải phóng bộ nhớ. Lấy <see cref="_playerLock"/> để an toàn với Pause/Resume.
     /// </summary>
-    public Task StopAsync()
+    public async Task StopAsync()
+    {
+        await _playerLock.WaitAsync();
+        try
+        {
+            StopInternal();
+        }
+        finally
+        {
+            _playerLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Phiên bản không lock — chỉ gọi khi caller đã giữ <see cref="_playerLock"/>.
+    /// </summary>
+    private void StopInternal()
     {
         // Unsubscribe trước khi Stop để tránh fire PlaybackCompleted khi dừng thủ công.
         if (_player != null)
             _player.PlaybackEnded -= OnPlayerPlaybackEnded;
 
-        // Dừng và giải phóng player hiện tại nếu có.
         _player?.Stop();
         _player?.Dispose();
         _player = null;
 
-        // Giải phóng buffer trong bộ nhớ.
         _buffer?.Dispose();
         _buffer = null;
 
-        // Xóa URL hiện tại để phản ánh trạng thái đã dừng.
         CurrentUrl = null;
-        return Task.CompletedTask;
     }
 
     /// <summary>

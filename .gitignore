@@ -362,8 +362,10 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /.env
-/.github
+Api/appsettings.Development.json
 .claude/settings.local.json
 /Mobile/.idea
-*.md
 *.sql
+/.claude/agents
+/ANIMATIONS.md
+/CLAUDE_md_prompt_template.md

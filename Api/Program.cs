@@ -19,6 +19,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Đọc cấu hình JWT từ appsettings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>();
+if (string.IsNullOrWhiteSpace(jwtSettings?.Key) || jwtSettings.Key.Length < 32)
+    throw new InvalidOperationException("JWT Key phải được cấu hình và có độ dài tối thiểu 32 ký tự.");
 
 // Đọc cấu hình Azure Speech và Blob Storage cho TTS
 builder.Services.Configure<AzureSpeechSettings>(builder.Configuration.GetSection("AzureSpeech"));
@@ -50,7 +52,8 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = jwtSettings?.Issuer,
         ValidAudience = jwtSettings?.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSettings?.Key ?? string.Empty))
+            Encoding.UTF8.GetBytes(jwtSettings?.Key ?? string.Empty)),
+        ClockSkew = TimeSpan.Zero
     };
 });
 

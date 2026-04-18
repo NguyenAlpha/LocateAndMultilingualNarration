@@ -1,0 +1,303 @@
+@model Shared.DTOs.Geo.ActiveDevicesSummaryDto
+@{
+    ViewData["Title"] = "Thiết bị đang hoạt động";
+    var withinMinutes = (int)(ViewBag.WithinMinutes ?? 5);
+}
+
+<!-- Page header -->
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Theo dõi thời gian thực</div>
+                <h2 class="page-title">
+                    <i class="ti ti-devices me-2 text-primary"></i>
+                    Thiết bị đang hoạt động
+                </h2>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Live badge -->
+                    <span class="badge bg-success d-flex align-items-center gap-1" id="live-badge">
+                        <span class="pulse-dot"></span>
+                        LIVE
+                    </span>
+                    <!-- Refresh countdown -->
+                    <span class="text-muted small" id="next-refresh-label">Làm mới sau <span id="countdown">20</span>s</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+
+        <!-- Controls row -->
+        <div class="row mb-3 align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 me-2 text-muted">Cửa sổ hoạt động:</label>
+                <select class="form-select form-select-sm d-inline-block w-auto" id="withinMinutes-select">
+                    @foreach (var (val, label) in new[] { (1,"1 phút qua"), (2,"2 phút qua"), (5,"5 phút qua"), (10,"10 phút qua"), (15,"15 phút qua"), (30,"30 phút qua") })
+                    {
+                        if (withinMinutes == val)
+                        {
+                            <option value="@val" selected>@label</option>
+                        }
+                        else
+                        {
+                            <option value="@val">@label</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-auto ms-auto text-muted small">
+                Cập nhật lúc: <span id="last-updated">@Model.AsOf.ToLocalTime().ToString("HH:mm:ss")</span>
+            </div>
+        </div>
+
+        <!-- Progress bar countdown -->
+        <div class="progress mb-4" style="height:3px;">
+            <div class="progress-bar bg-primary" id="refresh-bar" role="progressbar" style="width:0%;transition:width 1s linear;"></div>
+        </div>
+
+        <!-- Stats cards -->
+        <div class="row row-deck row-cards mb-4">
+
+            <!-- Active count card -->
+            <div class="col-sm-6 col-lg-4">
+                <div class="card border-primary" style="border-width:2px;">
+                    <div class="card-body text-center py-4">
+                        <div class="text-muted mb-1" style="font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;">Thiết bị online</div>
+                        <div class="display-3 fw-bold text-primary" id="active-count">@Model.ActiveCount</div>
+                        <div class="text-muted mt-1 small" id="window-label">trong @withinMinutes phút qua</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Android -->
+            <div class="col-sm-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body text-center py-4">
+                        <i class="ti ti-brand-android text-success mb-2" style="font-size:2rem;"></i>
+                        <div class="text-muted mb-1" style="font-size:.8rem;text-transform:uppercase;">Android</div>
+                        <div class="h1 fw-bold" id="android-count">@Model.Devices.Count(d => string.Equals(d.Platform, "Android", StringComparison.OrdinalIgnoreCase))</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- iOS / Other -->
+            <div class="col-sm-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body text-center py-4">
+                        <i class="ti ti-brand-apple text-dark mb-2" style="font-size:2rem;"></i>
+                        <div class="text-muted mb-1" style="font-size:.8rem;text-transform:uppercase;">iOS / Khác</div>
+                        <div class="h1 fw-bold" id="other-count">@Model.Devices.Count(d => !string.Equals(d.Platform, "Android", StringComparison.OrdinalIgnoreCase))</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Device table -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="ti ti-list me-2"></i>
+                    Danh sách thiết bị
+                </h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nền tảng</th>
+                            <th>Thiết bị</th>
+                            <th>Device ID</th>
+                            <th>Hoạt động lúc</th>
+                            <th>Cách đây</th>
+                        </tr>
+                    </thead>
+                    <tbody id="device-table-body">
+                        @if (!Model.Devices.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="ti ti-devices-off me-2"></i>
+                                    Không có thiết bị nào hoạt động trong cửa sổ này
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            var idx = 1;
+                            foreach (var d in Model.Devices)
+                            {
+                                var isAndroid = string.Equals(d.Platform, "Android", StringComparison.OrdinalIgnoreCase);
+                                var isIos = string.Equals(d.Platform, "iOS", StringComparison.OrdinalIgnoreCase);
+                                var platformIcon = isAndroid ? "ti-brand-android text-success" : isIos ? "ti-brand-apple text-dark" : "ti-device-mobile text-muted";
+                                var secsAgo = (int)(DateTimeOffset.UtcNow - d.LastSeenAt).TotalSeconds;
+                                <tr>
+                                    <td class="text-muted">@(idx++)</td>
+                                    <td>
+                                        <span class="d-flex align-items-center gap-1">
+                                            <i class="ti @platformIcon"></i>
+                                            @(d.Platform ?? "—")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @(d.DeviceModel ?? "—")
+                                        @if (!string.IsNullOrWhiteSpace(d.Manufacturer))
+                                        {
+                                            <span class="text-muted small ms-1">(@d.Manufacturer)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <code class="text-muted" style="font-size:.8rem;">@(d.DeviceId.Length > 16 ? d.DeviceId[..16] + "…" : d.DeviceId)</code>
+                                    </td>
+                                    <td class="text-muted small">@d.LastSeenAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                                    <td>
+                                        @if (secsAgo < 60)
+                                        {
+                                            <span class="badge bg-green-lt">@secsAgo giây trước</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-yellow-lt">@((secsAgo / 60)) phút trước</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+<style>
+    .pulse-dot {
+        display: inline-block;
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: #fff;
+        animation: pulse 1.4s infinite;
+    }
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: .4; transform: scale(.65); }
+    }
+</style>
+<script>
+    const REFRESH_INTERVAL = 20; // giây
+    let withinMinutes = @withinMinutes;
+    let countdown = REFRESH_INTERVAL;
+    let barTimer = null;
+    let countdownTimer = null;
+
+    // ---- Helpers ----
+    function secondsAgoLabel(isoStr) {
+        const diff = Math.round((Date.now() - new Date(isoStr).getTime()) / 1000);
+        if (diff < 60) return `<span class="badge bg-green-lt">${diff} giây trước</span>`;
+        return `<span class="badge bg-yellow-lt">${Math.floor(diff / 60)} phút trước</span>`;
+    }
+
+    function platformIcon(platform) {
+        if (!platform) return '<i class="ti ti-device-mobile text-muted"></i>';
+        const p = platform.toLowerCase();
+        if (p === 'android') return '<i class="ti ti-brand-android text-success"></i>';
+        if (p === 'ios')     return '<i class="ti ti-brand-apple text-dark"></i>';
+        return '<i class="ti ti-device-mobile text-muted"></i>';
+    }
+
+    function shortDeviceId(id) {
+        if (!id) return '—';
+        return id.length > 16 ? id.substring(0, 16) + '…' : id;
+    }
+
+    function toLocalTime(isoStr) {
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // ---- Render table ----
+    function renderTable(devices) {
+        const tbody = document.getElementById('device-table-body');
+        if (!devices || devices.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">
+                <i class="ti ti-devices-off me-2"></i>Không có thiết bị nào hoạt động trong cửa sổ này</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = devices.map((d, i) => `
+            <tr>
+                <td class="text-muted">${i + 1}</td>
+                <td><span class="d-flex align-items-center gap-1">${platformIcon(d.platform)} ${d.platform ?? '—'}</span></td>
+                <td>${d.deviceModel ?? '—'}${d.manufacturer ? ` <span class="text-muted small ms-1">(${d.manufacturer})</span>` : ''}</td>
+                <td><code class="text-muted" style="font-size:.8rem;">${shortDeviceId(d.deviceId)}</code></td>
+                <td class="text-muted small">${toLocalTime(d.lastSeenAt)}</td>
+                <td>${secondsAgoLabel(d.lastSeenAt)}</td>
+            </tr>`).join('');
+    }
+
+    // ---- Fetch & update ----
+    async function refresh() {
+        try {
+            const res = await fetch(`/Admin/ActiveDevicesData?withinMinutes=${withinMinutes}`);
+            if (!res.ok) return;
+            const json = await res.json();
+            if (!json || !json.success || !json.data) return;
+            const data = json.data;
+
+            document.getElementById('active-count').textContent  = data.activeCount;
+            document.getElementById('window-label').textContent  = `trong ${data.withinMinutes} phút qua`;
+            document.getElementById('last-updated').textContent  = toLocalTime(data.asOf);
+
+            const android = (data.devices || []).filter(d => d.platform?.toLowerCase() === 'android').length;
+            const other   = data.activeCount - android;
+            document.getElementById('android-count').textContent = android;
+            document.getElementById('other-count').textContent   = other;
+
+            renderTable(data.devices);
+        } catch (e) { /* network error – sẽ thử lại lần sau */ }
+    }
+
+    // ---- Countdown & progress bar ----
+    function startCountdown() {
+        clearInterval(countdownTimer);
+        clearInterval(barTimer);
+        countdown = REFRESH_INTERVAL;
+        document.getElementById('countdown').textContent = countdown;
+
+        // Progress bar: animate từ 0→100% trong REFRESH_INTERVAL giây
+        const bar = document.getElementById('refresh-bar');
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        setTimeout(() => {
+            bar.style.transition = `width ${REFRESH_INTERVAL}s linear`;
+            bar.style.width = '100%';
+        }, 50);
+
+        countdownTimer = setInterval(() => {
+            countdown--;
+            document.getElementById('countdown').textContent = Math.max(0, countdown);
+            if (countdown <= 0) {
+                clearInterval(countdownTimer);
+                refresh().then(() => startCountdown());
+            }
+        }, 1000);
+    }
+
+    // ---- When user changes window size ----
+    document.getElementById('withinMinutes-select').addEventListener('change', function () {
+        withinMinutes = parseInt(this.value);
+        refresh().then(() => startCountdown());
+    });
+
+    // ---- Bootstrap ----
+    startCountdown();
+</script>
+}

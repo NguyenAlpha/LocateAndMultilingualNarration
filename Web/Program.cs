@@ -1,15 +1,27 @@
+using Web.Filters;
 using Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<TokenExpirationFilter>();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<TokenExpirationFilter>();
+});
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<AuthTokenHandler>();
 
-var apiBaseUrl = builder.Configuration.GetValue<string>("Api:BaseUrl") ?? "https://localhost:7188/";
+var apiBaseUrl = builder.Configuration.GetValue<string>("Api:BaseUrl") ?? "http://localhost:5299/";
 builder.Services.AddHttpClient<ApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
@@ -67,10 +79,20 @@ builder.Services.AddHttpClient<UserApiClient>(client =>
     client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 }).AddHttpMessageHandler<AuthTokenHandler>();
 
-//builder.Services.AddHttpClient<StallGeoFenceApiClient>(client =>
-//{
-//    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
-//}).AddHttpMessageHandler<AuthTokenHandler>();
+builder.Services.AddHttpClient<QrCodeApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
+builder.Services.AddHttpClient<StallGeoFenceApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
+builder.Services.AddHttpClient<DeviceApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
 
 var app = builder.Build();
 

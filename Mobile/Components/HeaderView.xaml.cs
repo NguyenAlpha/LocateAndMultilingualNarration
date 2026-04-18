@@ -1,4 +1,7 @@
-﻿namespace Mobile.Components;
+﻿using Mobile.Helpers;
+using Mobile.Services;
+
+namespace Mobile.Components;
 
 public partial class HeaderView : Grid
 {
@@ -24,5 +27,21 @@ public partial class HeaderView : Grid
     {
         InitializeComponent();
         BindingContext = this;
+
+#if DEBUG
+        debugResetButton.IsVisible = true;
+        debugResetButton.Clicked += OnDebugResetDeviceId;
+#endif
     }
+
+#if DEBUG
+    private async void OnDebugResetDeviceId(object? sender, EventArgs e)
+    {
+        var deviceService = ServiceHelper.GetService<IDeviceService>();
+        deviceService.ResetDeviceId();
+        var newId = deviceService.GetOrCreateDeviceId();
+        await Application.Current!.Windows[0].Page!.DisplayAlertAsync(
+            "Device ID Reset", $"New ID:\n{newId}", "OK");
+    }
+#endif
 }

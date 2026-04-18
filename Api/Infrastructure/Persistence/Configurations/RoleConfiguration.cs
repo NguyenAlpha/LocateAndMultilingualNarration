@@ -35,13 +35,6 @@ namespace Api.Infrastructure.Persistence.Configurations
                     Name = "BusinessOwner",
                     NormalizedName = "BUSINESSOWNER",
                     ConcurrencyStamp = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
-                },
-                new Role
-                {
-                    Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
-                    Name = "User",
-                    NormalizedName = "USER",
-                    ConcurrencyStamp = "cccccccc-cccc-cccc-cccc-cccccccccccc"
                 }
             );
         }

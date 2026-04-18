@@ -1,6 +1,6 @@
 @model Web.Models.StallNarrationContentManagementViewModel
 @{
-    ViewData["Title"] = "Stall Narration Content Management";
+    ViewData["Title"] = "Quản lý Nội dung Thuyết minh";
     var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
     var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
     var stallLookup = Model.Stalls.ToDictionary(s => s.Id, s => s.Name);
@@ -11,15 +11,15 @@
 <div class="page-header">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
-            <li class="breadcrumb-item"><a href="#">Management</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Stall Narration Content</li>
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="#">Quản lý</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Nội dung Thuyết minh</li>
         </ol>
     </nav>
     <div class="d-flex justify-content-between align-items-center flex-wrap">
         <div>
-            <h1><i class="bi bi-mic me-2"></i>Stall Narration Content</h1>
-            <p class="text-muted mb-0">Quản lý nội dung narration theo stall và ngôn ngữ.</p>
+            <h1><i class="bi bi-mic me-2"></i>Nội dung Thuyết minh</h1>
+            <p class="text-muted mb-0">Quản lý nội dung thuyết minh theo gian hàng và ngôn ngữ.</p>
         </div>
         <div class="btn-group">
             <button type="button" class="btn btn-outline-secondary">
@@ -141,7 +141,7 @@
                     foreach (var item in Model.Items)
                     {
                         var statusClass = item.IsActive ? "success" : "secondary";
-                        var statusText = item.IsActive ? "Active" : "Inactive";
+                        var statusText = item.IsActive ? "Hoạt động" : "Tạm dừng";
                         var (ttsBadge, ttsText, ttsTitle) = item.TtsStatus switch
                         {
                             "Pending"    => ("bg-warning text-dark", "Chờ",        "Đang chờ xử lý TTS"),
@@ -244,6 +244,24 @@
 </div>
 
 <script>
+    // Form validation: create narration content modal
+    (function () {
+        var form = document.getElementById('createNarrationForm');
+        if (!form) return;
+        form.addEventListener('submit', function (e) {
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+        // Reset validation state khi đóng modal
+        document.getElementById('createNarrationContentModal').addEventListener('hidden.bs.modal', function () {
+            form.classList.remove('was-validated');
+            form.reset();
+        });
+    })();
+
     document.getElementById('toggleStatusModal').addEventListener('show.bs.modal', function (event) {
         var btn = event.relatedTarget;
         var id = btn.getAttribute('data-id');
@@ -273,7 +291,8 @@
 <div class="modal fade" id="createNarrationContentModal" tabindex="-1" aria-labelledby="createNarrationContentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form asp-controller="Narration" asp-action="Create" method="post">
+            <form asp-controller="Narration" asp-action="Create" method="post"
+                  id="createNarrationForm" class="needs-validation" novalidate>
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
                     <h5 class="modal-title" id="createNarrationContentModalLabel">
@@ -292,6 +311,7 @@
                                     <option value="@stall.Id">@stall.Name</option>
                                 }
                             </select>
+                            <div class="invalid-feedback">Vui lòng chọn gian hàng.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="createLanguageId" class="form-label">Ngôn ngữ gốc <span class="text-danger">*</span></label>
@@ -302,23 +322,30 @@
                                     <option value="@language.Id">@language.Name</option>
                                 }
                             </select>
+                            <div class="invalid-feedback">Vui lòng chọn ngôn ngữ.</div>
                         </div>
                         <div class="col-12">
                             <label for="createTitle" class="form-label">Tiêu đề <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="createTitle" name="Title" maxlength="128" required placeholder="Nhập tiêu đề...">
+                            <input type="text" class="form-control" id="createTitle" name="Title"
+                                   required minlength="2" maxlength="128" placeholder="Nhập tiêu đề...">
+                            <div class="invalid-feedback">Tiêu đề là bắt buộc (2–128 ký tự).</div>
                         </div>
                         <div class="col-12">
                             <label for="createDescription" class="form-label">Mô tả</label>
-                            <input type="text" class="form-control" id="createDescription" name="Description" maxlength="256" placeholder="Nhập mô tả (tùy chọn)...">
+                            <input type="text" class="form-control" id="createDescription" name="Description"
+                                   maxlength="256" placeholder="Nhập mô tả (tùy chọn)...">
                         </div>
                         <div class="col-12">
                             <label for="createScriptText" class="form-label">Nội dung kịch bản <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="createScriptText" name="ScriptText" rows="5" required placeholder="Nhập nội dung kịch bản..."></textarea>
+                            <textarea class="form-control" id="createScriptText" name="ScriptText"
+                                      rows="5" required minlength="10"
+                                      placeholder="Nhập nội dung kịch bản..."></textarea>
+                            <div class="invalid-feedback">Kịch bản là bắt buộc (tối thiểu 10 ký tự).</div>
                         </div>
                         <div class="col-12">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="createIsActive" name="IsActive" value="true" checked>
-                                <label class="form-check-label" for="createIsActive">Active</label>
+                                <label class="form-check-label" for="createIsActive">Hoạt động</label>
                             </div>
                         </div>
                     </div>

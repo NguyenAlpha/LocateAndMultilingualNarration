@@ -6,7 +6,6 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Mobile.Helpers;
 using Mobile.Models;
-using Mobile.Pages;
 using Mobile.Services;
 
 namespace Mobile.ViewModels;
@@ -18,6 +17,7 @@ public class LanguageViewModel : INotifyPropertyChanged
     private readonly IDeviceService _deviceService;
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
     private readonly ILogger<LanguageViewModel> _logger;
+
     private int _navigationGuard;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -26,12 +26,7 @@ public class LanguageViewModel : INotifyPropertyChanged
 
     public ObservableCollection<LanguageOption> Languages { get; } = new();
     public ObservableCollection<LanguageOption> FilteredLanguages { get; } = new();
-    public ObservableCollection<LanguageOption> PopularLanguages { get; } = new();
-    public ObservableCollection<LanguageOption> RecentLanguages { get; } = new();
     public ObservableCollection<VoiceOption> Voices { get; } = new();
-
-    public ObservableCollection<LanguageOption> AvailableLanguages => FilteredLanguages;
-    public ObservableCollection<VoiceOption> AvailableVoices => Voices;
 
     private string _searchText = string.Empty;
     public string SearchText
@@ -46,7 +41,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    LanguageOption? _selectedLanguage;
+    private LanguageOption? _selectedLanguage;
     public LanguageOption? SelectedLanguage
     {
         get => _selectedLanguage;
@@ -56,8 +51,20 @@ public class LanguageViewModel : INotifyPropertyChanged
             _selectedLanguage = value;
             OnPropertyChanged();
             if (value != null)
-                _ = LoadVoicesForSelectedLanguageAsync();
+                _ = LoadVoicesForSelectedLanguageAsync();   // Tự động load giọng khi chọn ngôn ngữ
             OnPropertyChanged(nameof(IsReadyToContinue));
+        }
+    }
+
+    private bool _isLanguagePopupOpen;
+    public bool IsLanguagePopupOpen
+    {
+        get => _isLanguagePopupOpen;
+        set
+        {
+            if (_isLanguagePopupOpen == value) return;
+            _isLanguagePopupOpen = value;
+            OnPropertyChanged();
         }
     }
 
@@ -88,7 +95,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    VoiceOption? _selectedVoice;
+    private VoiceOption? _selectedVoice;
     public VoiceOption? SelectedVoice
     {
         get => _selectedVoice;
@@ -101,7 +108,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    bool _isBusy;
+    private bool _isBusy;
     public bool IsBusy
     {
         get => _isBusy;
@@ -114,7 +121,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
     }
 
-    string _errorMessage = string.Empty;
+    private string _errorMessage = string.Empty;
     public string ErrorMessage
     {
         get => _errorMessage;
@@ -129,9 +136,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool IsReadyToContinue => SelectedLanguage != null && SelectedVoice != null && !IsBusy;
-
-    public string? StallId { get; private set; }
-    public string? Token { get; private set; }
 
     public ICommand LoadDataCommand { get; }
     public ICommand ConfirmSelectionCommand { get; }
@@ -153,12 +157,6 @@ public class LanguageViewModel : INotifyPropertyChanged
         ConfirmSelectionCommand = new Command(async () => await ConfirmSelectionAsync());
     }
 
-    public void SetScanContext(string? stallId, string? token)
-    {
-        StallId = stallId;
-        Token = token;
-    }
-
     public async Task LoadLanguagesAsync()
     {
         if (IsBusy) return;
@@ -171,21 +169,20 @@ public class LanguageViewModel : INotifyPropertyChanged
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            // SỬA Ở ĐÂY: Gọi đúng method GetActiveLanguagesAsync()
             var languages = await _languageService.GetActiveLanguagesAsync();
 
             _allLanguages.Clear();
             Languages.Clear();
 
-            foreach (var language in languages)
+            foreach (var lang in languages)
             {
                 var option = new LanguageOption
                 {
-                    Id = language.Id,
-                    Code = language.Code,
-                    Name = language.Name ?? language.DisplayName ?? "Unknown",
-                    NativeName = language.DisplayName ?? language.Name ?? "Unknown",
-                    FlagEmoji = ConvertFlagToEmoji(language.FlagCode)
+                    Id = lang.Id,
+                    Code = lang.Code ?? string.Empty,
+                    Name = lang.Name ?? lang.DisplayName ?? "Unknown Language",
+                    NativeName = lang.DisplayName ?? lang.Name ?? "Unknown",
+                    FlagEmoji = ConvertFlagToEmoji(lang.FlagCode)
                 };
 
                 _allLanguages.Add(option);
@@ -194,17 +191,13 @@ public class LanguageViewModel : INotifyPropertyChanged
 
             if (Languages.Count == 0)
             {
-                ErrorMessage = "Không có ngôn ngữ khả dụng.";
+                ErrorMessage = "Không có ngôn ngữ khả dụng. Vui lòng kiểm tra lại kết nối.";
                 return;
             }
 
-            PopularLanguages.Clear();
-            foreach (var lang in _allLanguages.Take(8))
-                PopularLanguages.Add(lang);
-
-            await LoadRecentLanguagesAsync();
             FilterLanguages();
 
+            // Chọn ngôn ngữ đầu tiên làm mặc định
             SelectedLanguage = Languages.FirstOrDefault();
         }
         catch (Exception ex)
@@ -223,23 +216,17 @@ public class LanguageViewModel : INotifyPropertyChanged
     {
         FilteredLanguages.Clear();
 
-        if (string.IsNullOrWhiteSpace(SearchText))
-        {
-            foreach (var lang in _allLanguages)
-                FilteredLanguages.Add(lang);
-        }
-        else
-        {
-            var searchTerm = SearchText.Trim().ToLowerInvariant();
-            var filtered = _allLanguages.Where(l =>
+        var searchTerm = SearchText?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        var filtered = string.IsNullOrWhiteSpace(searchTerm)
+            ? _allLanguages
+            : _allLanguages.Where(l =>
                 l.Name.ToLowerInvariant().Contains(searchTerm) ||
                 l.NativeName.ToLowerInvariant().Contains(searchTerm) ||
-                l.Code.ToLowerInvariant().Contains(searchTerm)
-            ).ToList();
+                l.Code.ToLowerInvariant().Contains(searchTerm)).ToList();
 
-            foreach (var lang in filtered)
-                FilteredLanguages.Add(lang);
-        }
+        foreach (var lang in filtered)
+            FilteredLanguages.Add(lang);
     }
 
     private async Task LoadVoicesForSelectedLanguageAsync()
@@ -255,26 +242,28 @@ public class LanguageViewModel : INotifyPropertyChanged
         {
             IsBusy = true;
             Voices.Clear();
+            ErrorMessage = string.Empty;
 
             var voiceList = await _voiceService.GetVoicesByLanguageAsync(SelectedLanguage.Id);
 
-            foreach (var voice in voiceList.OrderByDescending(v => v.IsDefault).ThenBy(v => v.Priority))
+            foreach (var voice in voiceList.OrderByDescending(v => v.IsDefault).ThenBy(v => v.DisplayName))
             {
                 Voices.Add(new VoiceOption
                 {
                     Id = voice.Id,
-                    DisplayName = voice.DisplayName,
+                    DisplayName = voice.DisplayName ?? "Unnamed Voice",
                     Description = voice.Description,
                     IsDefault = voice.IsDefault
                 });
             }
 
+            // Tự động chọn giọng mặc định nếu có, ngược lại chọn giọng đầu tiên
             SelectedVoice = Voices.FirstOrDefault(v => v.IsDefault) ?? Voices.FirstOrDefault();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Không thể tải giọng đọc");
-            ErrorMessage = "Tải giọng đọc thất bại.";
+            _logger.LogError(ex, $"Không thể tải giọng đọc cho language {SelectedLanguage.Id}");
+            ErrorMessage = "Không thể tải danh sách giọng đọc. Vui lòng chọn ngôn ngữ khác.";
         }
         finally
         {
@@ -293,7 +282,7 @@ public class LanguageViewModel : INotifyPropertyChanged
 
             var deviceId = _deviceService.GetOrCreateDeviceId();
 
-            var upsertDto = new Mobile.Models.DevicePreferenceUpsertDto
+            var upsertDto = new DevicePreferenceUpsertDto
             {
                 LanguageId = SelectedLanguage.Id,
                 VoiceId = SelectedVoice.Id,
@@ -306,13 +295,7 @@ public class LanguageViewModel : INotifyPropertyChanged
             if (result.Success)
             {
                 LanguageHelper.SetLanguage(SelectedLanguage.Code);
-                SaveToRecentLanguages(SelectedLanguage);
-
-                var route = "//MapPage";
-                if (!string.IsNullOrWhiteSpace(StallId))
-                    route += $"?stallId={Uri.EscapeDataString(StallId)}";
-
-                await Shell.Current.GoToAsync(route);
+                await Shell.Current.GoToAsync("//MapPage");
             }
             else
             {
@@ -321,7 +304,7 @@ public class LanguageViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Xác nhận lựa chọn thất bại");
+            _logger.LogError(ex, "Xác nhận lựa chọn ngôn ngữ & giọng đọc thất bại");
             ErrorMessage = "Không thể lưu lựa chọn. Vui lòng thử lại.";
         }
         finally
@@ -335,29 +318,23 @@ public class LanguageViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(flagCode) || flagCode.Length < 2)
             return "🌐";
 
-        var code = flagCode.ToUpperInvariant();
-        if (code.Length < 2) return "🌐";
+        var code = flagCode.ToUpperInvariant().Trim();
+        if (code.Length == 2)
+        {
+            return char.ConvertFromUtf32(0x1F1E6 + (code[0] - 'A')) +
+                   char.ConvertFromUtf32(0x1F1E6 + (code[1] - 'A'));
+        }
 
-        return char.ConvertFromUtf32(0x1F1E6 + (code[0] - 'A'))
-             + char.ConvertFromUtf32(0x1F1E6 + (code[1] - 'A'));
-    }
-
-    private async Task LoadRecentLanguagesAsync()
-    {
-        RecentLanguages.Clear();
-        await Task.CompletedTask; // TODO: implement later
-    }
-
-    private void SaveToRecentLanguages(LanguageOption selectedLanguage)
-    {
-        // TODO: implement later
+        return "🌐";
     }
 
     void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
-// Hai class hỗ trợ UI
+// ====================== Supporting Classes ======================
+// Hai class hỗ trợ UI (giữ nguyên như cũ của bạn)
+
 public class LanguageOption
 {
     public Guid Id { get; set; }
@@ -373,4 +350,6 @@ public class VoiceOption
     public string DisplayName { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsDefault { get; set; }
+
+    public string DisplayText => IsDefault ? $"{DisplayName} (Mặc định)" : DisplayName;
 }

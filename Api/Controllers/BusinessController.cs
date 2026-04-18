@@ -179,7 +179,7 @@ namespace Api.Controllers
         /// <response code="403">Không có quyền truy cập</response>
         [HttpGet]
         [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
-        public async Task<IActionResult> GetBusinesses([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
+        public async Task<IActionResult> GetBusinesses([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] string? sortBy = null, [FromQuery] string? sortDir = null, [FromQuery] string? plan = null)
         {
             _logger.LogInformation("Bắt đầu lấy danh sách business - Page: {Page}, PageSize: {PageSize}", page, pageSize);
 
@@ -205,10 +205,33 @@ namespace Api.Controllers
                 query = query.Where(b => b.Name.Contains(keyword) || (b.TaxCode != null && b.TaxCode.Contains(keyword)));
             }
 
+            if (!string.IsNullOrWhiteSpace(plan))
+            {
+                query = query.Where(b => b.Plan == plan);
+            }
+
             _logger.LogDebug("Truy vấn danh sách business - UserId: {UserId}", userId);
             var totalCount = await query.CountAsync();
-            var businesses = await query
-                .OrderByDescending(b => b.CreatedAt)
+
+            var descending = !string.Equals(sortDir, "asc", StringComparison.OrdinalIgnoreCase);
+            IOrderedQueryable<Api.Domain.Entities.Business> orderedQuery;
+            if (string.Equals(sortBy, "plan", StringComparison.OrdinalIgnoreCase))
+            {
+                // Sort by plan rank: Free=1, Basic=2, Pro=3
+                orderedQuery = descending
+                    ? query.OrderByDescending(b => b.Plan == "Pro" ? 3 : b.Plan == "Basic" ? 2 : 1)
+                           .ThenByDescending(b => b.CreatedAt)
+                    : query.OrderBy(b => b.Plan == "Pro" ? 3 : b.Plan == "Basic" ? 2 : 1)
+                           .ThenByDescending(b => b.CreatedAt);
+            }
+            else
+            {
+                orderedQuery = descending
+                    ? query.OrderByDescending(b => b.CreatedAt)
+                    : query.OrderBy(b => b.CreatedAt);
+            }
+
+            var businesses = await orderedQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -243,6 +266,36 @@ namespace Api.Controllers
                 Plan = business.Plan,
                 PlanExpiresAt = business.PlanExpiresAt
             };
+        }
+
+        /// <summary>
+        /// Kích hoạt hoặc vô hiệu hóa business
+        /// </summary>
+        /// <param name="id">Id của business</param>
+        /// <returns>Business sau khi cập nhật trạng thái</returns>
+        /// <response code="200">Cập nhật thành công</response>
+        /// <response code="401">Không xác thực</response>
+        /// <response code="403">Không có quyền truy cập</response>
+        /// <response code="404">Không tìm thấy business</response>
+        [HttpPatch("{id:guid}/toggle-active")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
+        public async Task<IActionResult> ToggleActive(Guid id)
+        {
+            if (!TryGetUserId(out var userId))
+                return this.UnauthorizedResult("Không xác thực");
+
+            var business = await _context.Businesses.FirstOrDefaultAsync(b => b.Id == id);
+            if (business == null)
+                return this.NotFoundResult("Không tìm thấy business");
+
+            if (!IsAdmin() && business.OwnerUserId != userId)
+                return this.ForbiddenResult("Không có quyền truy cập");
+
+            business.IsActive = !business.IsActive;
+            await _context.SaveChangesAsync();
+
+            var timeZone = GetTimeZone();
+            return this.OkResult(MapBusinessDetail(business, timeZone));
         }
 
         /// <summary>

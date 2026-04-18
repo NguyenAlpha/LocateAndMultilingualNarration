@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.DTOs.Businesses;
+using Shared.DTOs.Geo;
+using Shared.DTOs.QrCodes;
 using Shared.DTOs.Users;
 using Web.Models;
 using Web.Services;
@@ -15,6 +17,8 @@ namespace Web.Controllers
         private readonly SubscriptionApiClient _subscriptionApiClient;
         private readonly SubscriptionOrderApiClient _subscriptionOrderApiClient;
         private readonly UserApiClient _userApiClient;
+        private readonly QrCodeApiClient _qrCodeApiClient;
+        private readonly DeviceApiClient _deviceApiClient;
 
         public AdminController(
             BusinessApiClient businessApiClient,
@@ -23,7 +27,9 @@ namespace Web.Controllers
             StallNarrationContentApiClient narrationContentApiClient,
             SubscriptionApiClient subscriptionApiClient,
             SubscriptionOrderApiClient subscriptionOrderApiClient,
-            UserApiClient userApiClient)
+            UserApiClient userApiClient,
+            QrCodeApiClient qrCodeApiClient,
+            DeviceApiClient deviceApiClient)
         {
             _businessApiClient = businessApiClient;
             _stallApiClient = stallApiClient;
@@ -32,32 +38,52 @@ namespace Web.Controllers
             _subscriptionApiClient = subscriptionApiClient;
             _subscriptionOrderApiClient = subscriptionOrderApiClient;
             _userApiClient = userApiClient;
+            _qrCodeApiClient = qrCodeApiClient;
+            _deviceApiClient = deviceApiClient;
         }
 
         public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
         {
             // Gọi song song để giảm latency
-            var businessesTask = _businessApiClient.GetBusinessesAsync(1, 5, null, cancellationToken);
-            var stallsTask = _stallApiClient.GetStallsAsync(1, 5, null, null, cancellationToken);
-            var languagesTask = _languageApiClient.GetActiveLanguagesAsync(cancellationToken);
-            var narrationTask = _narrationContentApiClient.GetContentsAsync(1, 1, null, null, null, null, cancellationToken);
+            var businessesTask      = _businessApiClient.GetBusinessesAsync(1, 5, null, cancellationToken);
+            var stallsTask          = _stallApiClient.GetStallsAsync(1, 5, null, null, cancellationToken);
+            var languagesTask       = _languageApiClient.GetActiveLanguagesAsync(cancellationToken);
+            var narrationTask       = _narrationContentApiClient.GetContentsAsync(1, 1, null, null, null, null, cancellationToken);
+            var usersTask           = _userApiClient.GetUsersAsync(1, 1, null, null, null, cancellationToken);
+            var qrTotalTask         = _qrCodeApiClient.GetQrCodesAsync(1, 1, null, null, cancellationToken);
+            var qrUsedTask          = _qrCodeApiClient.GetQrCodesAsync(1, 1, true, null, cancellationToken);
+            // pageSize=100 để lấy TotalCount + tính tổng doanh thu (tối đa 100 đơn đầu)
+            var completedOrdersTask = _subscriptionOrderApiClient.GetOrdersAsync(1, 100, null, "Completed", null, cancellationToken);
+            var recentOrdersTask    = _subscriptionOrderApiClient.GetOrdersAsync(1, 5, null, null, null, cancellationToken);
 
-            await Task.WhenAll(businessesTask, stallsTask, languagesTask, narrationTask);
+            await Task.WhenAll(businessesTask, stallsTask, languagesTask, narrationTask,
+                usersTask, qrTotalTask, qrUsedTask, completedOrdersTask, recentOrdersTask);
 
-            var businesses = await businessesTask;
-            var stalls = await stallsTask;
-            var languages = await languagesTask;
-            var narrations = await narrationTask;
+            var businesses      = await businessesTask;
+            var stalls          = await stallsTask;
+            var languages       = await languagesTask;
+            var narrations      = await narrationTask;
+            var users           = await usersTask;
+            var qrTotal         = await qrTotalTask;
+            var qrUsed          = await qrUsedTask;
+            var completedOrders = await completedOrdersTask;
+            var recentOrders    = await recentOrdersTask;
 
             var vm = new AdminDashboardViewModel
             {
-                TotalBusinesses = businesses?.Data?.TotalCount ?? 0,
-                TotalStalls = stalls?.Data?.TotalCount ?? 0,
-                ActiveLanguages = languages?.Data?.Count ?? 0,
+                TotalBusinesses       = businesses?.Data?.TotalCount ?? 0,
+                TotalStalls           = stalls?.Data?.TotalCount ?? 0,
+                ActiveLanguages       = languages?.Data?.Count ?? 0,
                 TotalNarrationContents = narrations?.Data?.TotalCount ?? 0,
-                RecentBusinesses = businesses?.Data?.Items?.ToList() ?? [],
-                RecentStalls = stalls?.Data?.Items?.ToList() ?? [],
-                Languages = languages?.Data?.ToList() ?? [],
+                TotalUsers            = users?.Data?.TotalCount ?? 0,
+                TotalQrCodes          = qrTotal?.Data?.TotalCount ?? 0,
+                UsedQrCodes           = qrUsed?.Data?.TotalCount ?? 0,
+                CompletedOrders       = completedOrders?.Data?.TotalCount ?? 0,
+                TotalRevenue          = completedOrders?.Data?.Items?.Sum(o => o.Amount) ?? 0,
+                RecentBusinesses      = businesses?.Data?.Items?.ToList() ?? [],
+                RecentStalls          = stalls?.Data?.Items?.ToList() ?? [],
+                Languages             = languages?.Data?.ToList() ?? [],
+                RecentOrders          = recentOrders?.Data?.Items?.ToList() ?? [],
             };
 
             return View(vm);
@@ -175,13 +201,160 @@ namespace Web.Controllers
             return RedirectToAction(nameof(UserRoleManagement), new { page, pageSize, search, roleFilter, isActiveFilter });
         }
 
-        public IActionResult Statistics() => View();
+        [HttpGet]
+        public async Task<IActionResult> QrCodes(
+            int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+        {
+            var result = await _qrCodeApiClient.GetQrCodesAsync(page, pageSize, ct: cancellationToken);
+            var items = result?.Data?.Items?.ToList() ?? [];
+
+            var vm = new AdminQrCodesViewModel
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = result?.Data?.TotalCount ?? 0,
+                TotalUsed = items.Count(q => q.IsUsed),
+                SuccessMessage = TempData["SuccessMessage"] as string,
+                ErrorMessage = TempData["ErrorMessage"] as string
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateQrCode(
+            QrCodeCreateDto model, int page = 1, int pageSize = 20,
+            CancellationToken cancellationToken = default)
+        {
+            if (!ModelState.IsValid || model.ValidDays <= 0)
+            {
+                var result = await _qrCodeApiClient.GetQrCodesAsync(page, pageSize, ct: cancellationToken);
+                var items = result?.Data?.Items?.ToList() ?? [];
+                var vm = new AdminQrCodesViewModel
+                {
+                    Items = items,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = result?.Data?.TotalCount ?? 0,
+                    TotalUsed = items.Count(q => q.IsUsed),
+                    Create = model,
+                    ShowCreateModal = true,
+                    ErrorMessage = "Số ngày hiệu lực không hợp lệ."
+                };
+                return View("QrCodes", vm);
+            }
+
+            var apiResult = await _qrCodeApiClient.CreateQrCodeAsync(model, cancellationToken);
+            if (apiResult?.Success != true)
+            {
+                TempData["ErrorMessage"] = apiResult?.Error?.Message ?? "Tạo mã QR thất bại.";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = "Đã tạo mã QR thành công.";
+            }
+
+            return RedirectToAction(nameof(QrCodes), new { page, pageSize });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteQrCode(
+            Guid id, int page = 1, int pageSize = 20,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _qrCodeApiClient.DeleteQrCodeAsync(id, cancellationToken);
+            if (response?.Success != true)
+                TempData["ErrorMessage"] = response?.Error?.Message ?? "Xoá mã QR thất bại.";
+            else
+                TempData["SuccessMessage"] = "Đã xoá mã QR.";
+
+            return RedirectToAction(nameof(QrCodes), new { page, pageSize });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetQrImage(Guid id, CancellationToken cancellationToken = default)
+        {
+            var bytes = await _qrCodeApiClient.GetQrCodeImageAsync(id, cancellationToken);
+            if (bytes is null) return NotFound();
+            return File(bytes, "image/png", $"qr-{id}.png");
+        }
+
+        [HttpGet]
+        public IActionResult AutoQr() => View();
+
+        [HttpPost]
+        public async Task<IActionResult> StartAutoQr(
+            [FromBody] Shared.DTOs.QrCodes.QrCodeCreateDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _qrCodeApiClient.CreateQrCodeAsync(request, cancellationToken);
+            if (result?.Success != true || result.Data is null)
+                return BadRequest(new { error = result?.Error?.Message ?? "Tạo mã QR thất bại." });
+
+            return Ok(new
+            {
+                id       = result.Data.Id,
+                code     = result.Data.Code,
+                imageUrl = Url.Action("GetQrImage", "Admin", new { id = result.Data.Id })
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> PollAutoQr(
+            Guid id, int validDays,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _qrCodeApiClient.GetQrCodeAsync(id, cancellationToken);
+            if (result?.Success != true || result.Data is null)
+                return NotFound();
+
+            if (!result.Data.IsUsed)
+                return Ok(new { used = false });
+
+            // QR đã được quét → tạo QR mới tự động
+            var newResult = await _qrCodeApiClient.CreateQrCodeAsync(
+                new Shared.DTOs.QrCodes.QrCodeCreateDto { ValidDays = validDays },
+                cancellationToken);
+
+            if (newResult?.Success != true || newResult.Data is null)
+                return BadRequest(new { error = "Tạo mã QR mới thất bại." });
+
+            return Ok(new
+            {
+                used     = true,
+                id       = newResult.Data.Id,
+                code     = newResult.Data.Code,
+                imageUrl = Url.Action("GetQrImage", "Admin", new { id = newResult.Data.Id })
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ActiveDevices(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        {
+            if (withinMinutes < 1) withinMinutes = 1;
+            if (withinMinutes > 60) withinMinutes = 60;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
+            ViewBag.WithinMinutes = withinMinutes;
+            return View(result?.Data ?? new ActiveDevicesSummaryDto { WithinMinutes = withinMinutes, AsOf = DateTimeOffset.UtcNow });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ActiveDevicesData(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        {
+            if (withinMinutes < 1) withinMinutes = 1;
+            if (withinMinutes > 60) withinMinutes = 60;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
+            return Json(result);
+        }
 
         [HttpGet]
         public async Task<IActionResult> Subscription(
-            int page = 1, int pageSize = 10, string? search = null, CancellationToken cancellationToken = default)
+            int page = 1, int pageSize = 10, string? search = null, string? plan = null, CancellationToken cancellationToken = default)
         {
-            var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken);
+            var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken, plan: plan);
 
             var vm = new SubscriptionManagementViewModel
             {
@@ -190,6 +363,7 @@ namespace Web.Controllers
                 PageSize = pageSize,
                 TotalCount = result?.Data?.TotalCount ?? 0,
                 Search = search,
+                FilterPlan = plan,
                 SuccessMessage = TempData["SuccessMessage"] as string,
                 ErrorMessage = TempData["ErrorMessage"] as string
             };
@@ -201,12 +375,12 @@ namespace Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateSubscription(
             SubscriptionFormViewModel model,
-            int page = 1, int pageSize = 10, string? search = null,
+            int page = 1, int pageSize = 10, string? search = null, string? plan = null,
             CancellationToken cancellationToken = default)
         {
             if (!ModelState.IsValid)
             {
-                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken);
+                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken, plan: plan);
                 var vm = new SubscriptionManagementViewModel
                 {
                     Items = result?.Data?.Items?.ToList() ?? [],
@@ -214,6 +388,7 @@ namespace Web.Controllers
                     PageSize = pageSize,
                     TotalCount = result?.Data?.TotalCount ?? 0,
                     Search = search,
+                    FilterPlan = plan,
                     Edit = model,
                     ShowEditModal = true,
                     ErrorMessage = "Dữ liệu không hợp lệ."
@@ -228,7 +403,7 @@ namespace Web.Controllers
 
             if (apiResult?.Success != true)
             {
-                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken);
+                var result = await _businessApiClient.GetBusinessesAsync(page, pageSize, search, cancellationToken, plan: plan);
                 var vm = new SubscriptionManagementViewModel
                 {
                     Items = result?.Data?.Items?.ToList() ?? [],
@@ -236,6 +411,7 @@ namespace Web.Controllers
                     PageSize = pageSize,
                     TotalCount = result?.Data?.TotalCount ?? 0,
                     Search = search,
+                    FilterPlan = plan,
                     Edit = model,
                     ShowEditModal = true,
                     ErrorMessage = apiResult?.Error?.Message ?? "Cập nhật gói thất bại."
@@ -244,7 +420,7 @@ namespace Web.Controllers
             }
 
             TempData["SuccessMessage"] = $"Đã cập nhật gói {model.Plan} cho \"{model.BusinessName}\" thành công.";
-            return RedirectToAction(nameof(Subscription), new { page, pageSize, search });
+            return RedirectToAction(nameof(Subscription), new { page, pageSize, search, plan });
         }
     }
 }

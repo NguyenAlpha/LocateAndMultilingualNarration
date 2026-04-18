@@ -37,7 +37,7 @@ namespace Web.Services
             // Nếu API cần múi giờ, thêm header này khi chưa có
             if (!request.Headers.Contains("X-TimeZoneId"))
             {
-                request.Headers.Add("X-TimeZoneId", TimeZoneInfo.Local.Id);
+                request.Headers.Add("X-TimeZoneId", "SE Asia Standard Time");
             }
 
             // Chuyển request xuống handler tiếp theo / HttpClient thực thi

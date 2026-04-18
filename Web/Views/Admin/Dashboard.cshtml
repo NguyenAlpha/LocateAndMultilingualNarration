@@ -1,6 +1,6 @@
 @model Web.Models.AdminDashboardViewModel
 @{
-    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Title"] = "Bảng điều khiển";
 }
 
 <!-- Page header -->
@@ -8,14 +8,14 @@
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <div class="page-pretitle">Overview</div>
-                <h2 class="page-title">Admin Dashboard</h2>
+                <div class="page-pretitle">Tổng quan</div>
+                <h2 class="page-title">Bảng điều khiển</h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="d-flex">
                     <span class="text-muted me-2 d-flex align-items-center">
                         <i class="ti ti-refresh me-1"></i>
-                        Last updated: @DateTime.Now.ToString("HH:mm, dd/MM/yyyy")
+                        Cập nhật lúc: @DateTime.Now.ToString("HH:mm, dd/MM/yyyy")
                     </span>
                 </div>
             </div>
@@ -29,17 +29,17 @@
         <!-- ==================== STATS CARDS (thật) ==================== -->
         <div class="row row-deck row-cards mb-4">
 
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="0">
                 <div class="card">
                     <div class="card-body">
                         <div class="d-flex align-items-center">
-                            <div class="subheader">Total Businesses</div>
+                            <div class="subheader">Tổng Doanh nghiệp</div>
                         </div>
                         <div class="h1 mb-3">@Model.TotalBusinesses</div>
                         <div class="d-flex mb-2">
                             <div>
                                 <a asp-controller="Business" asp-action="Index" class="text-primary text-decoration-none">
-                                    View all <i class="ti ti-arrow-right ms-1"></i>
+                                    Xem tất cả <i class="ti ti-arrow-right ms-1"></i>
                                 </a>
                             </div>
                         </div>
@@ -50,15 +50,15 @@
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="100">
                 <div class="card">
                     <div class="card-body">
-                        <div class="subheader">Total Stalls</div>
+                        <div class="subheader">Tổng Gian hàng</div>
                         <div class="h1 mb-3">@Model.TotalStalls</div>
                         <div class="d-flex mb-2">
                             <div>
                                 <a asp-controller="Stall" asp-action="Index" class="text-green text-decoration-none">
-                                    View all <i class="ti ti-arrow-right ms-1"></i>
+                                    Xem tất cả <i class="ti ti-arrow-right ms-1"></i>
                                 </a>
                             </div>
                         </div>
@@ -69,14 +69,14 @@
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="200">
                 <div class="card">
                     <div class="card-body">
-                        <div class="subheader">Active Languages</div>
+                        <div class="subheader">Ngôn ngữ đang hoạt động</div>
                         <div class="h1 mb-3">@Model.ActiveLanguages</div>
                         <div class="d-flex mb-2">
                             <div class="text-muted">
-                                <i class="ti ti-language me-1"></i>Supported narration languages
+                                <i class="ti ti-language me-1"></i>Ngôn ngữ thuyết minh được hỗ trợ
                             </div>
                         </div>
                         <div class="progress progress-sm">
@@ -86,15 +86,15 @@
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="300">
                 <div class="card">
                     <div class="card-body">
-                        <div class="subheader">Narration Contents</div>
+                        <div class="subheader">Nội dung Thuyết minh</div>
                         <div class="h1 mb-3">@Model.TotalNarrationContents</div>
                         <div class="d-flex mb-2">
                             <div>
                                 <a asp-controller="Narration" asp-action="StallNarrationContents" class="text-orange text-decoration-none">
-                                    View all <i class="ti ti-arrow-right ms-1"></i>
+                                    Xem tất cả <i class="ti ti-arrow-right ms-1"></i>
                                 </a>
                             </div>
                         </div>
@@ -107,64 +107,92 @@
 
         </div>
 
-        <!-- ==================== STATS HARDCODE (chưa có data thật) ==================== -->
+        <!-- ==================== STATS CARDS (thật) – hàng 2 ==================== -->
         <div class="row row-deck row-cards mb-4">
 
-            <div class="col-sm-6 col-lg-3">
+            <!-- Tổng người dùng -->
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="0">
                 <div class="card">
                     <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="subheader">Total Visitors</div>
-                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Người dùng hệ thống</div>
                         </div>
-                        <div class="h1 mb-1">3,847</div>
-                        <div class="text-muted small">
-                            <i class="ti ti-arrow-up text-success me-1"></i>+156 this month
+                        <div class="h1 mb-3">@Model.TotalUsers</div>
+                        <div class="d-flex mb-2">
+                            <div>
+                                <a asp-controller="Admin" asp-action="UserRoleManagement" class="text-purple text-decoration-none">
+                                    Quản lý <i class="ti ti-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-purple" style="width: 100%" role="progressbar"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-3">
+            <!-- Mã QR -->
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="100">
                 <div class="card">
                     <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="subheader">Audio Files Generated</div>
-                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Mã QR</div>
                         </div>
-                        <div class="h1 mb-1">1,204</div>
-                        <div class="text-muted small">
-                            <i class="ti ti-arrow-up text-success me-1"></i>+43 this week
+                        <div class="h1 mb-1">@Model.TotalQrCodes</div>
+                        <div class="text-muted small mb-2">
+                            <span class="text-success me-2"><i class="ti ti-check me-1"></i>@Model.UsedQrCodes đã dùng</span>
+                            <span class="text-secondary">@(Model.TotalQrCodes - Model.UsedQrCodes) chưa dùng</span>
+                        </div>
+                        <div class="progress progress-sm">
+                            @{
+                                var qrPct = Model.TotalQrCodes > 0 ? (int)(Model.UsedQrCodes * 100.0 / Model.TotalQrCodes) : 0;
+                            }
+                            <div class="progress-bar bg-cyan" style="width: @qrPct%" role="progressbar"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-3">
+            <!-- Đơn thanh toán thành công -->
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="200">
                 <div class="card">
                     <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="subheader">Registered Users</div>
-                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Đơn thành công</div>
                         </div>
-                        <div class="h1 mb-1">248</div>
-                        <div class="text-muted small">
-                            <i class="ti ti-arrow-up text-success me-1"></i>+8 new this week
+                        <div class="h1 mb-3">@Model.CompletedOrders</div>
+                        <div class="d-flex mb-2">
+                            <div>
+                                <a asp-controller="Admin" asp-action="SubscriptionOrders" class="text-teal text-decoration-none">
+                                    Xem đơn <i class="ti ti-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-teal" style="width: 100%" role="progressbar"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-sm-6 col-lg-3">
+            <!-- Doanh thu -->
+            <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="300">
                 <div class="card">
                     <div class="card-body">
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="subheader">GeoFence Triggers</div>
-                            <span class="badge bg-orange-lt ms-auto">Hardcoded</span>
+                        <div class="d-flex align-items-center">
+                            <div class="subheader">Doanh thu</div>
                         </div>
-                        <div class="h1 mb-1">9,512</div>
-                        <div class="text-muted small">
-                            <i class="ti ti-arrow-up text-success me-1"></i>+321 today
+                        <div class="h1 mb-3">@Model.TotalRevenue.ToString("N0") <small class="fs-4 text-muted">₫</small></div>
+                        <div class="d-flex mb-2">
+                            <div>
+                                <a asp-controller="Admin" asp-action="SubscriptionOrders" class="text-lime text-decoration-none">
+                                    Chi tiết <i class="ti ti-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-lime" style="width: 100%" role="progressbar"></div>
                         </div>
                     </div>
                 </div>
@@ -176,15 +204,15 @@
         <div class="row row-deck row-cards mb-4">
 
             <!-- Recent Businesses -->
-            <div class="col-lg-8">
+            <div class="col-lg-8" data-aos="fade-up" data-aos-delay="0">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="ti ti-building-store me-2 text-primary"></i>Recent Businesses
+                            <i class="ti ti-building-store me-2 text-primary"></i>Doanh nghiệp mới nhất
                         </h3>
                         <div class="card-options">
                             <a asp-controller="Business" asp-action="Index" class="btn btn-sm btn-outline-primary">
-                                View all
+                                Xem tất cả
                             </a>
                         </div>
                     </div>
@@ -192,11 +220,11 @@
                         <table class="table table-vcenter card-table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Tax Code</th>
-                                    <th>Contact</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
+                                    <th>Tên</th>
+                                    <th>Mã số thuế</th>
+                                    <th>Liên hệ</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày tạo</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -213,11 +241,11 @@
                                             <td>
                                                 @if (b.IsActive)
                                                 {
-                                                    <span class="badge bg-success-lt text-success">Active</span>
+                                                    <span class="badge bg-success-lt text-success">Hoạt động</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-lt text-danger">Inactive</span>
+                                                    <span class="badge bg-danger-lt text-danger">Tạm dừng</span>
                                                 }
                                             </td>
                                             <td class="text-muted">@b.CreatedAt.ToString("dd/MM/yyyy")</td>
@@ -228,7 +256,7 @@
                                 {
                                     <tr>
                                         <td colspan="5" class="text-center text-muted py-4">
-                                            <i class="ti ti-database-off me-2"></i>No businesses found
+                                            <i class="ti ti-database-off me-2"></i>Chưa có doanh nghiệp nào
                                         </td>
                                     </tr>
                                 }
@@ -239,11 +267,11 @@
             </div>
 
             <!-- Active Languages -->
-            <div class="col-lg-4">
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="ti ti-language me-2 text-yellow"></i>Active Languages
+                            <i class="ti ti-language me-2 text-yellow"></i>Ngôn ngữ đang dùng
                         </h3>
                     </div>
                     <div class="card-body p-0">
@@ -267,14 +295,14 @@
                                             <div class="fw-medium">@(lang.DisplayName ?? lang.Name)</div>
                                             <div class="text-muted small">@lang.Code</div>
                                         </div>
-                                        <span class="badge bg-success-lt text-success ms-auto">Active</span>
+                                        <span class="badge bg-success-lt text-success ms-auto">Hoạt động</span>
                                     </li>
                                 }
                             }
                             else
                             {
                                 <li class="list-group-item text-center text-muted py-4">
-                                    <i class="ti ti-language-off me-2"></i>No languages configured
+                                    <i class="ti ti-language-off me-2"></i>Chưa cấu hình ngôn ngữ nào
                                 </li>
                             }
                         </ul>
@@ -288,15 +316,15 @@
         <div class="row row-deck row-cards mb-4">
 
             <!-- Recent Stalls -->
-            <div class="col-lg-8">
+            <div class="col-lg-8" data-aos="fade-up" data-aos-delay="0">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="ti ti-store me-2 text-green"></i>Recent Stalls
+                            <i class="ti ti-store me-2 text-green"></i>Gian hàng mới nhất
                         </h3>
                         <div class="card-options">
                             <a asp-controller="Stall" asp-action="Index" class="btn btn-sm btn-outline-success">
-                                View all
+                                Xem tất cả
                             </a>
                         </div>
                     </div>
@@ -304,11 +332,11 @@
                         <table class="table table-vcenter card-table">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th>Tên</th>
                                     <th>Slug</th>
-                                    <th>Contact</th>
-                                    <th>Status</th>
-                                    <th>Created</th>
+                                    <th>Liên hệ</th>
+                                    <th>Trạng thái</th>
+                                    <th>Ngày tạo</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -326,11 +354,11 @@
                                             <td>
                                                 @if (s.IsActive)
                                                 {
-                                                    <span class="badge bg-success-lt text-success">Active</span>
+                                                    <span class="badge bg-success-lt text-success">Hoạt động</span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="badge bg-danger-lt text-danger">Inactive</span>
+                                                    <span class="badge bg-danger-lt text-danger">Tạm dừng</span>
                                                 }
                                             </td>
                                             <td class="text-muted">@s.CreatedAt.ToString("dd/MM/yyyy")</td>
@@ -341,7 +369,7 @@
                                 {
                                     <tr>
                                         <td colspan="5" class="text-center text-muted py-4">
-                                            <i class="ti ti-database-off me-2"></i>No stalls found
+                                            <i class="ti ti-database-off me-2"></i>Chưa có gian hàng nào
                                         </td>
                                     </tr>
                                 }
@@ -351,74 +379,48 @@
                 </div>
             </div>
 
-            <!-- System Status (hardcode) -->
-            <div class="col-lg-4">
+            <!-- System Status -->
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="ti ti-server me-2"></i>System Status
+                            <i class="ti ti-server me-2"></i>Trạng thái Hệ thống
                         </h3>
                         <div class="card-options">
-                            <span class="badge bg-orange-lt">Hardcoded</span>
+                            <span class="badge bg-success-lt text-success">
+                                <i class="ti ti-circle-filled me-1" style="font-size:8px"></i>Trực tuyến
+                            </span>
                         </div>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted">API Server</span>
-                                <span class="badge bg-success-lt text-success">Online</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted"><i class="ti ti-api me-2"></i>API Server</span>
+                                <span class="badge bg-success-lt text-success">Trực tuyến</span>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted">Database</span>
-                                <span class="badge bg-success-lt text-success">Connected</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted"><i class="ti ti-database me-2"></i>Cơ sở dữ liệu</span>
+                                <span class="badge bg-success-lt text-success">Đã kết nối</span>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted">Azure Speech</span>
-                                <span class="badge bg-success-lt text-success">Running</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted"><i class="ti ti-microphone me-2"></i>Azure Speech</span>
+                                <span class="badge bg-success-lt text-success">Đang chạy</span>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted">Azure Blob</span>
-                                <span class="badge bg-success-lt text-success">Running</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted"><i class="ti ti-cloud me-2"></i>Azure Blob</span>
+                                <span class="badge bg-success-lt text-success">Đang chạy</span>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted">Azure Translator</span>
-                                <span class="badge bg-success-lt text-success">Running</span>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted small">CPU Usage</span>
-                                <span class="small">45%</span>
-                            </div>
-                            <div class="progress progress-sm">
-                                <div class="progress-bar bg-success" style="width: 45%" role="progressbar"></div>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted small">Memory</span>
-                                <span class="small">62%</span>
-                            </div>
-                            <div class="progress progress-sm">
-                                <div class="progress-bar bg-warning" style="width: 62%" role="progressbar"></div>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="text-muted small">Storage</span>
-                                <span class="small">78%</span>
-                            </div>
-                            <div class="progress progress-sm">
-                                <div class="progress-bar bg-danger" style="width: 78%" role="progressbar"></div>
+                        <div class="mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted"><i class="ti ti-language me-2"></i>Azure Translator</span>
+                                <span class="badge bg-success-lt text-success">Đang chạy</span>
                             </div>
                         </div>
                     </div>
@@ -427,53 +429,80 @@
 
         </div>
 
-        <!-- ==================== CHARTS (hardcode) ==================== -->
+        <!-- ==================== RECENT ORDERS (thật) ==================== -->
         <div class="row row-deck row-cards">
 
-            <div class="col-lg-6">
+            <div class="col-12" data-aos="fade-up" data-aos-delay="0">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="ti ti-chart-bar me-2"></i>Stall Registrations by Month
+                            <i class="ti ti-receipt me-2 text-teal"></i>Đơn đăng ký gần đây
                         </h3>
                         <div class="card-options">
-                            <span class="badge bg-orange-lt">Hardcoded</span>
+                            <a asp-controller="Admin" asp-action="SubscriptionOrders" class="btn btn-sm btn-outline-teal">
+                                Xem tất cả
+                            </a>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div id="chart-stalls-monthly" style="height: 200px;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="ti ti-chart-donut me-2"></i>Visitors by Language
-                        </h3>
-                        <div class="card-options">
-                            <span class="badge bg-orange-lt">Hardcoded</span>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="chart-visitors-language" style="height: 200px;"></div>
-                        <div class="mt-3">
-                            @foreach (var lang in Model.Languages.Take(4))
-                            {
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="me-2">@(lang.DisplayName ?? lang.Name)</span>
-                                    <div class="progress flex-grow-1 me-2 progress-sm">
-                                        <div class="progress-bar bg-primary" style="width: @(new Random().Next(20, 80))%"></div>
-                                    </div>
-                                    <span class="text-muted small">~@(new Random().Next(10, 40))%</span>
-                                </div>
-                            }
-                            @if (!Model.Languages.Any())
-                            {
-                                <div class="text-center text-muted">No language data</div>
-                            }
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead>
+                                <tr>
+                                    <th>Doanh nghiệp</th>
+                                    <th>Gói</th>
+                                    <th>Số tiền</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thẻ</th>
+                                    <th>Ngày tạo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.RecentOrders.Any())
+                                {
+                                    @foreach (var o in Model.RecentOrders)
+                                    {
+                                        <tr>
+                                            <td class="fw-medium">@o.BusinessName</td>
+                                            <td>
+                                                @if (o.Plan == "Pro")
+                                                {
+                                                    <span class="badge bg-purple-lt text-purple">Pro</span>
+                                                }
+                                                else if (o.Plan == "Basic")
+                                                {
+                                                    <span class="badge bg-info-lt text-info">Basic</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary-lt text-secondary">@o.Plan</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted">@o.Amount.ToString("N0") ₫</td>
+                                            <td>
+                                                @if (o.Status == "Completed")
+                                                {
+                                                    <span class="badge bg-success-lt text-success">Thành công</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-lt text-danger">Thất bại</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted">@(o.CardLastFour != null ? $"**** {o.CardLastFour}" : "—")</td>
+                                            <td class="text-muted">@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="ti ti-receipt-off me-2"></i>Chưa có đơn đăng ký nào
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -483,30 +512,3 @@
     </div>
 </div>
 
-@section Scripts {
-<script>
-    // Chart: Stalls by month (hardcode)
-    document.addEventListener("DOMContentLoaded", function () {
-        if (typeof ApexCharts === 'undefined') return;
-
-        new ApexCharts(document.getElementById('chart-stalls-monthly'), {
-            chart: { type: 'bar', height: 200, toolbar: { show: false }, sparkline: { enabled: false } },
-            series: [{ name: 'Stalls', data: [12, 18, 25, 30, 22, 35, 40, 28, 45, 38, 50, 42] }],
-            xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
-            colors: ['#206bc4'],
-            plotOptions: { bar: { borderRadius: 4 } },
-            dataLabels: { enabled: false },
-            grid: { strokeDashArray: 4 },
-        }).render();
-
-        new ApexCharts(document.getElementById('chart-visitors-language'), {
-            chart: { type: 'donut', height: 200, toolbar: { show: false } },
-            series: [35, 28, 22, 15],
-            labels: ['Vietnamese', 'English', 'Japanese', 'Korean'],
-            colors: ['#206bc4', '#2fb344', '#f76707', '#ae3ec9'],
-            legend: { show: false },
-            dataLabels: { enabled: false },
-        }).render();
-    });
-</script>
-}

@@ -1,187 +1,199 @@
 @model Web.Models.SubscriptionManagementViewModel
 @{
     ViewData["Title"] = "Quản lý Subscription";
+    var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
 
     string PlanBadge(string plan) => plan switch
     {
-        "Basic" => "badge bg-info-lt",
-        "Pro"   => "badge bg-success-lt",
-        _       => "badge bg-secondary-lt"
+        "Basic" => "badge bg-info",
+        "Pro"   => "badge bg-primary",
+        _       => "badge bg-secondary"
     };
 }
 
-<!-- Page header -->
-<div class="page-header d-print-none">
-    <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
-                <div class="page-pretitle">Admin</div>
-                <h2 class="page-title">Quản lý Subscription</h2>
-            </div>
-        </div>
+<!-- Page Header -->
+<div class="page-header" data-aos="fade-up">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item">Quản trị</li>
+            <li class="breadcrumb-item active" aria-current="page">Quản lý Subscription</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <h1><i class="ti ti-credit-card me-2"></i>Quản lý Subscription</h1>
     </div>
 </div>
 
-<div class="page-body">
-    <div class="container-xl">
-
-        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-        {
-            <div class="alert alert-success alert-dismissible" role="alert">
-                @Model.SuccessMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                @Model.ErrorMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        <div class="card">
-            <div class="card-header">
-                <!-- Search -->
-                <div class="card-options">
-                    <form method="get" asp-action="Subscription" class="d-flex gap-2">
-                        <input type="hidden" name="pageSize" value="@Model.PageSize" />
-                        <input class="form-control form-control-sm" type="text" name="search"
-                               placeholder="Tìm business..." value="@Model.Search" />
-                        <button class="btn btn-sm btn-outline-secondary" type="submit">
-                            <i class="ti ti-search"></i>
-                        </button>
-                        @if (!string.IsNullOrEmpty(Model.Search))
-                        {
-                            <a class="btn btn-sm btn-ghost-secondary" asp-action="Subscription">Xoá</a>
-                        }
-                    </form>
-                </div>
-                <div class="card-title">
-                    <span class="text-muted">@Model.TotalCount business</span>
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table">
-                    <thead>
-                        <tr>
-                            <th>Tên Business</th>
-                            <th>Gói hiện tại</th>
-                            <th>Hết hạn</th>
-                            <th>Trạng thái</th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (!Model.Items.Any())
-                        {
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">Không có business nào.</td>
-                            </tr>
-                        }
-                        @foreach (var item in Model.Items)
-                        {
-                            var isExpired = item.PlanExpiresAt.HasValue && item.PlanExpiresAt.Value <= DateTimeOffset.UtcNow;
-                            var effectivePlan = isExpired ? "Free" : item.Plan;
-                            <tr>
-                                <td>
-                                    <div class="fw-medium">@item.Name</div>
-                                    @if (!string.IsNullOrEmpty(item.TaxCode))
-                                    {
-                                        <div class="text-muted small">MST: @item.TaxCode</div>
-                                    }
-                                </td>
-                                <td>
-                                    <span class="@PlanBadge(effectivePlan)">@effectivePlan</span>
-                                    @if (isExpired && item.Plan != "Free")
-                                    {
-                                        <span class="badge bg-warning-lt ms-1">Hết hạn</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (item.PlanExpiresAt.HasValue)
-                                    {
-                                        <span class="@(isExpired ? "text-danger" : "text-muted")">
-                                            @item.PlanExpiresAt.Value.ToString("dd/MM/yyyy")
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">Vĩnh viễn</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (item.IsActive)
-                                    {
-                                        <span class="badge bg-success-lt">Hoạt động</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary-lt">Tạm dừng</span>
-                                    }
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editPlanModal"
-                                            data-business-id="@item.Id"
-                                            data-business-name="@item.Name"
-                                            data-plan="@item.Plan"
-                                            data-expires-at="@(item.PlanExpiresAt?.ToString("yyyy-MM-ddTHH:mm") ?? "")">
-                                        <i class="ti ti-edit me-1"></i>Đổi gói
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            @if (Model.TotalPages > 1)
-            {
-                <div class="card-footer d-flex align-items-center">
-                    <p class="m-0 text-muted">
-                        Trang <span>@Model.Page</span> / <span>@Model.TotalPages</span>
-                    </p>
-                    <ul class="pagination m-0 ms-auto">
-                        <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
-                            <a class="page-link" asp-action="Subscription"
-                               asp-route-page="@(Model.Page - 1)"
-                               asp-route-pageSize="@Model.PageSize"
-                               asp-route-search="@Model.Search">
-                                <i class="ti ti-chevron-left"></i>
-                            </a>
-                        </li>
-                        @for (int i = Math.Max(1, Model.Page - 2); i <= Math.Min(Model.TotalPages, Model.Page + 2); i++)
-                        {
-                            <li class="page-item @(i == Model.Page ? "active" : "")">
-                                <a class="page-link" asp-action="Subscription"
-                                   asp-route-page="@i"
-                                   asp-route-pageSize="@Model.PageSize"
-                                   asp-route-search="@Model.Search">@i</a>
-                            </li>
-                        }
-                        <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
-                            <a class="page-link" asp-action="Subscription"
-                               asp-route-page="@(Model.Page + 1)"
-                               asp-route-pageSize="@Model.PageSize"
-                               asp-route-search="@Model.Search">
-                                <i class="ti ti-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            }
-        </div>
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert" data-aos="fade-in">
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert" data-aos="fade-in">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Tìm kiếm / Lọc -->
+<div class="search-filter-bar" data-aos="fade-up" data-aos-delay="50">
+    <form method="get" asp-action="Subscription" class="row g-3">
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <div class="col-md-4">
+            <label for="subSearch" class="form-label visually-hidden">Tìm business</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control table-search" id="subSearch" name="search"
+                       value="@Model.Search" placeholder="Tìm business...">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label for="subPlanFilter" class="form-label visually-hidden">Lọc theo gói</label>
+            <select class="form-select" id="subPlanFilter" name="plan">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.FilterPlan))">Tất cả gói</option>
+                <option value="Free"  selected="@(Model.FilterPlan == "Free")">Free</option>
+                <option value="Basic" selected="@(Model.FilterPlan == "Basic")">Basic</option>
+                <option value="Pro"   selected="@(Model.FilterPlan == "Pro")">Pro</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" type="submit">
+                <i class="bi bi-search me-1"></i>Tìm kiếm
+            </button>
+        </div>
+        <div class="col-md-2">
+            <a class="btn btn-outline-secondary w-100" asp-action="Subscription">
+                <i class="bi bi-x-circle me-1"></i>Đặt lại
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Bảng Subscription -->
+<div class="table-container" data-aos="fade-up" data-aos-delay="100">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted">Hiển thị @startIndex–@endIndex trong @Model.TotalCount business</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-vcenter" id="subscriptionTable" aria-label="Danh sách subscription">
+            <thead>
+                <tr>
+                    <th scope="col">Tên Business</th>
+                    <th scope="col">Gói hiện tại</th>
+                    <th scope="col">Hết hạn</th>
+                    <th scope="col">Trạng thái</th>
+                    <th scope="col" class="no-export">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Items.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">Không có business nào.</td>
+                    </tr>
+                }
+                @foreach (var item in Model.Items)
+                {
+                    var isExpired = item.PlanExpiresAt.HasValue && item.PlanExpiresAt.Value <= DateTimeOffset.UtcNow;
+                    var effectivePlan = isExpired ? "Free" : item.Plan;
+                    <tr>
+                        <td>
+                            <div class="fw-medium">@item.Name</div>
+                            @if (!string.IsNullOrEmpty(item.TaxCode))
+                            {
+                                <small class="text-muted">MST: @item.TaxCode</small>
+                            }
+                        </td>
+                        <td>
+                            <span class="@PlanBadge(effectivePlan)">@effectivePlan</span>
+                            @if (isExpired && item.Plan != "Free")
+                            {
+                                <span class="badge bg-warning ms-1">Hết hạn</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.PlanExpiresAt.HasValue)
+                            {
+                                <span class="@(isExpired ? "text-danger" : "text-muted")">
+                                    @item.PlanExpiresAt.Value.ToString("dd/MM/yyyy")
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Vĩnh viễn</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="badge bg-success">Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Tạm dừng</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editPlanModal"
+                                    data-business-id="@item.Id"
+                                    data-business-name="@item.Name"
+                                    data-plan="@item.Plan"
+                                    data-expires-at="@(item.PlanExpiresAt?.ToString("yyyy-MM-ddTHH:mm") ?? "")">
+                                <i class="ti ti-edit me-1"></i>Đổi gói
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted">Trang @Model.Page / @Model.TotalPages</div>
+            <nav aria-label="Phân trang subscription">
+                <ul class="pagination mb-0">
+                    <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Subscription"
+                           asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize"
+                           asp-route-search="@Model.Search" asp-route-plan="@Model.FilterPlan" aria-label="Trang trước">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    @for (int i = Math.Max(1, Model.Page - 2); i <= Math.Min(Model.TotalPages, Model.Page + 2); i++)
+                    {
+                        <li class="page-item @(i == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Subscription"
+                               asp-route-page="@i" asp-route-pageSize="@Model.PageSize"
+                               asp-route-search="@Model.Search" asp-route-plan="@Model.FilterPlan">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Subscription"
+                           asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize"
+                           asp-route-search="@Model.Search" asp-route-plan="@Model.FilterPlan" aria-label="Trang sau">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
 </div>
 
 <!-- Edit Plan Modal -->
-<div class="modal modal-blur fade @(Model.ShowEditModal ? "show" : "")"
+<div class="modal fade @(Model.ShowEditModal ? "show" : "")"
      id="editPlanModal" tabindex="-1" role="dialog"
-     @(Model.ShowEditModal ? "style=\"display:block;\"" : "")>
+     @(Model.ShowEditModal ? Html.Raw("style=\"display:block;\"") : Html.Raw(""))>
     <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
         <div class="modal-content">
             <form asp-action="UpdateSubscription" method="post">
@@ -189,6 +201,7 @@
                 <input type="hidden" name="page" value="@Model.Page" />
                 <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="plan" value="@Model.FilterPlan" />
 
                 <div class="modal-header">
                     <h5 class="modal-title">Đổi gói subscription</h5>
@@ -203,7 +216,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label required">Gói</label>
+                        <label class="form-label">Gói <span class="text-danger">*</span></label>
                         <select class="form-select" asp-for="Edit.Plan">
                             <option value="Free">Free – 1 gian hàng, không TTS</option>
                             <option value="Basic">Basic – 3 gian hàng, TTS đầy đủ</option>
@@ -213,13 +226,13 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Ngày hết hạn <span class="text-muted">(để trống = vĩnh viễn)</span></label>
+                        <label class="form-label">Ngày hết hạn <span class="text-muted small">(để trống = vĩnh viễn)</span></label>
                         <input type="datetime-local" class="form-control" asp-for="Edit.PlanExpiresAt"
                                value="@(Model.Edit.PlanExpiresAt?.ToString("yyyy-MM-ddTHH:mm") ?? "")" />
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-ghost-secondary" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
                     <button type="submit" class="btn btn-primary">Lưu</button>
                 </div>
             </form>

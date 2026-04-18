@@ -5,7 +5,6 @@ namespace LocateAndMultilingualNarration.Domain.Entities;
 /// <summary>
 /// Bảng quản lý mã QR độc lập.
 /// Mỗi mã QR được Admin tạo ra và chỉ cho phép sử dụng một lần.
-/// Không liên kết trực tiếp với StallId.
 /// </summary>
 public class QrCode
 {
@@ -24,9 +23,10 @@ public class QrCode
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Thời hạn sử dụng của mã QR (ví dụ: 7 ngày)
+    /// Số ngày hiệu lực kể từ thời điểm thiết bị quét QR.
+    /// Thời hạn truy cập = UsedAt + ValidDays.
     /// </summary>
-    public DateTime ExpiryAt { get; set; }
+    public int ValidDays { get; set; }
 
     /// <summary>
     /// Đã được sử dụng chưa

@@ -1,88 +1,116 @@
 @model Web.Models.BusinessManagementViewModel
 @{
-    ViewData["Title"] = "Business Management";
+    ViewData["Title"] = "Quản lý Doanh nghiệp";
     var startIndex = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
     var endIndex = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
     var userRole = Context.Session.GetString("UserRole") ?? "";
     var isAdmin = userRole == "Admin";
+
+    var isSortingByPlan = string.Equals(Model.SortBy, "plan", StringComparison.OrdinalIgnoreCase);
+    var planSortDir = isSortingByPlan && string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+    var planSortIcon = isSortingByPlan
+        ? (string.Equals(Model.SortDir, "asc", StringComparison.OrdinalIgnoreCase) ? "ti ti-sort-ascending" : "ti ti-sort-descending")
+        : "ti ti-arrows-sort";
 }
 
 <!-- Page Header -->
-<div class="page-header">
+<div class="page-header" data-aos="fade-up">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
-            <li class="breadcrumb-item"><a href="#">Management</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Business Management</li>
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="#">Quản lý</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Quản lý Doanh nghiệp</li>
         </ol>
     </nav>
     <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <h1><i class="bi bi-building me-2"></i>Business Management</h1>
+        <h1><i class="bi bi-building me-2"></i>Quản lý Doanh nghiệp</h1>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBusinessModal">
-            <i class="bi bi-plus-lg me-1"></i>Add New Business
+            <i class="bi bi-plus-lg me-1"></i>Thêm Doanh nghiệp
         </button>
     </div>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
 {
-    <div class="alert alert-success" role="alert">
+    <div class="alert alert-success" role="alert" data-aos="fade-in">
         @Model.SuccessMessage
     </div>
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
 {
-    <div class="alert alert-danger" role="alert">
+    <div class="alert alert-danger" role="alert" data-aos="fade-in">
         @Model.ErrorMessage
     </div>
 }
 
-<!-- Search/Filter -->
-<div class="search-filter-bar">
+<!-- Tìm kiếm / Lọc -->
+<div class="search-filter-bar" data-aos="fade-up" data-aos-delay="50">
     <form method="get" asp-action="Index" class="row g-3">
+        <input type="hidden" name="sortBy" value="@Model.SortBy" />
+        <input type="hidden" name="sortDir" value="@Model.SortDir" />
         <div class="col-md-4">
-            <label for="businessSearch" class="form-label visually-hidden">Search businesses</label>
+            <label for="businessSearch" class="form-label visually-hidden">Tìm doanh nghiệp</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control table-search" id="businessSearch" name="search"
-                       value="@Model.Search" placeholder="Search businesses...">
+                       value="@Model.Search" placeholder="Tìm doanh nghiệp...">
             </div>
         </div>
         <div class="col-md-2">
+            <label for="planFilter" class="form-label visually-hidden">Lọc theo gói</label>
+            <select class="form-select" id="planFilter" name="plan">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.FilterPlan))">Tất cả gói</option>
+                <option value="Free"  selected="@(Model.FilterPlan == "Free")">Free</option>
+                <option value="Basic" selected="@(Model.FilterPlan == "Basic")">Basic</option>
+                <option value="Pro"   selected="@(Model.FilterPlan == "Pro")">Pro</option>
+            </select>
+        </div>
+        <div class="col-md-2">
             <button class="btn btn-outline-secondary w-100" type="submit">
-                <i class="bi bi-search me-1"></i>Search
+                <i class="bi bi-search me-1"></i>Tìm kiếm
             </button>
         </div>
         <div class="col-md-2">
-            <a class="btn btn-outline-secondary w-100" asp-action="Index">
-                <i class="bi bi-x-circle me-1"></i>Reset
+            <a class="btn btn-outline-secondary w-100" asp-action="Index" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir">
+                <i class="bi bi-x-circle me-1"></i>Đặt lại
             </a>
         </div>
     </form>
 </div>
 
-<!-- Business Table -->
-<div class="table-container">
+<!-- Bảng Doanh nghiệp -->
+<div class="table-container" data-aos="fade-up" data-aos-delay="100">
     <div class="table-responsive">
-        <table class="table table-hover" id="businessTable" aria-label="Business list">
+        <table class="table table-hover" id="businessTable" aria-label="Danh sách doanh nghiệp">
             <thead>
                 <tr>
-                    <th scope="col" class="sortable">Business Name</th>
-                    <th scope="col" class="sortable">Tax Code</th>
-                    <th scope="col" class="sortable">Contact Email</th>
-                    <th scope="col" class="sortable">Contact Phone</th>
-                    <th scope="col" class="sortable">Status</th>
-                    <th scope="col">Plan</th>
-                    <th scope="col" class="sortable">Created At</th>
-                    <th scope="col" class="no-export">Actions</th>
+                    <th scope="col" class="sortable">Tên Doanh nghiệp</th>
+                    <th scope="col" class="sortable">Mã số thuế</th>
+                    <th scope="col" class="sortable">Email liên hệ</th>
+                    <th scope="col" class="sortable">Điện thoại</th>
+                    <th scope="col" class="sortable">Trạng thái</th>
+                    <th scope="col">
+                        <a asp-action="Index"
+                           asp-route-page="1"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-search="@Model.Search"
+                           asp-route-plan="@Model.FilterPlan"
+                           asp-route-sortBy="plan"
+                           asp-route-sortDir="@planSortDir"
+                           class="text-decoration-none text-reset d-flex align-items-center gap-1 user-select-none">
+                            Gói <i class="@planSortIcon"></i>
+                        </a>
+                    </th>
+                    <th scope="col" class="sortable">Ngày tạo</th>
+                    <th scope="col" class="no-export">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
                 @if (Model.Items.Count == 0)
                 {
                     <tr>
-                        <td colspan="8" class="text-center text-muted">Chưa có business nào.</td>
+                        <td colspan="8" class="text-center text-muted">Chưa có doanh nghiệp nào.</td>
                     </tr>
                 }
                 else
@@ -90,7 +118,7 @@
                     foreach (var business in Model.Items)
                     {
                         var statusClass = business.IsActive ? "success" : "secondary";
-                        var statusText = business.IsActive ? "Active" : "Inactive";
+                        var statusText = business.IsActive ? "Hoạt động" : "Tạm dừng";
                         <tr>
                             <td>
                                 <strong>@business.Name</strong>
@@ -127,7 +155,7 @@
                             <td>
                                 <div class="btn-group">
                                     <button type="button" class="btn btn-sm btn-outline-primary btn-action"
-                                            data-bs-toggle="tooltip" title="Edit"
+                                            data-bs-toggle="tooltip" title="Chỉnh sửa"
                                             data-id="@business.Id"
                                             data-name="@business.Name"
                                             data-taxcode="@business.TaxCode"
@@ -138,7 +166,7 @@
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-outline-info btn-action"
-                                            data-bs-toggle="tooltip" title="View Details"
+                                            data-bs-toggle="tooltip" title="Xem chi tiết"
                                             data-id="@business.Id"
                                             data-name="@business.Name"
                                             data-taxcode="@business.TaxCode"
@@ -163,14 +191,17 @@
                                         var toggleIcon = business.IsActive ? "bi bi-slash-circle" : "bi bi-check-circle";
                                         var toggleCss = business.IsActive ? "btn btn-sm btn-outline-danger btn-action" : "btn btn-sm btn-outline-success btn-action";
                                         var toggleConfirm = business.IsActive
-                                            ? "Bạn chắc chắn muốn vô hiệu hóa business này?"
-                                            : "Bạn chắc chắn muốn kích hoạt business này?";
+                                            ? "Bạn chắc chắn muốn vô hiệu hóa doanh nghiệp này?"
+                                            : "Bạn chắc chắn muốn kích hoạt doanh nghiệp này?";
                                         <form asp-action="ToggleActive" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="id" value="@business.Id" />
                                             <input type="hidden" name="page" value="@Model.Page" />
                                             <input type="hidden" name="pageSize" value="@Model.PageSize" />
                                             <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                                            <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                                            <input type="hidden" name="plan" value="@Model.FilterPlan" />
                                             <button type="submit" class="@toggleCss"
                                                     data-bs-toggle="tooltip" title="@toggleTitle"
                                                     onclick="return confirm('@toggleConfirm');">
@@ -188,23 +219,23 @@
     </div>
     <div class="d-flex justify-content-between align-items-center mt-3">
         <div class="text-muted">
-            Showing @startIndex-@endIndex of @Model.TotalCount businesses
+            Hiển thị @startIndex–@endIndex trong @Model.TotalCount doanh nghiệp
         </div>
-        <nav aria-label="Business list pagination">
+        <nav aria-label="Phân trang danh sách doanh nghiệp">
             <ul class="pagination mb-0">
                 <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" aria-label="Previous">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" asp-route-plan="@Model.FilterPlan" aria-label="Trang trước">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
                 @for (var i = 1; i <= Model.TotalPages; i++)
                 {
                     <li class="page-item @(i == Model.Page ? "active" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search">@i</a>
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" asp-route-plan="@Model.FilterPlan">@i</a>
                     </li>
                 }
                 <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" aria-label="Next">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-sortBy="@Model.SortBy" asp-route-sortDir="@Model.SortDir" asp-route-plan="@Model.FilterPlan" aria-label="Trang sau">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
@@ -213,54 +244,63 @@
     </div>
 </div>
 
-<!-- Add Business Modal -->
+<!-- Modal Thêm Doanh nghiệp -->
 <div class="modal fade" id="addBusinessModal" tabindex="-1" aria-labelledby="addBusinessModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addBusinessModalLabel"><i class="bi bi-building-add me-2"></i>Add New Business</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="addBusinessModalLabel"><i class="bi bi-building-add me-2"></i>Thêm Doanh nghiệp mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <form asp-action="Create" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="page" value="@Model.Page" />
                 <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                <input type="hidden" name="plan" value="@Model.FilterPlan" />
                 <div class="modal-body">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Create.Name" class="form-label">Business Name <span class="text-danger">*</span></label>
-                            <input asp-for="Create.Name" class="form-control" placeholder="Enter business name">
+                            <label asp-for="Create.Name" class="form-label">Tên Doanh nghiệp <span class="text-danger">*</span></label>
+                            <input asp-for="Create.Name" class="form-control" placeholder="Ít nhất 2 ký tự"
+                                   required minlength="2" maxlength="256">
                             <span asp-validation-for="Create.Name" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Create.TaxCode" class="form-label">Tax Code</label>
-                            <input asp-for="Create.TaxCode" class="form-control" placeholder="Enter tax code">
+                            <label asp-for="Create.TaxCode" class="form-label">Mã số thuế</label>
+                            <input asp-for="Create.TaxCode" class="form-control" placeholder="10 hoặc 13 chữ số"
+                                   maxlength="14" inputmode="numeric"
+                                   pattern="^\d{10}(\d{3})?(-\d)?$">
                             <span asp-validation-for="Create.TaxCode" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Create.ContactEmail" class="form-label">Contact Email</label>
-                            <input asp-for="Create.ContactEmail" class="form-control" placeholder="Enter contact email">
+                            <label asp-for="Create.ContactEmail" class="form-label">Email liên hệ</label>
+                            <input asp-for="Create.ContactEmail" class="form-control" placeholder="example@email.com"
+                                   type="email" maxlength="256">
                             <span asp-validation-for="Create.ContactEmail" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Create.ContactPhone" class="form-label">Contact Phone</label>
-                            <input asp-for="Create.ContactPhone" class="form-control" placeholder="Enter contact phone">
+                            <label asp-for="Create.ContactPhone" class="form-label">Điện thoại liên hệ</label>
+                            <input asp-for="Create.ContactPhone" class="form-control" placeholder="0912345678"
+                                   inputmode="tel" maxlength="16"
+                                   pattern="(\+84|0)[0-9]{8,11}">
                             <span asp-validation-for="Create.ContactPhone" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="alert alert-info py-2 mb-0">
                         <i class="ti ti-info-circle me-1"></i>
-                        Business mới sẽ ở trạng thái <strong>chờ duyệt</strong> cho đến khi Admin kích hoạt.
+                        Doanh nghiệp mới sẽ ở trạng thái <strong>chờ duyệt</strong> cho đến khi Admin kích hoạt.
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-plus-lg me-1"></i>Create Business
+                        <i class="bi bi-plus-lg me-1"></i>Tạo Doanh nghiệp
                     </button>
                 </div>
             </form>
@@ -268,44 +308,53 @@
     </div>
 </div>
 
-<!-- Edit Business Modal -->
+<!-- Modal Chỉnh sửa Doanh nghiệp -->
 <div class="modal fade" id="editBusinessModal" tabindex="-1" aria-labelledby="editBusinessModalLabel"
      aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editBusinessModalLabel"><i class="bi bi-pencil-square me-2"></i>Edit Business</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="editBusinessModalLabel"><i class="bi bi-pencil-square me-2"></i>Chỉnh sửa Doanh nghiệp</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <form asp-action="Update" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="page" value="@Model.Page" />
                 <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="sortBy" value="@Model.SortBy" />
+                <input type="hidden" name="sortDir" value="@Model.SortDir" />
+                <input type="hidden" name="plan" value="@Model.FilterPlan" />
                 <div class="modal-body">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                     <input asp-for="Edit.Id" type="hidden" />
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Edit.Name" class="form-label">Business Name <span class="text-danger">*</span></label>
-                            <input asp-for="Edit.Name" id="editBusinessName" class="form-control" placeholder="Enter business name">
+                            <label asp-for="Edit.Name" class="form-label">Tên Doanh nghiệp <span class="text-danger">*</span></label>
+                            <input asp-for="Edit.Name" id="editBusinessName" class="form-control" placeholder="Ít nhất 2 ký tự"
+                                   required minlength="2" maxlength="256">
                             <span asp-validation-for="Edit.Name" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Edit.TaxCode" class="form-label">Tax Code</label>
-                            <input asp-for="Edit.TaxCode" id="editTaxCode" class="form-control" placeholder="Enter tax code">
+                            <label asp-for="Edit.TaxCode" class="form-label">Mã số thuế</label>
+                            <input asp-for="Edit.TaxCode" id="editTaxCode" class="form-control" placeholder="10 hoặc 13 chữ số"
+                                   maxlength="14" inputmode="numeric"
+                                   pattern="^\d{10}(\d{3})?(-\d)?$">
                             <span asp-validation-for="Edit.TaxCode" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Edit.ContactEmail" class="form-label">Contact Email</label>
-                            <input asp-for="Edit.ContactEmail" id="editContactEmail" class="form-control" placeholder="Enter contact email">
+                            <label asp-for="Edit.ContactEmail" class="form-label">Email liên hệ</label>
+                            <input asp-for="Edit.ContactEmail" id="editContactEmail" class="form-control" placeholder="example@email.com"
+                                   type="email" maxlength="256">
                             <span asp-validation-for="Edit.ContactEmail" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label asp-for="Edit.ContactPhone" class="form-label">Contact Phone</label>
-                            <input asp-for="Edit.ContactPhone" id="editContactPhone" class="form-control" placeholder="Enter contact phone">
+                            <label asp-for="Edit.ContactPhone" class="form-label">Điện thoại liên hệ</label>
+                            <input asp-for="Edit.ContactPhone" id="editContactPhone" class="form-control" placeholder="0912345678"
+                                   inputmode="tel" maxlength="16"
+                                   pattern="(\+84|0)[0-9]{8,11}">
                             <span asp-validation-for="Edit.ContactPhone" class="text-danger"></span>
                         </div>
                     </div>
@@ -313,10 +362,10 @@
                     {
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label asp-for="Edit.IsActive" class="form-label">Status</label>
+                                <label asp-for="Edit.IsActive" class="form-label">Trạng thái</label>
                                 <select asp-for="Edit.IsActive" class="form-select" id="editBusinessStatus">
-                                    <option value="true">Active</option>
-                                    <option value="false">Inactive</option>
+                                    <option value="true">Hoạt động</option>
+                                    <option value="false">Tạm dừng</option>
                                 </select>
                             </div>
                         </div>
@@ -327,9 +376,9 @@
                     }
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                        <i class="bi bi-check-lg me-1"></i>Lưu thay đổi
                     </button>
                 </div>
             </form>
@@ -337,55 +386,55 @@
     </div>
 </div>
 
-<!-- Show Business Details Modal -->
+<!-- Modal Chi tiết Doanh nghiệp -->
 <div class="modal fade" id="showBusinessModal" tabindex="-1" aria-labelledby="showBusinessModalLabel"
      aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="showBusinessModalLabel"><i class="bi bi-eye me-2"></i>Business Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="showBusinessModalLabel"><i class="bi bi-eye me-2"></i>Chi tiết Doanh nghiệp</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <p><strong>Business Name:</strong></p>
+                        <p><strong>Tên Doanh nghiệp:</strong></p>
                         <p id="showBusinessName" class="text-muted">-</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Business ID:</strong></p>
+                        <p><strong>Mã Doanh nghiệp:</strong></p>
                         <p id="showBusinessId" class="text-muted">-</p>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <p><strong>Tax Code:</strong></p>
+                        <p><strong>Mã số thuế:</strong></p>
                         <p id="showTaxCode" class="text-muted">-</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Status:</strong></p>
+                        <p><strong>Trạng thái:</strong></p>
                         <p id="showBusinessStatus" class="text-muted">-</p>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <p><strong>Contact Email:</strong></p>
+                        <p><strong>Email liên hệ:</strong></p>
                         <p id="showContactEmail" class="text-muted">-</p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Contact Phone:</strong></p>
+                        <p><strong>Điện thoại:</strong></p>
                         <p id="showContactPhone" class="text-muted">-</p>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <p><strong>Created At:</strong></p>
+                        <p><strong>Ngày tạo:</strong></p>
                         <p id="showCreatedAt" class="text-muted">-</p>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -416,7 +465,7 @@
             $('#showContactEmail').text($button.data('email') || '-');
             $('#showContactPhone').text($button.data('phone') || '-');
             $('#showCreatedAt').text($button.data('created') || '-');
-            $('#showBusinessStatus').html(`<span class="badge bg-${isActive ? 'success' : 'secondary'}">${isActive ? 'Active' : 'Inactive'}</span>`);
+            $('#showBusinessStatus').html(`<span class="badge bg-${isActive ? 'success' : 'secondary'}">${isActive ? 'Hoạt động' : 'Tạm dừng'}</span>`);
 
             const showModal = new bootstrap.Modal(document.getElementById('showBusinessModal'));
             showModal.show();

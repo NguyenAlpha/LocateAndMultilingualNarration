@@ -1,7 +1,7 @@
 ﻿
 @model Web.Models.StallNarrationContentShowViewModel
 @{
-    ViewData["Title"] = "Stall Narration Content";
+    ViewData["Title"] = "Chi tiết Nội dung Thuyết minh";
     var content = Model.Content;
 }
 
@@ -176,15 +176,15 @@
 <div class="page-header">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
-            <li class="breadcrumb-item"><a asp-controller="Narration" asp-action="StallNarrationContents">Narration</a></li>
-            <li aria-current="page" class="breadcrumb-item active">Stall Narration Content</li>
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Narration" asp-action="StallNarrationContents">Thuyết minh</a></li>
+            <li aria-current="page" class="breadcrumb-item active">Chi tiết nội dung</li>
         </ol>
     </nav>
     <div class="d-flex justify-content-between align-items-center flex-wrap">
         <div>
-            <h1><i class="bi bi-file-earmark-music me-2"></i>Stall Narration Content</h1>
-            <p class="text-muted mb-0">Xem và chỉnh sửa nội dung narration của stall.</p>
+            <h1><i class="bi bi-file-earmark-music me-2"></i>Chi tiết Nội dung Thuyết minh</h1>
+            <p class="text-muted mb-0">Xem và chỉnh sửa nội dung thuyết minh của gian hàng.</p>
         </div>
         <div class="btn-group">
             <a class="btn btn-outline-secondary" asp-controller="Narration" asp-action="StallNarrationContents">
@@ -234,7 +234,8 @@ else if (content?.TtsStatus == "Failed")
 <!-- Text To Speech Section (kept) -->
 <div class="card mb-4">
     <div class="card-body">
-        <form id="textContentForm" asp-action="Update" asp-route-id="@content?.Id" method="post">
+        <form id="textContentForm" asp-action="Update" asp-route-id="@content?.Id" method="post"
+              class="needs-validation" novalidate>
             @Html.AntiForgeryToken()
             <div class="mb-3">
                 <label class="form-label" for="stallName">Stall</label>
@@ -245,22 +246,27 @@ else if (content?.TtsStatus == "Failed")
                 <input class="form-control" id="languageName" type="text" value="@Model.LanguageName" readonly />
             </div>
             <div class="mb-3">
-                <label class="form-label" for="contentTitle">Tiêu đề</label>
-                <input class="form-control" id="contentTitle" name="Title" type="text" value="@content?.Title" required />
+                <label class="form-label" for="contentTitle">Tiêu đề <span class="text-danger">*</span></label>
+                <input class="form-control" id="contentTitle" name="Title" type="text"
+                       value="@content?.Title" required minlength="2" maxlength="128" />
+                <div class="invalid-feedback">Tiêu đề là bắt buộc (2–128 ký tự).</div>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="contentDescription">Mô tả</label>
-                <textarea class="form-control" id="contentDescription" name="Description" rows="4">@content?.Description</textarea>
+                <textarea class="form-control" id="contentDescription" name="Description"
+                          rows="4" maxlength="256">@content?.Description</textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label" for="scriptContent">Kịch bản</label>
-                <textarea class="form-control" id="scriptContent" name="ScriptText" rows="8" required>@content?.ScriptText</textarea>
+                <label class="form-label" for="scriptContent">Kịch bản <span class="text-danger">*</span></label>
+                <textarea class="form-control" id="scriptContent" name="ScriptText"
+                          rows="8" required minlength="10">@content?.ScriptText</textarea>
+                <div class="invalid-feedback">Kịch bản là bắt buộc (tối thiểu 10 ký tự).</div>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="contentStatus">Trạng thái</label>
-                <select class="form-select" id="contentStatus" name="IsActive" required>
-                    <option value="true" selected="@(content?.IsActive == true)">Active</option>
-                    <option value="false" selected="@(content?.IsActive == false)">Inactive</option>
+                <select class="form-select" id="contentStatus" name="IsActive">
+                    <option value="true" selected="@(content?.IsActive == true)">Hoạt động</option>
+                    <option value="false" selected="@(content?.IsActive == false)">Tạm dừng</option>
                 </select>
             </div>
             <div class="d-flex justify-content-end">
@@ -285,12 +291,12 @@ else if (content?.TtsStatus == "Failed")
                 <thead>
                     <tr>
                         <th>Ngôn ngữ</th>
-                        <th>Display Name</th>
-                        <th>TtsVoiceProfile</th>
-                        <th>Duration (s)</th>
-                        <th>Is TTS</th>
-                        <th>Updated</th>
-                        <th>Audio Url</th>
+                        <th>Tên hiển thị</th>
+                        <th>Giọng đọc</th>
+                        <th>Thời lượng (s)</th>
+                        <th>Loại</th>
+                        <th>Cập nhật</th>
+                        <th>File audio</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
@@ -327,7 +333,7 @@ else if (content?.TtsStatus == "Failed")
                                     <td>
                                         @if (audio.IsTts)
                                         {
-                                            <span class="badge bg-info text-white">TTS</span>
+                                            <span class="badge bg-info text-white">Tự động</span>
                                         }
                                         else
                                         {
@@ -338,11 +344,11 @@ else if (content?.TtsStatus == "Failed")
                                     <td>
                                         @if (!string.IsNullOrWhiteSpace(audio.AudioUrl))
                                         {
-                                            <a href="@audio.AudioUrl" target="_blank">Open</a>
+                                            <a href="@audio.AudioUrl" target="_blank">Nghe</a>
                                         }
                                         else
                                         {
-                                            <span class="text-muted">-</span>
+                                            <span class="text-muted">–</span>
                                         }
                                     </td>
                                     <td>
@@ -370,7 +376,8 @@ else if (content?.TtsStatus == "Failed")
         <div class="modal fade" id="uploadAudioModal-@audio.Id" tabindex="-1" aria-labelledby="uploadAudioModalLabel-@audio.Id" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form asp-action="UploadAudio" method="post" enctype="multipart/form-data">
+                    <form asp-action="UploadAudio" method="post" enctype="multipart/form-data"
+                          class="needs-validation upload-audio-form" novalidate>
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="audioId" value="@audio.Id" />
                         <input type="hidden" name="narrationContentId" value="@Model.Content!.Id" />
@@ -396,6 +403,7 @@ else if (content?.TtsStatus == "Failed")
                                 <label class="form-label">File audio <span class="text-danger">*</span></label>
                                 <input type="file" name="audioFile" accept="audio/*" class="form-control" required />
                                 <div class="form-text">Chấp nhận: mp3, wav, ogg, aac, flac, webm</div>
+                                <div class="invalid-feedback">Vui lòng chọn file audio.</div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -455,6 +463,30 @@ else if (content?.TtsStatus == "Failed")
                 });
             }
         })();
+
+        // Form validation: update form
+        (function () {
+            var form = document.getElementById('textContentForm');
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            });
+        })();
+
+        // Form validation: upload audio modals
+        document.querySelectorAll('.upload-audio-form').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            });
+        });
 
         // TTS polling
         (function () {

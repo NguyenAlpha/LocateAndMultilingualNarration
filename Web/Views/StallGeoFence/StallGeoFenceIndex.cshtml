@@ -1,54 +1,84 @@
 @model Web.Models.StallGeoFenceManagementViewModel
 
 @{
-    ViewData["Title"] = "Quản lý Stall GeoFences";
+    ViewData["Title"] = "Quản lý GeoFence Gian hàng";
 }
 
-<div class="page-header">
-    <h1>Quản lý Stall GeoFences</h1>
+<div class="page-header d-print-none" data-aos="fade-up">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Quản lý</div>
+                <h2 class="page-title">GeoFence Gian hàng</h2>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <form method="get" class="row g-3 mb-3">
-            <div class="col-md-4">
-                <select name="stallId" class="form-select">
-                    <option value="">-- Chọn stall --</option>
-                    @foreach (var s in Model.Stalls)
-                    {
-                        <option value="@s.Id" selected="@(Model.StallId == s.Id)">@s.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary">Lọc</button>
-            </div>
-        </form>
+<div class="page-body">
+    <div class="container-xl">
 
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Stall</th>
-                    <th>Polygon Json</th>
-                    <th>MinZoom</th>
-                    <th>MaxZoom</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    <tr>
-                        <td>@item.StallId</td>
-                        <td style="max-width:400px; overflow:auto;">@item.PolygonJson</td>
-                        <td>@item.MinZoom</td>
-                        <td>@item.MaxZoom</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <div class="card" data-aos="fade-up" data-aos-delay="50">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="ti ti-hexagon me-2 text-primary"></i>Danh sách GeoFence
+                </div>
+                <div class="card-options">
+                    <form method="get" class="d-flex gap-2">
+                        <select name="stallId" class="form-select form-select-sm" style="width:auto">
+                            <option value="">-- Tất cả gian hàng --</option>
+                            @foreach (var s in Model.Stalls)
+                            {
+                                <option value="@s.Id" selected="@(Model.StallId == s.Id)">@s.Name</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            <i class="ti ti-filter me-1"></i>Lọc
+                        </button>
+                        @if (Model.StallId.HasValue)
+                        {
+                            <a asp-action="Index" class="btn btn-sm btn-ghost-secondary">
+                                <i class="ti ti-x me-1"></i>Xóa lọc
+                            </a>
+                        }
+                    </form>
+                </div>
+            </div>
 
-        <div class="mt-3">
-            <a href="#" class="btn btn-success">Tạo mới</a>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Gian hàng</th>
+                            <th>Polygon JSON</th>
+                            <th>Zoom tối thiểu</th>
+                            <th>Zoom tối đa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Items.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <i class="ti ti-hexagon-off me-2"></i>Chưa có dữ liệu GeoFence nào
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="fw-medium">@item.StallId</td>
+                                <td class="text-muted" style="max-width:400px; overflow:auto;">
+                                    <code class="text-truncate d-inline-block" style="max-width:380px">@item.PolygonJson</code>
+                                </td>
+                                <td class="text-muted">@item.MinZoom</td>
+                                <td class="text-muted">@item.MaxZoom</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
+
     </div>
 </div>

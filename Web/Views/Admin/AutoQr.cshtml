@@ -1,0 +1,207 @@
+@{
+    ViewData["Title"] = "Tạo QR tự động";
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Admin</div>
+                <h2 class="page-title">Tạo QR tự động</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 col-md-8">
+
+                <!-- Setup card (hiển thị khi chưa bắt đầu) -->
+                <div id="setupCard" class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="ti ti-qrcode me-2"></i>Cài đặt</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">
+                            Hệ thống sẽ tự động tạo mã QR mới mỗi khi khách quét mã hiện tại.
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label required">Số ngày hiệu lực mỗi mã</label>
+                            <input type="number" id="validDaysInput" class="form-control"
+                                   min="1" value="30" placeholder="VD: 30" />
+                            <small class="text-muted">Thiết bị quét sẽ dùng được app trong số ngày này.</small>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button id="btnStart" class="btn btn-primary w-100" onclick="startAutoQr()">
+                            <i class="ti ti-player-play me-1"></i>Bắt đầu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QR display card (ẩn khi chưa bắt đầu) -->
+                <div id="qrCard" class="card d-none">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="ti ti-qrcode me-2"></i>Mã QR hiện tại</h3>
+                        <div class="card-options">
+                            <span id="validDaysBadge" class="badge bg-blue-lt me-2"></span>
+                            <button class="btn btn-sm btn-ghost-danger" onclick="stopAutoQr()">
+                                <i class="ti ti-player-stop me-1"></i>Dừng
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body text-center py-4">
+
+                        <!-- Status banner -->
+                        <div id="statusBanner" class="alert alert-info mb-3 d-none" role="alert">
+                            <div class="d-flex align-items-center justify-content-center gap-2">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <span>Đang chờ khách quét...</span>
+                            </div>
+                        </div>
+
+                        <!-- Scanned flash -->
+                        <div id="scannedBanner" class="alert alert-success mb-3 d-none" role="alert">
+                            <i class="ti ti-check me-1"></i><strong>Đã quét!</strong> Đang tạo mã mới...
+                        </div>
+
+                        <!-- QR image -->
+                        <div id="qrImageWrap" class="position-relative d-inline-block">
+                            <img id="qrImage" src="" alt="QR Code"
+                                 class="border rounded shadow-sm"
+                                 style="width: 260px; height: 260px;" />
+                            <!-- Overlay khi đang refresh -->
+                            <div id="qrOverlay" class="d-none position-absolute top-0 start-0 w-100 h-100
+                                                        d-flex align-items-center justify-content-center
+                                                        bg-white bg-opacity-75 rounded">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+
+                        <p class="mt-3 mb-0 text-muted small">
+                            Code: <code id="qrCodeText"></code>
+                        </p>
+                        <p class="text-muted small mb-0" id="scannedCount"></p>
+                        <div class="mt-3">
+                            <a id="btnDownload" href="#" download="QRCode.png"
+                               class="btn btn-outline-secondary btn-sm" onclick="downloadQr(event)">
+                                <i class="ti ti-download me-1"></i>Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let currentId   = null;
+    let validDays   = 30;
+    let pollTimer   = null;
+    let scannedTotal = 0;
+    const POLL_MS   = 2000;
+
+    async function startAutoQr() {
+        validDays = parseInt(document.getElementById('validDaysInput').value, 10);
+        if (!validDays || validDays < 1) {
+            alert('Vui lòng nhập số ngày hợp lệ.');
+            return;
+        }
+
+        const btn = document.getElementById('btnStart');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang tạo...';
+
+        try {
+            const res = await fetch('/Admin/StartAutoQr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ validDays })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'Lỗi tạo QR.'); return; }
+
+            showQrCard(data);
+            startPolling();
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-player-play me-1"></i>Bắt đầu';
+        }
+    }
+
+    function showQrCard(data) {
+        currentId = data.id;
+        document.getElementById('qrCodeText').textContent = '****' + data.code.slice(-4);
+        document.getElementById('validDaysBadge').textContent = validDays + ' ngày';
+        document.getElementById('setupCard').classList.add('d-none');
+        document.getElementById('qrCard').classList.remove('d-none');
+        document.getElementById('statusBanner').classList.remove('d-none');
+        document.getElementById('scannedBanner').classList.add('d-none');
+        updateScannedCount();
+
+        // Ẩn overlay khi ảnh mới load xong (tránh vòng lặp spinner vô tận)
+        const img = document.getElementById('qrImage');
+        img.onload = () => document.getElementById('qrOverlay').classList.add('d-none');
+        img.onerror = () => document.getElementById('qrOverlay').classList.add('d-none');
+        img.src = data.imageUrl;
+    }
+
+    function startPolling() {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(poll, POLL_MS);
+    }
+
+    async function poll() {
+        if (!currentId) return;
+        try {
+            const res  = await fetch(`/Admin/PollAutoQr?id=${currentId}&validDays=${validDays}`);
+            const data = await res.json();
+            if (!data.used) return;   // chưa quét → tiếp tục chờ
+
+            // Đã quét → hiện flash + swap QR
+            scannedTotal++;
+            clearInterval(pollTimer);
+            document.getElementById('statusBanner').classList.add('d-none');
+            document.getElementById('scannedBanner').classList.remove('d-none');
+            document.getElementById('qrOverlay').classList.remove('d-none');
+
+            // Đợi 1 giây để user thấy thông báo, rồi swap sang mã mới
+            setTimeout(() => {
+                showQrCard(data);
+                startPolling();
+            }, 1200);
+        } catch (e) {
+            // Bỏ qua lỗi mạng tạm thời, tiếp tục poll
+        }
+    }
+
+    function stopAutoQr() {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        currentId = null;
+        document.getElementById('qrCard').classList.add('d-none');
+        document.getElementById('setupCard').classList.remove('d-none');
+        document.getElementById('qrOverlay').classList.add('d-none');
+    }
+
+    function updateScannedCount() {
+        const el = document.getElementById('scannedCount');
+        el.textContent = scannedTotal > 0 ? `Đã phát: ${scannedTotal} lượt` : '';
+    }
+
+    function downloadQr(e) {
+        e.preventDefault();
+        const img = document.getElementById('qrImage');
+        if (!img.src) return;
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = 'QRCode.png';
+        a.click();
+    }
+</script>
+}
