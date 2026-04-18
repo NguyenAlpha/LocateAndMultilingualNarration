@@ -31,6 +31,7 @@ builder.Services.Configure<AzureTranslationSettings>(builder.Configuration.GetSe
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IGeoService, GeoService>();
 builder.Services.AddScoped<INarrationAudioService, NarrationAudioService>();
+builder.Services.AddSingleton<IBlobUrlService, BlobUrlService>();
 builder.Services.AddHttpClient<ITranslationService, AzureTranslationService>();
 builder.Services.AddHostedService<TtsBackgroundService>();
 

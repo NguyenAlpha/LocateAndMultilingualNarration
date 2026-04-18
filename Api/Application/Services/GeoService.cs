@@ -25,11 +25,13 @@ namespace Api.Application.Services
     public class GeoService : IGeoService
     {
         private readonly AppDbContext _context;
+        private readonly IBlobUrlService _blobUrl;
         private readonly ILogger<GeoService> _logger;
 
-        public GeoService(AppDbContext context, ILogger<GeoService> logger)
+        public GeoService(AppDbContext context, IBlobUrlService blobUrl, ILogger<GeoService> logger)
         {
             _context = context;
+            _blobUrl = blobUrl;
             _logger = logger;
         }
 
@@ -133,7 +135,7 @@ namespace Api.Application.Services
                         Description = c.Description,
                         ScriptText  = c.ScriptText,
                         UpdatedAt   = c.UpdatedAt,
-                        AudioUrl    = PickAudioUrl(c.NarrationAudios, preferredVoice)
+                        AudioUrl    = _blobUrl.GetSasUrl(PickAudio(c.NarrationAudios, preferredVoice)?.BlobId)
                     }).FirstOrDefault(),
                     MediaImages = l.Stall.StallMedia
                         .Select(m => new GeoStallMediaDto { Url = m.MediaUrl, Caption = m.Caption })
@@ -164,33 +166,29 @@ namespace Api.Application.Services
         }
 
         /// <summary>
-        /// Chọn AudioUrl từ danh sách audio của một narration content
-        /// theo thứ tự ưu tiên:
+        /// Chọn audio phù hợp từ danh sách theo thứ tự ưu tiên:
         ///   1. Khớp với voice preference của thiết bị (TtsVoiceProfileId)
         ///   2. Audio được sinh bởi TTS (IsTts = true)
-        ///   3. Bất kỳ audio nào có URL hợp lệ (fallback cuối cùng)
+        ///   3. Bất kỳ audio nào có BlobId hợp lệ (fallback cuối cùng)
+        /// Caller dùng BlobId của entity trả về để sinh SAS URL.
         /// </summary>
-        private static string? PickAudioUrl(IEnumerable<NarrationAudio>? audios, Guid? preferredVoice)
+        private static NarrationAudio? PickAudio(IEnumerable<NarrationAudio>? audios, Guid? preferredVoice)
         {
             if (audios is null) return null;
 
-            // Lọc ra các audio có URL hợp lệ (bỏ qua null/rỗng)
-            var list = audios.Where(a => !string.IsNullOrWhiteSpace(a.AudioUrl)).ToList();
+            var list = audios.Where(a => !string.IsNullOrWhiteSpace(a.BlobId)).ToList();
             if (list.Count == 0) return null;
 
-            // Ưu tiên 1: khớp voice preference của thiết bị (so sánh qua TtsVoiceProfileId)
             if (preferredVoice.HasValue)
             {
                 var voiceMatch = list.FirstOrDefault(a => a.TtsVoiceProfileId == preferredVoice.Value);
-                if (voiceMatch != null) return voiceMatch.AudioUrl;
+                if (voiceMatch != null) return voiceMatch;
             }
 
-            // Ưu tiên 2: audio TTS tự sinh (chất lượng đồng nhất, không cần upload thủ công)
             var tts = list.FirstOrDefault(a => a.IsTts);
-            if (tts != null) return tts.AudioUrl;
+            if (tts != null) return tts;
 
-            // Ưu tiên 3: bất kỳ audio đầu tiên có URL (fallback cuối cùng)
-            return list[0].AudioUrl;
+            return list[0];
         }
 
         /// <summary>

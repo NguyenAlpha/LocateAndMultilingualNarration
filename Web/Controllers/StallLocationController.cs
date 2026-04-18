@@ -68,7 +68,7 @@ namespace Web.Controllers
                 : Array.Empty<Shared.DTOs.Stalls.StallDetailDto>();
 
             ViewBag.Stalls = stalls;
-            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "https://localhost:7188/";
+            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "http://localhost:5299/";
             ViewBag.Mode = "create";
             ViewBag.AllLocationsJson = await BuildAllLocationsJsonAsync(cancellationToken);
 
@@ -119,7 +119,7 @@ namespace Web.Controllers
             ViewBag.RadiusMeters = location.RadiusMeters;
             ViewBag.Address = location.Address;
             ViewBag.IsActive = location.IsActive;
-            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "https://localhost:7188/";
+            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "http://localhost:5299/";
             ViewBag.AllLocationsJson = await BuildAllLocationsJsonAsync(cancellationToken);
 
             return View("StallLocationMap");

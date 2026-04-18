@@ -286,6 +286,7 @@ namespace Web.Controllers
         public IActionResult AutoQr() => View();
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> StartAutoQr(
             [FromBody] Shared.DTOs.QrCodes.QrCodeCreateDto request,
             CancellationToken cancellationToken = default)

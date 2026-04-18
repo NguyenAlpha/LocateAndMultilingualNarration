@@ -185,10 +185,17 @@ public class QrCodeController(AppDbContext db) : AppControllerBase
         var usedAt = DateTime.UtcNow;
         var expiryAt = usedAt.AddDays(qrCode.ValidDays);
 
-        qrCode.IsUsed = true;
-        qrCode.UsedAt = usedAt;
-        qrCode.UsedByDeviceId = request.DeviceId;
-        await db.SaveChangesAsync(ct);
+        // ExecuteUpdateAsync sinh một câu UPDATE duy nhất với WHERE IsUsed=false —
+        // nếu 2 thiết bị scan cùng lúc, chỉ một UPDATE thành công (rows=1), cái còn lại rows=0.
+        var rows = await db.QrCodes
+            .Where(q => q.Code == request.Code && !q.IsUsed)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(q => q.IsUsed, true)
+                .SetProperty(q => q.UsedAt, usedAt)
+                .SetProperty(q => q.UsedByDeviceId, request.DeviceId), ct);
+
+        if (rows == 0)
+            return this.OkResult(new { isValid = false, message = "Mã QR đã được sử dụng." });
 
         return this.OkResult(new { isValid = true, message = "OK", expiryAt });
     }

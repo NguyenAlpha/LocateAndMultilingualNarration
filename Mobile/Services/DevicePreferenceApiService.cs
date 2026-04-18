@@ -24,7 +24,6 @@ public interface IDevicePreferenceApiService
     /// <param name="ct">Token hủy tác vụ.</param>
     /// <returns>Dữ liệu cấu hình sau khi lưu nếu thành công; ngược lại <c>null</c>.</returns>
     Task<Shared.DTOs.DevicePreferences.DevicePreferenceDetailDto?> UpsertAsync(Shared.DTOs.DevicePreferences.DevicePreferenceUpsertDto dto, CancellationToken ct = default);
-    Task SavePreferencesAsync(Shared.DTOs.DevicePreferences.DevicePreferencesRequest request, CancellationToken ct = default);
 
     // OLD CODE (kept for reference): service cũ chỉ expose GetAsync(deviceId)/UpsertAsync(sharedDto).
     // API mới cho ProfilePage: tự lấy deviceId hiện tại và trả về ApiResult wrapper.
@@ -96,15 +95,6 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
             return data;
         }
         catch { return null; }
-    }
-
-    public async Task SavePreferencesAsync(Shared.DTOs.DevicePreferences.DevicePreferencesRequest request, CancellationToken ct = default)
-    {
-        var client = _httpClientFactory.CreateClient();
-        Console.WriteLine($"[DEBUG] POST /api/device-preferences DeviceId={request.DeviceId}, LanguageId={request.LanguageId}, VoiceId={request.VoiceId}");
-        var response = await client.PostAsJsonAsync("api/device-preferences", request, ct);
-        Console.WriteLine($"[DEBUG] POST /api/device-preferences => {(int)response.StatusCode} {response.StatusCode}");
-        response.EnsureSuccessStatusCode();
     }
 
     public async Task<DevicePreferenceDetailDto?> GetByDeviceIdAsync(CancellationToken ct = default)

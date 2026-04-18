@@ -268,7 +268,7 @@ namespace Api.Application.Services
             // Mỗi narrationContentId sẽ có một nhánh blob riêng để dễ quản lý và ghi đè logic sau này.
             var blobServiceClient = new BlobServiceClient(_blobSettings.ConnectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(_blobSettings.ContainerName);
-            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
 
             // Tên blob dùng timestamp để tránh trùng file khi tạo nhiều lần liên tiếp.
             var blobName = $"narration-audio/{narrationContentId}/{DateTime.UtcNow:yyyyMMddHHmmssfff}.mp3";
