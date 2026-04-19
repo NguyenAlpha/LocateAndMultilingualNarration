@@ -51,19 +51,19 @@ namespace Api.Controllers
         }
 
         // Chỉ Admin mới được xem — thiết bị nào đang online được xác định dựa vào LastSeenAt,
-        // tức là thiết bị nào gọi GET /stalls trong withinMinutes phút qua thì coi là đang hoạt động.
+        // tức là thiết bị nào ping server trong withinSeconds giây qua thì coi là đang hoạt động.
         [HttpGet("active-devices")]
         [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> GetActiveDevices(
-            [FromQuery] int withinMinutes = 1,
+            [FromQuery] int withinSeconds = 30,
             CancellationToken cancellationToken = default)
         {
-            // Clamp để tránh query quá rộng (ví dụ withinMinutes=99999 sẽ trả toàn bộ lịch sử)
-            if (withinMinutes < 1) withinMinutes = 1;
-            if (withinMinutes > 60) withinMinutes = 60;
+            // Clamp: tối thiểu 10 giây, tối đa 300 giây (5 phút)
+            if (withinSeconds < 10)  withinSeconds = 10;
+            if (withinSeconds > 300) withinSeconds = 300;
 
             // threshold là mốc thời gian: chỉ lấy device có LastSeenAt >= mốc này
-            var threshold = DateTimeOffset.UtcNow.AddMinutes(-withinMinutes);
+            var threshold = DateTimeOffset.UtcNow.AddSeconds(-withinSeconds);
 
             var devices = await _context.DevicePreferences
                 .AsNoTracking()                              // chỉ đọc, không cần tracking
@@ -82,7 +82,7 @@ namespace Api.Controllers
             var summary = new ActiveDevicesSummaryDto
             {
                 ActiveCount   = devices.Count,
-                WithinMinutes = withinMinutes,
+                WithinSeconds = withinSeconds,
                 AsOf          = DateTimeOffset.UtcNow,       // timestamp server tạo response, dùng để hiển thị "cập nhật lúc"
                 Devices       = devices
             };

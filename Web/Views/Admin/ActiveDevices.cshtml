@@ -1,7 +1,7 @@
 @model Shared.DTOs.Geo.ActiveDevicesSummaryDto
 @{
     ViewData["Title"] = "Thiết bị đang hoạt động";
-    var withinMinutes = (int)(ViewBag.WithinMinutes ?? 5);
+    var withinSeconds = (int)(ViewBag.WithinSeconds ?? 30);
 }
 
 <!-- Page header -->
@@ -39,10 +39,10 @@
         <div class="row mb-3 align-items-center">
             <div class="col-auto">
                 <label class="form-label mb-0 me-2 text-muted">Cửa sổ hoạt động:</label>
-                <select class="form-select form-select-sm d-inline-block w-auto" id="withinMinutes-select">
-                    @foreach (var (val, label) in new[] { (1,"1 phút qua"), (2,"2 phút qua"), (5,"5 phút qua"), (10,"10 phút qua"), (15,"15 phút qua"), (30,"30 phút qua") })
+                <select class="form-select form-select-sm d-inline-block w-auto" id="withinSeconds-select">
+                    @foreach (var (val, label) in new[] { (30,"30 giây qua"), (60,"1 phút qua"), (120,"2 phút qua"), (180,"3 phút qua"), (300,"5 phút qua") })
                     {
-                        if (withinMinutes == val)
+                        if (withinSeconds == val)
                         {
                             <option value="@val" selected>@label</option>
                         }
@@ -72,7 +72,7 @@
                     <div class="card-body text-center py-4">
                         <div class="text-muted mb-1" style="font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;">Thiết bị online</div>
                         <div class="display-3 fw-bold text-primary" id="active-count">@Model.ActiveCount</div>
-                        <div class="text-muted mt-1 small" id="window-label">trong @withinMinutes phút qua</div>
+                        <div class="text-muted mt-1 small" id="window-label">trong @(withinSeconds < 60 ? $"{withinSeconds} giây" : $"{withinSeconds / 60} phút") qua</div>
                     </div>
                 </div>
             </div>
@@ -204,7 +204,7 @@
 </style>
 <script>
     const REFRESH_INTERVAL = 5; // giây
-    let withinMinutes = @withinMinutes;
+    let withinSeconds = @withinSeconds;
     let countdown = REFRESH_INTERVAL;
     let barTimer = null;
     let countdownTimer = null;
@@ -257,14 +257,14 @@
     // ---- Fetch & update ----
     async function refresh() {
         try {
-            const res = await fetch(`/Admin/ActiveDevicesData?withinMinutes=${withinMinutes}`);
+            const res = await fetch(`/Admin/ActiveDevicesData?withinSeconds=${withinSeconds}`);
             if (!res.ok) return;
             const json = await res.json();
             if (!json || !json.success || !json.data) return;
             const data = json.data;
 
             document.getElementById('active-count').textContent  = data.activeCount;
-            document.getElementById('window-label').textContent  = `trong ${data.withinMinutes} phút qua`;
+            document.getElementById('window-label').textContent  = `trong ${data.withinSeconds < 60 ? data.withinSeconds + ' giây' : data.withinSeconds / 60 + ' phút'} qua`;
             document.getElementById('last-updated').textContent  = toLocalTime(data.asOf);
 
             const android = (data.devices || []).filter(d => d.platform?.toLowerCase() === 'android').length;
@@ -303,8 +303,8 @@
     }
 
     // ---- When user changes window size ----
-    document.getElementById('withinMinutes-select').addEventListener('change', function () {
-        withinMinutes = parseInt(this.value);
+    document.getElementById('withinSeconds-select').addEventListener('change', function () {
+        withinSeconds = parseInt(this.value);
         refresh().then(() => startCountdown());
     });
 

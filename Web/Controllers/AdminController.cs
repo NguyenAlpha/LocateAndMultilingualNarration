@@ -336,25 +336,25 @@ namespace Web.Controllers
 
         // Render trang lần đầu — truyền model vào View để Razor hiển thị dữ liệu ngay khi trang load,
         // không cần chờ JS fetch. Nếu API lỗi, trả về model rỗng thay vì crash trang.
-        // ViewBag.WithinMinutes dùng để render đúng option selected trong dropdown.
+        // ViewBag.WithinSeconds dùng để render đúng option selected trong dropdown.
         [HttpGet]
-        public async Task<IActionResult> ActiveDevices(int withinMinutes = 1, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ActiveDevices(int withinSeconds = 30, CancellationToken cancellationToken = default)
         {
-            if (withinMinutes < 1) withinMinutes = 1;
-            if (withinMinutes > 60) withinMinutes = 60;
-            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
-            ViewBag.WithinMinutes = withinMinutes;
-            return View(result?.Data ?? new ActiveDevicesSummaryDto { WithinMinutes = withinMinutes, AsOf = DateTimeOffset.UtcNow });
+            if (withinSeconds < 10)  withinSeconds = 10;
+            if (withinSeconds > 300) withinSeconds = 300;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinSeconds, cancellationToken);
+            ViewBag.WithinSeconds = withinSeconds;
+            return View(result?.Data ?? new ActiveDevicesSummaryDto { WithinSeconds = withinSeconds, AsOf = DateTimeOffset.UtcNow });
         }
 
-        // Endpoint riêng chỉ trả JSON, dành cho JS auto-refresh mỗi 20 giây mà không reload trang.
+        // Endpoint riêng chỉ trả JSON, dành cho JS auto-refresh mỗi 5 giây mà không reload trang.
         // Tách khỏi ActiveDevices thay vì dùng chung để giữ action trả View và action trả JSON độc lập.
         [HttpGet]
-        public async Task<IActionResult> ActiveDevicesData(int withinMinutes = 1, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ActiveDevicesData(int withinSeconds = 30, CancellationToken cancellationToken = default)
         {
-            if (withinMinutes < 1) withinMinutes = 1;
-            if (withinMinutes > 60) withinMinutes = 60;
-            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
+            if (withinSeconds < 10)  withinSeconds = 10;
+            if (withinSeconds > 300) withinSeconds = 300;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinSeconds, cancellationToken);
             return Json(result);
         }
 

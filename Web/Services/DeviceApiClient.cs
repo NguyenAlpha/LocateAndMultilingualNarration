@@ -14,18 +14,18 @@ public class DeviceApiClient(HttpClient httpClient)
     /// Lấy danh sách thiết bị đang hoạt động trong khoảng thời gian gần nhất.
     /// Gọi <c>GET /api/geo/active-devices</c> — endpoint AdminOnly.
     /// </summary>
-    /// <param name="withinMinutes">
-    /// Lọc thiết bị có GPS ping trong <paramref name="withinMinutes"/> phút qua.
-    /// Controller đã clamp về [1, 60] trước khi gọi hàm này.
+    /// <param name="withinSeconds">
+    /// Lọc thiết bị có GPS ping trong <paramref name="withinSeconds"/> giây qua.
+    /// Controller đã clamp về [10, 300] trước khi gọi hàm này.
     /// </param>
     /// <returns><c>null</c> nếu mạng lỗi; controller tự xử lý fallback.</returns>
     public async Task<ApiResult<ActiveDevicesSummaryDto>?> GetActiveDevicesAsync(
-        int withinMinutes = 1, CancellationToken ct = default)
+        int withinSeconds = 30, CancellationToken ct = default)
     {
         try
         {
             return await httpClient.GetFromJsonAsync<ApiResult<ActiveDevicesSummaryDto>>(
-                $"api/geo/active-devices?withinMinutes={withinMinutes}", ct);
+                $"api/geo/active-devices?withinSeconds={withinSeconds}", ct);
         }
         catch (HttpRequestException) { return null; }
     }
