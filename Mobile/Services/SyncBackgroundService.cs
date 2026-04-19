@@ -83,6 +83,9 @@ public class SyncBackgroundService : ISyncBackgroundService
         // Giải phóng token nguồn sau khi hủy.
         _cts?.Dispose();
         _cts = null;
+
+        // Thông báo offline để admin dashboard loại thiết bị ngay, không chờ hết cửa sổ 30 giây.
+        _ = _devicePreferenceApiService.NotifyOfflineAsync();
     }
 
     /// <summary>

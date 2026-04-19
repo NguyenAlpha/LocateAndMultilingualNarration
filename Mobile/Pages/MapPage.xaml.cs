@@ -44,6 +44,7 @@ public partial class MapPage : ContentPage
     private readonly ILogger<MapPage> _logger;
     private readonly StallPopup _stallPopup;
     private readonly ISyncBackgroundService _syncBackgroundService;
+    private readonly ILocationLogService _locationLogService;
 
     // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
     private bool _isInitialized;
@@ -69,7 +70,7 @@ public partial class MapPage : ContentPage
     /// <summary>
     /// Constructor: khởi tạo UI, lấy ViewModel từ DI, đăng ký event, cấu hình bản đồ.
     /// </summary>
-    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService)
+    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService, ILocationLogService locationLogService)
     {
         InitializeComponent();
 
@@ -77,6 +78,7 @@ public partial class MapPage : ContentPage
         _logger = logger;
         _stallPopup = stallPopup;
         _syncBackgroundService = syncBackgroundService;
+        _locationLogService = locationLogService;
         BindingContext = _viewModel;
         Console.WriteLine($"[DEBUG] MapPage constructor — instance #{GetHashCode()}");
 
@@ -191,6 +193,8 @@ public partial class MapPage : ContentPage
         {
             _viewModel.StopPolling();
             _viewModel.Dispose();
+            _ = _locationLogService.FlushAsync(); // flush GPS buffer trước khi dừng service
+            _syncBackgroundService.Stop();
         }
         catch (Exception ex)
         {

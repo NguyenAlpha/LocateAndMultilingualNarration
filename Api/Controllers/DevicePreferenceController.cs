@@ -127,6 +127,19 @@ namespace Api.Controllers
             return this.OkResult(needsReset);
         }
 
+        // Set LastSeenAt về MinValue để admin dashboard loại thiết bị này khỏi danh sách active ngay lập tức,
+        // thay vì chờ hết cửa sổ 30 giây.
+        [HttpPost("{deviceId}/offline")]
+        [AllowAnonymous]
+        public async Task<IActionResult> NotifyOffline(string deviceId)
+        {
+            await _context.DevicePreferences
+                .Where(x => x.DeviceId == deviceId)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSeenAt, DateTimeOffset.MinValue));
+
+            return this.OkResult(true);
+        }
+
         [HttpPost("{deviceId}/reset")]
         [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> RequestReset(string deviceId)
