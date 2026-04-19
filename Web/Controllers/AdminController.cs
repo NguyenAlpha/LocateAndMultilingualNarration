@@ -338,7 +338,7 @@ namespace Web.Controllers
         // không cần chờ JS fetch. Nếu API lỗi, trả về model rỗng thay vì crash trang.
         // ViewBag.WithinMinutes dùng để render đúng option selected trong dropdown.
         [HttpGet]
-        public async Task<IActionResult> ActiveDevices(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ActiveDevices(int withinMinutes = 1, CancellationToken cancellationToken = default)
         {
             if (withinMinutes < 1) withinMinutes = 1;
             if (withinMinutes > 60) withinMinutes = 60;
@@ -350,7 +350,7 @@ namespace Web.Controllers
         // Endpoint riêng chỉ trả JSON, dành cho JS auto-refresh mỗi 20 giây mà không reload trang.
         // Tách khỏi ActiveDevices thay vì dùng chung để giữ action trả View và action trả JSON độc lập.
         [HttpGet]
-        public async Task<IActionResult> ActiveDevicesData(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ActiveDevicesData(int withinMinutes = 1, CancellationToken cancellationToken = default)
         {
             if (withinMinutes < 1) withinMinutes = 1;
             if (withinMinutes > 60) withinMinutes = 60;

@@ -55,7 +55,7 @@ namespace Api.Controllers
         [HttpGet("active-devices")]
         [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> GetActiveDevices(
-            [FromQuery] int withinMinutes = 5,
+            [FromQuery] int withinMinutes = 1,
             CancellationToken cancellationToken = default)
         {
             // Clamp để tránh query quá rộng (ví dụ withinMinutes=99999 sẽ trả toàn bộ lịch sử)

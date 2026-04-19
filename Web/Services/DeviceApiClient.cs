@@ -20,7 +20,7 @@ public class DeviceApiClient(HttpClient httpClient)
     /// </param>
     /// <returns><c>null</c> nếu mạng lỗi; controller tự xử lý fallback.</returns>
     public async Task<ApiResult<ActiveDevicesSummaryDto>?> GetActiveDevicesAsync(
-        int withinMinutes = 5, CancellationToken ct = default)
+        int withinMinutes = 1, CancellationToken ct = default)
     {
         try
         {

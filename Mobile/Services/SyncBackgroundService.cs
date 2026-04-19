@@ -30,7 +30,7 @@ public class SyncBackgroundService : ISyncBackgroundService
 
     private CancellationTokenSource? _cts;
     private static readonly TimeSpan StallSyncInterval = TimeSpan.FromMinutes(3);
-    private static readonly TimeSpan FlushInterval = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(20);
 
     public SyncBackgroundService(
         ISyncService syncService,
