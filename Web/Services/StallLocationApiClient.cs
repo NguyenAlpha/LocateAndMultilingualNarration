@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Shared.DTOs.Common;
 using Shared.DTOs.StallLocations;
 
@@ -41,9 +42,10 @@ namespace Web.Services
             try
             {
                 var response = await _httpClient.PostAsJsonAsync("api/stall-location", request, cancellationToken);
+                if (!response.IsSuccessStatusCode) return null;
                 return await response.Content.ReadFromJsonAsync<ApiResult<StallLocationDetailDto>>(cancellationToken: cancellationToken);
             }
-            catch (HttpRequestException) { return null; }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException) { return null; }
         }
 
         public async Task<ApiResult<StallLocationDetailDto>?> UpdateLocationAsync(Guid id, StallLocationUpdateDto request, CancellationToken cancellationToken = default)
@@ -51,9 +53,10 @@ namespace Web.Services
             try
             {
                 var response = await _httpClient.PutAsJsonAsync($"api/stall-location/{id}", request, cancellationToken);
+                if (!response.IsSuccessStatusCode) return null;
                 return await response.Content.ReadFromJsonAsync<ApiResult<StallLocationDetailDto>>(cancellationToken: cancellationToken);
             }
-            catch (HttpRequestException) { return null; }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException) { return null; }
         }
     }
 }

@@ -1,23 +1,43 @@
-﻿{
-  "$schema": "https://json.schemastore.org/launchsettings.json",
+{
   "profiles": {
     "http": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:5209",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5209"
     },
     "https": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7298;http://localhost:5209",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7298;http://localhost:5209"
+    },
+    "http (Production API)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Api__BaseUrl": "https://locateandmultilingualnarration-amgrfua6fbd7gnce.eastasia-01.azurewebsites.net/"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5209"
+    },
+    "https (Production API)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Api__BaseUrl": "https://locateandmultilingualnarration-amgrfua6fbd7gnce.eastasia-01.azurewebsites.net/"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7298;http://localhost:5209"
     }
-  }
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json"
 }

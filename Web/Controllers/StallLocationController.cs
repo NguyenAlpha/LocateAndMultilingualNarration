@@ -197,6 +197,24 @@ namespace Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> LocationByStall(Guid stallId, CancellationToken cancellationToken = default)
+        {
+            var result = await _stallLocationApiClient.GetLocationsAsync(1, 1, stallId, null, cancellationToken);
+            var item = result?.Success == true ? result.Data?.Items.FirstOrDefault() : null;
+            if (item == null) return Json(new { found = false });
+            return Json(new
+            {
+                found = true,
+                id = item.Id,
+                latitude = item.Latitude,
+                longitude = item.Longitude,
+                radiusMeters = item.RadiusMeters,
+                address = item.Address ?? "",
+                isActive = item.IsActive
+            });
+        }
+
         private async Task<string> BuildAllLocationsJsonAsync(CancellationToken cancellationToken)
         {
             var result = await _stallLocationApiClient.GetLocationsAsync(1, 500, null, null, cancellationToken);

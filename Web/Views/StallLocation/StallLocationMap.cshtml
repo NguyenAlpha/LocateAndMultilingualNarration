@@ -104,7 +104,8 @@
                 <h5 class="mb-0"><i class="bi bi-pin-map me-2"></i>Chi tiết Vị trí</h5>
             </div>
             <div class="card-body">
-                <form id="locationForm" novalidate>
+                <form id="locationForm" method="post" novalidate>
+                    @Html.AntiForgeryToken()
 
                     @if (mode == "edit" && locationId.HasValue)
                     {
@@ -398,7 +399,7 @@
             }
         });
 
-        // Form submission with JSON to API
+        // Form submission qua Controller (JWT tự động qua session server-side)
         $('#locationForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -416,75 +417,10 @@
                 return false;
             }
 
-            // Build JSON data
-            var data = {
-                stallId: stallId,
-                latitude: parseFloat(lat),
-                longitude: parseFloat(lng),
-                radiusMeters: parseInt($('#radiusMeters').val()) || 8,
-                address: $('#address').val() || '',
-                isActive: $('#isActive').is(':checked')
-            };
-
-            // Get JWT token from localStorage (saved during login)
-            var jwtToken = localStorage.getItem('jwtToken');
-            if (!jwtToken) {
-                showToast('Vui lòng đăng nhập lại!', 'warning');
-                return false;
-            }
-
-            // Show loading state
-            var submitBtn = $('#locationForm').find('button[type="submit"]');
-            var originalBtnHtml = submitBtn.html();
-            submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Đang xử lý...');
-
-            // Determine API endpoint and method (currentLocationId có thể được cập nhật bởi stall dropdown)
-            var apiBaseUrl = '@Html.Raw(apiBaseUrl)'.replace(/\/$/, ''); // Remove trailing slash
-            var apiUrl = currentLocationId ? apiBaseUrl + '/api/stall-location/' + currentLocationId : apiBaseUrl + '/api/stall-location';
-            var httpMethod = currentLocationId ? 'PUT' : 'POST';
-
-            console.log('API URL:', apiUrl);
-            console.log('HTTP Method:', httpMethod);
-
-            // Send JSON request to API with JWT token
-            fetch(apiUrl, {
-                method: httpMethod,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + jwtToken
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify(data)
-            })
-            .then(function(response) {
-                console.log('Response Status:', response.status);
-
-                if (!response.ok) {
-                    return response.text().then(function(text) {
-                        console.error('Response Text:', text);
-                        try {
-                            var error = JSON.parse(text);
-                            throw new Error(error.message || 'Lỗi từ server: ' + response.status);
-                        } catch(e) {
-                            throw new Error('Lỗi ' + response.status + ': ' + response.statusText);
-                        }
-                    });
-                }
-                return response.json();
-            })
-            .then(function(result) {
-                console.log('Success Result:', result);
-                showToast('Lưu dữ liệu thành công!', 'success');
-                setTimeout(function() {
-                    window.location.href = '@Url.Action("Index", "StallLocation")';
-                }, 1500);
-            })
-            .catch(function(error) {
-                submitBtn.prop('disabled', false).html(originalBtnHtml);
-                console.error('Fetch Error:', error);
-                var errorMessage = error.message || 'Có lỗi xảy ra khi lưu dữ liệu!';
-                showToast(errorMessage, 'warning');
-            });
+            this.action = currentLocationId
+                ? '/StallLocation/Update/' + currentLocationId
+                : '/StallLocation/Create';
+            this.submit();
         });
 
         // Toast notification
@@ -507,43 +443,30 @@
         // Khi chọn stall, tự động load location đã có (nếu có) và điền vào form + bản đồ
         $('#stallSelect').on('change', function() {
             var selectedStallId = $(this).val();
-            if (!selectedStallId) {
-                currentLocationId = null;
-                return;
-            }
+            if (!selectedStallId) { currentLocationId = null; return; }
 
-            var jwtToken = localStorage.getItem('jwtToken');
-            var apiBaseUrl = '@Html.Raw(apiBaseUrl)'.replace(/\/$/, '');
-            fetch(apiBaseUrl + '/api/stall-location?stallId=' + selectedStallId + '&pageSize=1', {
-                headers: jwtToken ? { 'Authorization': 'Bearer ' + jwtToken } : {}
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(result) {
-                if (result.success && result.data && result.data.items && result.data.items.length > 0) {
-                    var loc = result.data.items[0];
-                    currentLocationId = loc.id;
-                    console.log('[StallSelect] Stall đã có location -> currentLocationId:', currentLocationId);
-                    $('#radiusMeters').val(loc.radiusMeters);
-                    $('#address').val(loc.address || '');
-                    $('#isActive').prop('checked', loc.isActive);
-                    renderOtherMarkers(selectedStallId);
-                    updateLocation(parseFloat(loc.latitude), parseFloat(loc.longitude), true);
-                    showToast('Đã tải vị trí hiện có của stall.', 'info');
-                } else {
-                    currentLocationId = null;
-                    console.log('[StallSelect] Stall chưa có location -> currentLocationId:', currentLocationId);
-                    if (marker) { map.removeLayer(marker); marker = null; }
-                    if (circle) { map.removeLayer(circle); circle = null; }
-                    $('#latitude').val('');
-                    $('#longitude').val('');
-                    $('#coordinateDisplay').html('<i class="bi bi-crosshair me-2"></i>Nhấp vào bản đồ để chọn vị trí');
-                    renderOtherMarkers(selectedStallId);
-                }
-            })
-            .catch(function() {
-                currentLocationId = null;
-                console.log('[StallSelect] Fetch lỗi -> currentLocationId:', currentLocationId);
-            });
+            fetch('/StallLocation/LocationByStall?stallId=' + selectedStallId)
+                .then(function(r) { return r.json(); })
+                .then(function(loc) {
+                    if (loc.found) {
+                        currentLocationId = loc.id;
+                        $('#radiusMeters').val(loc.radiusMeters);
+                        $('#address').val(loc.address || '');
+                        $('#isActive').prop('checked', loc.isActive);
+                        renderOtherMarkers(selectedStallId);
+                        updateLocation(parseFloat(loc.latitude), parseFloat(loc.longitude), true);
+                        showToast('Đã tải vị trí hiện có của stall.', 'info');
+                    } else {
+                        currentLocationId = null;
+                        if (marker) { map.removeLayer(marker); marker = null; }
+                        if (circle) { map.removeLayer(circle); circle = null; }
+                        $('#latitude').val('');
+                        $('#longitude').val('');
+                        $('#coordinateDisplay').html('<i class="bi bi-crosshair me-2"></i>Nhấp vào bản đồ để chọn vị trí');
+                        renderOtherMarkers(selectedStallId);
+                    }
+                })
+                .catch(function() { currentLocationId = null; });
         });
 
         // Fetch stall của người khác từ geo API (AllowAnonymous) và render màu xám
