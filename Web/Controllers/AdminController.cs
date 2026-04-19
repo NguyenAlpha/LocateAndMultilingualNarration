@@ -334,6 +334,9 @@ namespace Web.Controllers
             });
         }
 
+        // Render trang lần đầu — truyền model vào View để Razor hiển thị dữ liệu ngay khi trang load,
+        // không cần chờ JS fetch. Nếu API lỗi, trả về model rỗng thay vì crash trang.
+        // ViewBag.WithinMinutes dùng để render đúng option selected trong dropdown.
         [HttpGet]
         public async Task<IActionResult> ActiveDevices(int withinMinutes = 5, CancellationToken cancellationToken = default)
         {
@@ -344,6 +347,8 @@ namespace Web.Controllers
             return View(result?.Data ?? new ActiveDevicesSummaryDto { WithinMinutes = withinMinutes, AsOf = DateTimeOffset.UtcNow });
         }
 
+        // Endpoint riêng chỉ trả JSON, dành cho JS auto-refresh mỗi 20 giây mà không reload trang.
+        // Tách khỏi ActiveDevices thay vì dùng chung để giữ action trả View và action trả JSON độc lập.
         [HttpGet]
         public async Task<IActionResult> ActiveDevicesData(int withinMinutes = 5, CancellationToken cancellationToken = default)
         {
