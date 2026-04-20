@@ -24,6 +24,8 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
 
     private readonly IGpsPollingService _gpsPollingService;
 
+    private readonly ISyncService _syncService;
+
     private readonly ILogger<MapViewModel> _logger;
 
     // Cờ đánh dấu dữ liệu đã được tải lần đầu hay chưa — tránh gọi API trùng lặp
@@ -70,13 +72,10 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
             OnPropertyChanged(nameof(HasSelectedStall));
 
             if (selectedStall != null)
-            {
-                // Yêu cầu MapPage di chuyển camera đến vị trí gian hàng vừa chọn
                 FocusStallRequested?.Invoke(selectedStall);
 
-                // Yêu cầu MapPage vẽ lại pin (để đổi màu pin đang chọn so với các pin còn lại)
-                PinsRefreshRequested?.Invoke();
-            }
+            // Vẽ lại pin cả khi bỏ chọn (null) để xóa màu đỏ của pin cũ
+            PinsRefreshRequested?.Invoke();
         }
     }
 
@@ -129,15 +128,17 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
     /// Constructor nhận service qua Dependency Injection (đăng ký trong MauiProgram.cs).
     /// Khởi tạo tất cả Command ngay tại đây.
     /// </summary>
-    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService, IGpsPollingService gpsPollingService, ILogger<MapViewModel> logger)
+    public MapViewModel(IStallService stallService, IAudioGuideService audioGuideService, IGpsPollingService gpsPollingService, ISyncService syncService, ILogger<MapViewModel> logger)
     {
         _stallService = stallService;
         _audioGuideService = audioGuideService;
         _gpsPollingService = gpsPollingService;
+        _syncService = syncService;
         _logger = logger;
 
         _audioGuideService.PlaybackCompleted += OnPlaybackCompleted;
         _gpsPollingService.LocationUpdated += OnLocationUpdated;
+        _syncService.AudioDownloaded += OnAudioDownloaded;
 
         // forceRefresh = true: bỏ qua cache, luôn gọi API mới
         RefreshCommand = new Command(async () => await LoadStallsAsync(true));
@@ -189,7 +190,9 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
         try
         {
             IsBusy = true;
-            ErrorMessage = string.Empty; // Xóa thông báo lỗi cũ
+            ErrorMessage = string.Empty;
+            SelectedStall = null;                    // bỏ chọn stall cũ
+            await _audioGuideService.StopAsync();    // dừng audio đang phát
 
             var stalls = await _stallService.GetStallsAsync(forceRefresh);
 
@@ -363,6 +366,17 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
     {
         _audioGuideService.PlaybackCompleted -= OnPlaybackCompleted;
         _gpsPollingService.LocationUpdated -= OnLocationUpdated;
+        _syncService.AudioDownloaded -= OnAudioDownloaded;
+    }
+
+    // SyncService download audio xong → reload DTO từ SQLite để lấy LocalAudioPath mới.
+    void OnAudioDownloaded(object? sender, EventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try { await LoadStallsAsync(false); }
+            catch (Exception ex) { _logger.LogError(ex, "[MapViewModel] Reload sau AudioDownloaded thất bại"); }
+        });
     }
 
     void OnPropertyChanged([CallerMemberName] string? name = null)

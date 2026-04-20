@@ -27,6 +27,11 @@ public interface ISyncService
     /// <param name="ct">Token hủy tác vụ.</param>
     /// <returns>Task đại diện cho quá trình đồng bộ.</returns>
     Task SyncAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Bắn khi có audio mới được download và ghi LocalAudioPath — ViewModel nên reload DTO.
+    /// </summary>
+    event EventHandler? AudioDownloaded;
 }
 
 /// <summary>
@@ -47,6 +52,8 @@ public class SyncService : ISyncService
 
     public DateTime? LastSyncedAt { get; private set; }
     public bool IsSyncing { get; private set; }
+
+    public event EventHandler? AudioDownloaded;
 
     public SyncService(
         IHttpClientFactory httpClientFactory,
@@ -116,6 +123,7 @@ public class SyncService : ISyncService
                 Longitude             = s.Longitude,
                 RadiusMeters          = s.RadiusMeters,
                 AudioUrl              = s.NarrationContent?.AudioUrl,
+                BlobId                = s.NarrationContent?.BlobId,
                 LanguageCode          = languageCode,
                 VoiceId               = voiceId,
                 LastUpdated           = DateTimeOffset.UtcNow,
@@ -155,7 +163,8 @@ public class SyncService : ISyncService
                         // Bỏ qua nếu URL không đổi và file vẫn còn trên máy — không cần tải lại.
                         var old = existingMap.GetValueOrDefault(s.StallId);
                         if (old is not null
-                            && old.AudioUrl == s.AudioUrl
+                            && old.BlobId is not null
+                            && old.BlobId == s.BlobId
                             && old.LocalAudioPath is not null
                             && File.Exists(old.LocalAudioPath))
                         {
@@ -190,6 +199,13 @@ public class SyncService : ISyncService
                 _logger.LogInformation(
                     "[SyncAsync]: audio {Downloaded} tải mới / {Skipped} bỏ qua (đã có) / {Total} tổng — hoàn tất lúc {Time}",
                     audioDownloaded, audioSkipped, audioTotal, LastSyncedAt);
+
+            // Báo cho UI (MapViewModel) reload DTO để dùng LocalAudioPath mới.
+            if (audioDownloaded > 0)
+            {
+                _stallService.InvalidateCache();
+                AudioDownloaded?.Invoke(this, EventArgs.Empty);
+            }
         }
         catch (OperationCanceledException) { /* bị huỷ bình thường */ }
         catch (Exception ex)
