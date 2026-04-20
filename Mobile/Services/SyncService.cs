@@ -39,6 +39,7 @@ public class SyncService : ISyncService
     private readonly IAudioCacheService _audioCacheService;
     private readonly ILocalPreferenceService _localPreference;
     private readonly IDeviceService _deviceService;
+    private readonly IStallService _stallService;
     private readonly ILogger<SyncService> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -53,6 +54,7 @@ public class SyncService : ISyncService
         IAudioCacheService audioCacheService,
         ILocalPreferenceService localPreference,
         IDeviceService deviceService,
+        IStallService stallService,
         ILogger<SyncService> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -60,6 +62,7 @@ public class SyncService : ISyncService
         _audioCacheService = audioCacheService;
         _localPreference = localPreference;
         _deviceService = deviceService;
+        _stallService = stallService;
         _logger = logger;
     }
 
@@ -131,6 +134,8 @@ public class SyncService : ISyncService
             // Ghi toàn bộ danh sách vào cơ sở dữ liệu cục bộ.
             // UpsertBatchAsync chỉ ghi những stall thực sự thay đổi — log ở đây chỉ biết tổng từ API.
             await _localRepo.UpsertBatchAsync(localStalls);
+            // Xóa memory cache của StallService để lần sau đọc từ SQLite thay vì gọi API trùng lặp.
+            _stallService.InvalidateCache();
             if (_logger.IsEnabled(LogLevel.Information))
                 _logger.LogInformation("[SyncAsync]: API trả về {Total} stall, đã upsert vào SQLite (chỉ ghi stall thay đổi)", localStalls.Count);
 

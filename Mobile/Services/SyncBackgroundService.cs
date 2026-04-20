@@ -30,7 +30,7 @@ public class SyncBackgroundService : ISyncBackgroundService
 
     private CancellationTokenSource? _cts;
     private static readonly TimeSpan StallSyncInterval = TimeSpan.FromMinutes(3);
-    private static readonly TimeSpan FlushInterval = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(20);
 
     public SyncBackgroundService(
         ISyncService syncService,
@@ -50,7 +50,8 @@ public class SyncBackgroundService : ISyncBackgroundService
     public void Start()
     {
         // Đảm bảo không đăng ký trùng hoặc chạy song song nhiều instance.
-        Stop(); // tránh double-start
+        // KHÔNG gọi Stop() vì Stop() gửi NotifyOffline — chỉ cleanup nội bộ.
+        CleanupInternal();
         _cts = new CancellationTokenSource();
 
         // Lắng nghe thay đổi kết nối mạng
@@ -72,9 +73,22 @@ public class SyncBackgroundService : ISyncBackgroundService
     }
 
     /// <summary>
-    /// Dừng theo dõi mạng, hủy timer và giải phóng token nguồn.
+    /// Dừng theo dõi mạng, hủy timer và gửi tín hiệu offline cho admin dashboard.
+    /// Chỉ gọi khi thực sự thoát MapPage — KHÔNG gọi trong Start() để tránh gửi offline nhầm.
     /// </summary>
     public void Stop()
+    {
+        CleanupInternal();
+
+        // Thông báo offline để admin dashboard loại thiết bị ngay, không chờ hết cửa sổ 30 giây.
+        _ = _devicePreferenceApiService.NotifyOfflineAsync();
+    }
+
+    /// <summary>
+    /// Cleanup nội bộ: unsubscribe event + cancel token. Không gửi NotifyOffline.
+    /// Dùng bởi cả Start() (tránh double-start) và Stop() (phần dọn dẹp).
+    /// </summary>
+    private void CleanupInternal()
     {
         // Hủy đăng ký sự kiện để tránh leak và callback ngoài ý muốn.
         Connectivity.ConnectivityChanged -= OnConnectivityChanged;

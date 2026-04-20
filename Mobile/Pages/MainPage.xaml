@@ -101,20 +101,23 @@
 
                 <!-- Phân trang (Pagination) -->
                 <Grid ColumnDefinitions="Auto,*,Auto" Padding="10,0" IsVisible="{Binding HasStalls}">
-                    <Button Text="← Trước" 
-                            BackgroundColor="White" 
+                    <Button Grid.Column="0"
+                            Text="← Trước"
+                            BackgroundColor="White"
                             TextColor="#64748B"
                             Command="{Binding PreviousPageCommand}"
                             IsEnabled="{Binding CanGoPrevious}"/>
 
-                    <Label Text="{Binding CurrentPageDisplay}" 
-                           HorizontalOptions="Center" 
+                    <Label Grid.Column="1"
+                           Text="{Binding CurrentPageDisplay}"
+                           HorizontalOptions="Center"
                            VerticalOptions="Center"
                            FontSize="15"
                            TextColor="#475569"/>
 
-                    <Button Text="Sau →" 
-                            BackgroundColor="White" 
+                    <Button Grid.Column="2"
+                            Text="Sau →"
+                            BackgroundColor="White"
                             TextColor="#64748B"
                             Command="{Binding NextPageCommand}"
                             IsEnabled="{Binding CanGoNext}"/>

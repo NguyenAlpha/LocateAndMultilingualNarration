@@ -205,7 +205,9 @@
                     <div class="mb-3">
                         <div class="form-check">
                             <input type="hidden" name="isActive" value="false" />
-                            <input class="form-check-input" type="checkbox" id="isActive" name="isActive" value="true" checked="@((ViewBag.IsActive ?? true))" @(mode == "view" ? "disabled" : "") />
+                            <input class="form-check-input" type="checkbox" id="isActive" name="isActive" value="true"
+                                @(mode != "view" ? "checked" : ((bool)(ViewBag.IsActive ?? false) ? "checked" : ""))
+                                @(mode == "view" ? "disabled" : "") />
                             <label class="form-check-label" for="isActive">
                                 Kích hoạt
                             </label>
@@ -453,7 +455,7 @@
                         currentLocationId = loc.id;
                         $('#radiusMeters').val(loc.radiusMeters);
                         $('#address').val(loc.address || '');
-                        $('#isActive').prop('checked', loc.isActive);
+                        $('#isActive').prop('checked', true);
                         renderOtherMarkers(selectedStallId);
                         updateLocation(parseFloat(loc.latitude), parseFloat(loc.longitude), true);
                         showToast('Đã tải vị trí hiện có của stall.', 'info');

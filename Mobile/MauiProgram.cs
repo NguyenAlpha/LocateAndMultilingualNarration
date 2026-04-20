@@ -67,7 +67,7 @@ public static class MauiProgram
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddSingleton<MapViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<StallListViewModel>(builder.Services);
@@ -77,11 +77,11 @@ public static class MauiProgram
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<MainPage>();
-        builder.Services.AddTransient<MapPage>();
+        builder.Services.AddSingleton<MapPage>();
         builder.Services.AddTransient<ProfilePage>();
         builder.Services.AddTransient<ScanPage>();
         builder.Services.AddTransient<StallListPage>();
-        builder.Services.AddTransient<StallPopup>();
+        builder.Services.AddSingleton<StallPopup>();
 
         ConfigureLogging(builder.Logging);
 
@@ -135,12 +135,12 @@ public static class MauiProgram
 #if DEBUG
         // Chỉ bật logging chi tiết trong DEBUG để không ảnh hưởng hiệu năng Release.
         logging.AddDebug();
-        logging.SetMinimumLevel(LogLevel.Debug);
+        //logging.SetMinimumLevel(LogLevel.Debug);
 
         // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
-        logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
-        logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
-        logging.AddFilter("Mobile.Services.GpsPollingService", LogLevel.Debug);
+        //logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
+        //logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
+        //logging.AddFilter("Mobile.Services.GpsPollingService", LogLevel.Debug);
 #else
         // Release chỉ giữ mức cảnh báo để giảm log nhiễu và rủi ro lộ thông tin.
         logging.SetMinimumLevel(LogLevel.Warning);

@@ -34,6 +34,12 @@ public interface IDevicePreferenceApiService
     /// Kiểm tra cờ reset từ API. Nếu server đặt NeedsReset=true thì trả về true (API tự xóa cờ).
     /// </summary>
     Task<bool> CheckAndClearResetFlagAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Thông báo thiết bị offline — API set LastSeenAt về MinValue để admin dashboard
+    /// loại thiết bị khỏi danh sách active ngay lập tức thay vì chờ hết cửa sổ thời gian.
+    /// </summary>
+    Task NotifyOfflineAsync(CancellationToken ct = default);
 }
 
 /// <summary>
@@ -141,6 +147,18 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
             return result?.Data ?? false;
         }
         catch { return false; }
+    }
+
+    public async Task NotifyOfflineAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var client = _httpClientFactory.CreateClient();
+            await client.PostAsync(
+                $"api/device-preference/{Uri.EscapeDataString(deviceId)}/offline", null, ct);
+        }
+        catch { /* fire-and-forget — lỗi mạng khi offline là bình thường */ }
     }
 
     public async Task<ApiResult<DevicePreferenceDetailDto>> UpsertAsync(DevicePreferenceUpsertDto dto, CancellationToken ct = default)

@@ -1,4 +1,7 @@
 ﻿
+using Mobile.LocalDb;
+using Mobile.Services;
+
 namespace Mobile.Components;
 
 public partial class HeaderView : Grid
@@ -35,7 +38,22 @@ public partial class HeaderView : Grid
 #if DEBUG
     private async void OnDebugResetDeviceId(object? sender, EventArgs e)
     {
+        var confirm = await Shell.Current.CurrentPage.DisplayAlertAsync(
+            "Debug Reset", "Xóa toàn bộ Preferences + SQLite và về LoadingPage?", "Xóa", "Hủy");
+        if (!confirm) return;
+
+        // Xóa SQLite
+        var repo = IPlatformApplication.Current?.Services.GetService<ILocalStallRepository>();
+        if (repo is not null)
+            await repo.DeleteAllAsync();
+
+        // Xóa memory cache của StallService
+        var stallService = IPlatformApplication.Current?.Services.GetService<IStallService>();
+        stallService?.InvalidateCache();
+
+        // Xóa Preferences (QR, language, device preference)
         Preferences.Clear();
+
         await Shell.Current.GoToAsync("//LoadingPage");
     }
 #endif

@@ -44,12 +44,16 @@ public partial class MapPage : ContentPage
     private readonly ILogger<MapPage> _logger;
     private readonly StallPopup _stallPopup;
     private readonly ISyncBackgroundService _syncBackgroundService;
+    private readonly ILocationLogService _locationLogService;
 
     // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
     private bool _isInitialized;
 
     // Cờ báo hiệu đang hiển thị popup — tránh StopPolling/StartPolling không cần thiết khi popup mở/đóng.
     private bool _isPopupOpen;
+
+    // Cờ tránh gọi Stop/Flush/NotifyOffline nhiều lần khi OnDisappearing bị trigger liên tiếp.
+    private bool _isStopping;
 
     // Lưu ngôn ngữ/voice lần trước để so sánh — chỉ reload khi thực sự thay đổi.
     private string? _lastLanguageCode;
@@ -69,7 +73,7 @@ public partial class MapPage : ContentPage
     /// <summary>
     /// Constructor: khởi tạo UI, lấy ViewModel từ DI, đăng ký event, cấu hình bản đồ.
     /// </summary>
-    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService)
+    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService, ILocationLogService locationLogService)
     {
         InitializeComponent();
 
@@ -77,6 +81,7 @@ public partial class MapPage : ContentPage
         _logger = logger;
         _stallPopup = stallPopup;
         _syncBackgroundService = syncBackgroundService;
+        _locationLogService = locationLogService;
         BindingContext = _viewModel;
         Console.WriteLine($"[DEBUG] MapPage constructor — instance #{GetHashCode()}");
 
@@ -92,7 +97,7 @@ public partial class MapPage : ContentPage
         // Thêm layer vòng tròn geofence (hiển thị phía trên tile layer)
         mapView.Map?.Layers.Add(_circlesLayer);
 
-        // Ẩn widget debug log của Mapsui khỏi bản đồ (chỉ cần khi dev)
+        // Ẩn widget debug log và performance overlay của Mapsui
         Mapsui.Widgets.InfoWidgets.LoggingWidget.ShowLoggingInMap = Mapsui.Widgets.ActiveMode.No;
 
         // Đăng ký sự kiện tap vào pin trên bản đồ
@@ -124,8 +129,11 @@ public partial class MapPage : ContentPage
             return;
         }
 
+        _isStopping = false; // reset để OnDisappearing tiếp theo vẫn chạy được
+
         _viewModel.StartPolling();
         _viewModel.SelectedStall = null;
+        _syncBackgroundService.Start(); // start lại mỗi lần vào trang (kể cả lần quay lại)
 
         if (_isInitialized)
         {
@@ -148,7 +156,8 @@ public partial class MapPage : ContentPage
         }
 
         _isInitialized = true;
-        _syncBackgroundService.Start();
+        _lastLanguageCode = LanguageHelper.GetLanguage();
+        _lastVoiceId      = LanguageHelper.GetVoice();
         _ = InitializePageAsync(); // fire-and-forget rõ ràng, exception được bắt bên trong
     }
 
@@ -187,10 +196,16 @@ public partial class MapPage : ContentPage
         if (_isPopupOpen)
             return; // popup đang mở — không stop polling
 
+        if (_isStopping)
+            return; // đã stop rồi, tránh gọi lại lần 2
+
+        _isStopping = true;
+
         try
         {
             _viewModel.StopPolling();
-            _viewModel.Dispose();
+            _ = _locationLogService.FlushAsync(); // flush GPS buffer trước khi dừng service
+            _syncBackgroundService.Stop();
         }
         catch (Exception ex)
         {

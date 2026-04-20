@@ -1,7 +1,7 @@
 @{
     ViewData["Title"] = "Tạo QR tự động";
 }
-
+// Mã này sử dụng JavaScript để quản lý trạng thái tạo QR tự động, hiển thị mã QR mới mỗi khi khách quét mã hiện tại.
 @Html.AntiForgeryToken()
 
 <div class="page-header d-print-none">
@@ -102,12 +102,19 @@
 
 @section Scripts {
 <script>
-    let currentId   = null;
-    let validDays   = 30;
-    let pollTimer   = null;
+    // --- Trạng thái toàn cục ---
+    // currentId: ID của QR đang hiển thị, dùng để poll kiểm tra đã bị quét chưa
+    // validDays: số ngày hiệu lực người dùng nhập, giữ lại để tạo mã tiếp theo
+    // pollTimer: ID của setInterval, cần lưu để clearInterval khi dừng
+    // scannedTotal: đếm tổng số lần khách quét trong phiên hiện tại
+    // POLL_MS: tần suất gọi API kiểm tra (2 giây/lần)
+    let currentId    = null;
+    let validDays    = 30;
+    let pollTimer    = null;
     let scannedTotal = 0;
-    const POLL_MS   = 2000;
+    const POLL_MS    = 2000;
 
+    // Bước 1: Admin nhấn "Bắt đầu" → validate input → gọi API tạo QR đầu tiên → chuyển sang chế độ hiển thị
     async function startAutoQr() {
         validDays = parseInt(document.getElementById('validDaysInput').value, 10);
         if (!validDays || validDays < 1) {
@@ -115,11 +122,13 @@
             return;
         }
 
+        // Disable nút để tránh nhấn nhiều lần trong lúc đang gọi API
         const btn = document.getElementById('btnStart');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang tạo...';
 
         try {
+            // Gửi antiforgery token trong header vì đây là AJAX POST, không phải form submit thông thường
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const res = await fetch('/Admin/StartAutoQr', {
                 method: 'POST',
@@ -132,60 +141,75 @@
             const data = await res.json();
             if (!res.ok) { alert(data.error || 'Lỗi tạo QR.'); return; }
 
-            showQrCard(data);
-            startPolling();
+            showQrCard(data);   // hiển thị ảnh QR vừa tạo
+            startPolling();     // bắt đầu vòng lặp kiểm tra đã quét chưa
         } finally {
+            // Luôn restore nút dù thành công hay lỗi
             btn.disabled = false;
             btn.innerHTML = '<i class="ti ti-player-play me-1"></i>Bắt đầu';
         }
     }
 
+    // Render thông tin QR mới vào card: lưu ID, hiện ảnh, ẩn/hiện các banner
+    // Hàm này được gọi cả lần đầu lẫn mỗi khi swap sang mã mới
     function showQrCard(data) {
         currentId = data.id;
+
+        // Chỉ hiển thị 4 ký tự cuối của code để tránh lộ toàn bộ mã trên màn hình kiosk
         document.getElementById('qrCodeText').textContent = '****' + data.code.slice(-4);
         document.getElementById('validDaysBadge').textContent = validDays + ' ngày';
+
+        // Chuyển giao diện từ setup card sang QR card
         document.getElementById('setupCard').classList.add('d-none');
         document.getElementById('qrCard').classList.remove('d-none');
         document.getElementById('statusBanner').classList.remove('d-none');
         document.getElementById('scannedBanner').classList.add('d-none');
         updateScannedCount();
 
-        // Ẩn overlay khi ảnh mới load xong (tránh vòng lặp spinner vô tận)
+        // Gán src sau khi đăng ký onload/onerror để tránh race condition:
+        // nếu gán src trước, sự kiện load có thể fire trước khi handler được gắn
         const img = document.getElementById('qrImage');
-        img.onload = () => document.getElementById('qrOverlay').classList.add('d-none');
+        img.onload  = () => document.getElementById('qrOverlay').classList.add('d-none');
         img.onerror = () => document.getElementById('qrOverlay').classList.add('d-none');
         img.src = data.imageUrl;
     }
 
+    // Khởi động vòng lặp poll — clearInterval trước để đảm bảo không chạy 2 timer song song
     function startPolling() {
         clearInterval(pollTimer);
         pollTimer = setInterval(poll, POLL_MS);
     }
 
+    // Mỗi 2 giây gọi PollAutoQr để hỏi server: QR hiện tại đã bị quét chưa?
+    // Nếu chưa quét (data.used = false) → bỏ qua, chờ tick tiếp theo
+    // Nếu đã quét → hiện thông báo, dừng timer, đợi 1.2s rồi swap sang mã mới
     async function poll() {
         if (!currentId) return;
         try {
+            // PollAutoQr trả về QR cũ (với used=true) hoặc QR mới (nếu server đã tạo sẵn)
             const res  = await fetch(`/Admin/PollAutoQr?id=${currentId}&validDays=${validDays}`);
             const data = await res.json();
-            if (!data.used) return;   // chưa quét → tiếp tục chờ
+            if (!data.used) return;
 
-            // Đã quét → hiện flash + swap QR
             scannedTotal++;
-            clearInterval(pollTimer);
+            clearInterval(pollTimer); // dừng timer ngay, tránh poll tiếp trong lúc đang swap
+
+            // Hiện flash "Đã quét" + spinner overlay lên ảnh QR cũ
             document.getElementById('statusBanner').classList.add('d-none');
             document.getElementById('scannedBanner').classList.remove('d-none');
             document.getElementById('qrOverlay').classList.remove('d-none');
 
-            // Đợi 1 giây để user thấy thông báo, rồi swap sang mã mới
+            // Cho Admin thấy thông báo 1.2s trước khi ảnh QR mới xuất hiện
             setTimeout(() => {
                 showQrCard(data);
                 startPolling();
             }, 1200);
         } catch (e) {
-            // Bỏ qua lỗi mạng tạm thời, tiếp tục poll
+            // Lỗi mạng tạm thời (timeout, mất kết nối) → im lặng, tick tiếp theo sẽ thử lại
         }
     }
 
+    // Admin nhấn "Dừng" → xoá timer, reset state, quay về setup card
     function stopAutoQr() {
         clearInterval(pollTimer);
         pollTimer = null;
@@ -200,6 +224,8 @@
         el.textContent = scannedTotal > 0 ? `Đã phát: ${scannedTotal} lượt` : '';
     }
 
+    // Download ảnh QR: tạo thẻ <a> tạm, trigger click để trình duyệt tải file
+    // Không thể dùng href trực tiếp vì src là data URL từ API, không phải file tĩnh
     function downloadQr(e) {
         e.preventDefault();
         const img = document.getElementById('qrImage');

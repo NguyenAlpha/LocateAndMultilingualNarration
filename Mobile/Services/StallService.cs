@@ -28,6 +28,12 @@ public interface IStallService
     /// Lấy một gian hàng theo ID
     /// </summary>
     Task<StallItem?> GetStallByIdAsync(Guid stallId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Xóa memory cache để lần gọi tiếp theo đọc lại từ SQLite (không gọi API).
+    /// Gọi sau khi SyncService đã upsert SQLite để tránh gọi API trùng lặp.
+    /// </summary>
+    void InvalidateCache();
 }
 
 /// <summary>
@@ -148,6 +154,12 @@ public class StallService : IStallService
         return stalls.FirstOrDefault(s => s.Id == stallId);
     }
 
+    public void InvalidateCache()
+    {
+        _cachedStalls = null;
+        _lastFetchUtc = DateTime.MinValue;
+    }
+
     // ====================== MAPPING ======================
 
     private static GeoStallDto MapLocalToGeoSafe(LocalStall local) => new()
@@ -175,7 +187,7 @@ public class StallService : IStallService
         // OLD CODE (kept for reference): Slug = dto.Slug ?? string.Empty,
         Slug = BuildSlug(source.StallName),
         // OLD CODE (kept for reference): ImageUrl = dto.ImageUrl ?? "https://via.placeholder.com/300x200?text=No+Image",
-        ImageUrl = "https://via.placeholder.com/300x200?text=No+Image",
+        ImageUrl = "dotnet_bot.png",
         // OLD CODE (kept for reference): BusinessName = dto.BusinessName ?? string.Empty,
         BusinessName = string.Empty,
         IsActive = true,

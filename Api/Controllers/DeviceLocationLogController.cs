@@ -3,6 +3,7 @@ using Api.Extensions;
 using Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Shared.DTOs.DeviceLocationLogs;
 
 namespace Api.Controllers;
@@ -51,6 +52,13 @@ public class DeviceLocationLogController : ControllerBase
 
         _context.DeviceLocationLogs.AddRange(logs);
         await _context.SaveChangesAsync();
+
+        // Cập nhật LastSeenAt để tracking "thiết bị đang online" chính xác hơn —
+        // endpoint này được Mobile gọi mỗi ~1 phút (flush GPS buffer), cao hơn tần suất
+        // sync stall 3 phút ở GeoController. Dùng ExecuteUpdateAsync để tránh load entity.
+        await _context.DevicePreferences
+            .Where(d => d.DeviceId == dto.DeviceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.LastSeenAt, DateTimeOffset.UtcNow));
 
         _logger.LogInformation("Lưu {Count} điểm GPS cho device {DeviceId}", logs.Count, dto.DeviceId);
 

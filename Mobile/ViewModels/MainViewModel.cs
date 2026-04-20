@@ -12,18 +12,20 @@ namespace Mobile.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     readonly IQrService _qrAccessService;
-    readonly IStallService stallService;
+    readonly IStallService _stallService;
     private int _quickActionNavigationGuard;
+
+    private List<StallItem> _allStalls = [];
+    private const int PageSize = 3;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ICommand StartCommand { get; }
     public ICommand MapCommand { get; }
     public ICommand LanguageCommand { get; }
-    public ICommand ProfileCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand LoadDataCommand { get; }
-    public ICommand StallListCommand { get; }
+    public ICommand PreviousPageCommand { get; }
+    public ICommand NextPageCommand { get; }
 
     string userName = "Guest";
     public string UserName
@@ -46,47 +48,40 @@ public class MainViewModel : INotifyPropertyChanged
     public bool IsLoadingStalls
     {
         get => isLoadingStalls;
-        set
-        {
-            if (isLoadingStalls == value) return;
-            isLoadingStalls = value;
-            OnPropertyChanged();
-        }
+        set { if (isLoadingStalls == value) return; isLoadingStalls = value; OnPropertyChanged(); }
     }
 
     bool hasStalls;
     public bool HasStalls
     {
         get => hasStalls;
-        set
-        {
-            if (hasStalls == value) return;
-            hasStalls = value;
-            OnPropertyChanged();
-        }
+        set { if (hasStalls == value) return; hasStalls = value; OnPropertyChanged(); }
     }
+
+    int currentPage = 1;
+    public int CurrentPage
+    {
+        get => currentPage;
+        set { if (currentPage == value) return; currentPage = value; OnPropertyChanged(); OnPropertyChanged(nameof(CurrentPageDisplay)); OnPropertyChanged(nameof(CanGoPrevious)); OnPropertyChanged(nameof(CanGoNext)); }
+    }
+
+    public int TotalPages => _allStalls.Count == 0 ? 1 : (int)Math.Ceiling(_allStalls.Count / (double)PageSize);
+    public bool CanGoPrevious => CurrentPage > 1;
+    public bool CanGoNext => CurrentPage < TotalPages;
+    public string CurrentPageDisplay => $"Trang {CurrentPage} / {TotalPages}";
 
     public MainViewModel(IQrService qrAccessService, IStallService stallService)
     {
         _qrAccessService = qrAccessService;
-        this.stallService = stallService;
+        _stallService = stallService;
         LoadUserName();
 
-        StartCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
-        // OLD CODE (kept for reference): MapCommand = new Command(async () => await NavigateQuickActionAsync(nameof(MapPage)));
-        // OLD CODE (kept for reference): MapCommand = new Command(async () => await NavigateQuickActionAsync($"//{nameof(MapPage)}"));
         MapCommand = new Command(async () => await NavigateQuickActionAsync("//MapPage"));
         LanguageCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
-        ProfileCommand = new Command(async () => await ShowProfileAsync());
         LogoutCommand = new Command(async () => await LogoutAsync());
         LoadDataCommand = new Command(async () => await LoadFeaturedStallsAsync());
-        StallListCommand = new Command(async () => await NavigateToStallListAsync());
-
-        _ = LoadFeaturedStallsAsync();
-    }
-    private async Task GoToStallListAsync()
-    {
-        await Shell.Current.GoToAsync("StallListPage");
+        PreviousPageCommand = new Command(() => { if (CanGoPrevious) { CurrentPage--; RenderPage(); } });
+        NextPageCommand = new Command(() => { if (CanGoNext) { CurrentPage++; RenderPage(); } });
     }
 
     public void LoadUserName()
@@ -101,15 +96,9 @@ public class MainViewModel : INotifyPropertyChanged
         try
         {
             IsLoadingStalls = true;
-            var stalls = await stallService.GetFeaturedStallsAsync();
-
-            FeaturedStalls.Clear();
-            foreach (var stall in stalls)
-            {
-                FeaturedStalls.Add(stall);
-            }
-
-            HasStalls = FeaturedStalls.Count > 0;
+            _allStalls = await _stallService.GetAllStallsAsync();
+            CurrentPage = 1;
+            RenderPage();
         }
         catch
         {
@@ -121,35 +110,31 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    async Task ShowAudioHintAsync()
+    // Hiển thị đúng trang hiện tại từ _allStalls
+    private void RenderPage()
     {
-        if (Application.Current?.Windows[0].Page != null)
-        {
-            await Application.Current.Windows[0].Page!.DisplayAlertAsync("Audio", "Chọn gian hàng trên bản đồ để phát thuyết minh.", "OK");
-        }
+        var pageItems = _allStalls.Skip((CurrentPage - 1) * PageSize).Take(PageSize).ToList();
+        FeaturedStalls.Clear();
+        foreach (var stall in pageItems)
+            FeaturedStalls.Add(stall);
+
+        HasStalls = _allStalls.Count > 0;
+        OnPropertyChanged(nameof(TotalPages));
+        OnPropertyChanged(nameof(CurrentPageDisplay));
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
     }
 
-    // OLD CODE (kept for reference): ShowProfileAsync cũ chỉ hiển thị alert.
-    // async Task ShowProfileAsync()
-    // {
-    //     if (Application.Current?.Windows[0].Page != null)
-    //     {
-    //         await Application.Current.Windows[0].Page!.DisplayAlertAsync("Profile", "Trang cá nhân", "OK");
-    //     }
-    // }
     async Task ShowProfileAsync()
     {
         try
         {
-            // OLD CODE (kept for reference): await Shell.Current.GoToAsync(nameof(ProfilePage));
             await Shell.Current.GoToAsync("//profile");
         }
         catch (Exception ex)
         {
             if (Application.Current?.Windows[0].Page != null)
-            {
                 await Application.Current.Windows[0].Page!.DisplayAlertAsync("Lỗi", $"Không thể mở trang Hồ sơ: {ex.Message}", "OK");
-            }
         }
     }
 
@@ -173,9 +158,7 @@ public class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             if (Application.Current?.Windows[0].Page != null)
-            {
                 await Application.Current.Windows[0].Page!.DisplayAlertAsync("Lỗi điều hướng", ex.Message, "OK");
-            }
         }
         finally
         {
@@ -185,16 +168,4 @@ public class MainViewModel : INotifyPropertyChanged
 
     void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    private async Task NavigateToStallListAsync()
-    {
-        try
-        {
-            await Shell.Current.GoToAsync("StallListPage");
-        }
-        catch (Exception ex)
-        {
-            // Log lỗi nếu cần
-            Console.WriteLine($"Navigate to StallListPage failed: {ex.Message}");
-        }
-    }
 }
