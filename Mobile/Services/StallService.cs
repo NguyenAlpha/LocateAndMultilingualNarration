@@ -175,7 +175,7 @@ public class StallService : IStallService
         // OLD CODE (kept for reference): Slug = dto.Slug ?? string.Empty,
         Slug = BuildSlug(source.StallName),
         // OLD CODE (kept for reference): ImageUrl = dto.ImageUrl ?? "https://via.placeholder.com/300x200?text=No+Image",
-        ImageUrl = "https://via.placeholder.com/300x200?text=No+Image",
+        ImageUrl = "dotnet_bot.png",
         // OLD CODE (kept for reference): BusinessName = dto.BusinessName ?? string.Empty,
         BusinessName = string.Empty,
         IsActive = true,

@@ -19,7 +19,7 @@ public class StallItem
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public string ImageUrl { get; set; } = "https://via.placeholder.com/300x200?text=No+Image"; // fallback
+    public string ImageUrl { get; set; } = "dotnet_bot.png";
     public string BusinessName { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 

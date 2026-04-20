@@ -65,33 +65,24 @@
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <Frame 
-                            Margin="0,6"
-                            Padding="20,16"
-                            CornerRadius="14"
-                            HasShadow="False"
-                            BorderColor="#E5E7EB"
-                            BackgroundColor="White"
-                            InputTransparent="False">
-
-                            <!-- GestureRecognizer giúp toàn bộ khung Frame đều nhận click -->
-                            <Frame.GestureRecognizers>
-                                <TapGestureRecognizer 
-                                    Command="{Binding Source={RelativeSource AncestorType={x:Type CollectionView}}, 
-                                                      Path=SelectionChangedCommand}"
-                                    CommandParameter="{Binding .}" />
-                            </Frame.GestureRecognizers>
-
+                        <Border Margin="0,6"
+                                Padding="20,16"
+                                BackgroundColor="White"
+                                StrokeThickness="1"
+                                StrokeShape="RoundRectangle 14">
+                            <Border.Stroke>
+                                <SolidColorBrush Color="#E5E7EB"/>
+                            </Border.Stroke>
                             <VerticalStackLayout Spacing="4">
-                                <Label Text="{Binding DisplayName}" 
-                                       FontAttributes="Bold" 
+                                <Label Text="{Binding DisplayName}"
+                                       FontAttributes="Bold"
                                        TextColor="#111827"
                                        FontSize="16"/>
-                                <Label Text="{Binding Description}" 
-                                       FontSize="13" 
+                                <Label Text="{Binding Description}"
+                                       FontSize="13"
                                        TextColor="#6B7280"/>
                             </VerticalStackLayout>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>

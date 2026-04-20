@@ -135,12 +135,12 @@ public static class MauiProgram
 #if DEBUG
         // Chỉ bật logging chi tiết trong DEBUG để không ảnh hưởng hiệu năng Release.
         logging.AddDebug();
-        logging.SetMinimumLevel(LogLevel.Debug);
+        //logging.SetMinimumLevel(LogLevel.Debug);
 
         // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
-        logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
-        logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
-        logging.AddFilter("Mobile.Services.GpsPollingService", LogLevel.Debug);
+        //logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
+        //logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
+        //logging.AddFilter("Mobile.Services.GpsPollingService", LogLevel.Debug);
 #else
         // Release chỉ giữ mức cảnh báo để giảm log nhiễu và rủi ro lộ thông tin.
         logging.SetMinimumLevel(LogLevel.Warning);

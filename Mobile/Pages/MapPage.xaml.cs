@@ -52,6 +52,9 @@ public partial class MapPage : ContentPage
     // Cờ báo hiệu đang hiển thị popup — tránh StopPolling/StartPolling không cần thiết khi popup mở/đóng.
     private bool _isPopupOpen;
 
+    // Cờ tránh gọi Stop/Flush/NotifyOffline nhiều lần khi OnDisappearing bị trigger liên tiếp.
+    private bool _isStopping;
+
     // Lưu ngôn ngữ/voice lần trước để so sánh — chỉ reload khi thực sự thay đổi.
     private string? _lastLanguageCode;
     private string? _lastVoiceId;
@@ -94,7 +97,7 @@ public partial class MapPage : ContentPage
         // Thêm layer vòng tròn geofence (hiển thị phía trên tile layer)
         mapView.Map?.Layers.Add(_circlesLayer);
 
-        // Ẩn widget debug log của Mapsui khỏi bản đồ (chỉ cần khi dev)
+        // Ẩn widget debug log và performance overlay của Mapsui
         Mapsui.Widgets.InfoWidgets.LoggingWidget.ShowLoggingInMap = Mapsui.Widgets.ActiveMode.No;
 
         // Đăng ký sự kiện tap vào pin trên bản đồ
@@ -125,6 +128,8 @@ public partial class MapPage : ContentPage
             _isPopupOpen = false;
             return;
         }
+
+        _isStopping = false; // reset để OnDisappearing tiếp theo vẫn chạy được
 
         _viewModel.StartPolling();
         _viewModel.SelectedStall = null;
@@ -188,6 +193,11 @@ public partial class MapPage : ContentPage
 
         if (_isPopupOpen)
             return; // popup đang mở — không stop polling
+
+        if (_isStopping)
+            return; // đã stop rồi, tránh gọi lại lần 2
+
+        _isStopping = true;
 
         try
         {

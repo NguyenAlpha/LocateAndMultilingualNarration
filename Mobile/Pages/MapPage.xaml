@@ -80,7 +80,9 @@
                   - Di chuyển camera đến vị trí cụ thể
             -->
             <mapsui:MapView x:Name="mapView"
-                            Grid.Row="0" />
+                            Grid.Row="0"
+                            IsMyLocationButtonVisible="False"
+                            IsNorthingButtonVisible="False"/>
 
             <!--
                 Danh sách gian hàng dạng cuộn ngang/dọc
@@ -93,25 +95,63 @@
             <CollectionView Grid.Row="1"
                             ItemsSource="{Binding Stalls}"
                             SelectionMode="Single"
-                            SelectedItem="{Binding SelectedStall}">
+                            SelectedItem="{Binding SelectedStall}"
+                            ItemsLayout="HorizontalList">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
-                        <!--
-                            Mỗi item hiển thị trong một card bo góc
-                            Binding trực tiếp vào từng đối tượng Stall trong danh sách
-                        -->
-                        <Frame Margin="10,6"
-                               Padding="12"
-                               CornerRadius="14"
-                               BorderColor="#D1D5DB"
-                               HorizontalOptions="Fill">
-                            <VerticalStackLayout>
+                        <Border Margin="8,10"
+                                Padding="0"
+                                WidthRequest="200"
+                                StrokeShape="RoundRectangle 16">
+                            <Border.Shadow>
+                                <Shadow Brush="#000000" Offset="0,2" Radius="8" Opacity="0.07"/>
+                            </Border.Shadow>
+
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroupList>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="White"/>
+                                                <Setter Property="Stroke" Value="#E5E7EB"/>
+                                                <Setter Property="StrokeThickness" Value="1"/>
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="#EEF2FF"/>
+                                                <Setter Property="Stroke" Value="#4F46E5"/>
+                                                <Setter Property="StrokeThickness" Value="2"/>
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateGroupList>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <Grid RowDefinitions="Auto,Auto" RowSpacing="0">
+
+                                <!-- Icon header -->
+                                <Grid Grid.Row="0"
+                                      HeightRequest="56"
+                                      BackgroundColor="#EEF2FF">
+                                    <Label Text="🏪"
+                                           FontSize="28"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"/>
+                                </Grid>
+
                                 <!-- Tên gian hàng -->
-                                <Label Text="{Binding StallName}" FontAttributes="Bold" />
-                                <!-- ID gian hàng, dùng StringFormat để thêm nhãn "Booth ID: " phía trước -->
-                                <!-- <Label Text="{Binding StallId, StringFormat='Booth ID: {0}'}" FontSize="12" TextColor="Gray" /> -->
-                            </VerticalStackLayout>
-                        </Frame>
+                                <VerticalStackLayout Grid.Row="1" Padding="12,10,12,12" Spacing="4">
+                                    <Label Text="{Binding StallName}"
+                                           FontAttributes="Bold"
+                                           FontSize="14"
+                                           TextColor="#111827"
+                                           MaxLines="2"
+                                           LineBreakMode="TailTruncation"/>
+                                </VerticalStackLayout>
+
+                            </Grid>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
             </CollectionView>
