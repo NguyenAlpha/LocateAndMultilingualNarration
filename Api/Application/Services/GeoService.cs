@@ -135,7 +135,8 @@ namespace Api.Application.Services
                         Description = c.Description,
                         ScriptText  = c.ScriptText,
                         UpdatedAt   = c.UpdatedAt,
-                        AudioUrl    = _blobUrl.GetSasUrl(PickAudio(c.NarrationAudios, preferredVoice)?.BlobId)
+                        AudioUrl    = _blobUrl.GetSasUrl(PickAudio(c.NarrationAudios, preferredVoice)?.BlobId),
+                        BlobId      = PickAudio(c.NarrationAudios, preferredVoice)?.BlobId
                     }).FirstOrDefault(),
                     MediaImages = l.Stall.StallMedia
                         .Select(m => new GeoStallMediaDto { Url = m.MediaUrl, Caption = m.Caption })

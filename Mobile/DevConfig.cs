@@ -12,7 +12,7 @@ public static class DevConfig
     ///   Tìm IP laptop: chạy `ipconfig` → IPv4 Address của adapter WiFi/Ethernet
     ///   Ví dụ: "http://192.168.1.5:5299"
     /// </summary>
-    public const string ApiBaseUrl = "http://10.0.2.2:5299";
+    public const string ApiBaseUrl = "https://locateandmultilingualnarration-amgrfua6fbd7gnce.eastasia-01.azurewebsites.net";
 
     /// <summary>
     /// URL production (Azure App Service).
