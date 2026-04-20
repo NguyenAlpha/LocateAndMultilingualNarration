@@ -47,10 +47,7 @@
         Route="MapPage"
         ContentTemplate="{DataTemplate pages:MapPage}"/>
 
-    <ShellContent
-        Title="Profile"
-        Route="profile"
-        ContentTemplate="{DataTemplate pages:ProfilePage}"/>
+
     <!-- StallListPage Route -->
     <ShellContent 
     Title="Gian hàng"

@@ -68,7 +68,6 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddSingleton<MapViewModel>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<StallListViewModel>(builder.Services);
 
@@ -78,7 +77,6 @@ public static class MauiProgram
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddSingleton<MapPage>();
-        builder.Services.AddTransient<ProfilePage>();
         builder.Services.AddTransient<ScanPage>();
         builder.Services.AddTransient<StallListPage>();
         builder.Services.AddSingleton<StallPopup>();
@@ -135,7 +133,9 @@ public static class MauiProgram
 #if DEBUG
         // Chỉ bật logging chi tiết trong DEBUG để không ảnh hưởng hiệu năng Release.
         logging.AddDebug();
-        //logging.SetMinimumLevel(LogLevel.Debug);
+        // OLD CODE (kept for reference): //logging.SetMinimumLevel(LogLevel.Debug);
+        // Bật mức Information để chắc chắn log từ ScanPage/ScanViewModel hiện trên thiết bị thật.
+        logging.SetMinimumLevel(LogLevel.Information);
 
         // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
         //logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);

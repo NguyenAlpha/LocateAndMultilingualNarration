@@ -20,7 +20,8 @@ namespace Mobile.Services;
 public interface IQrService
 {
     /// <summary>Gọi API verify mã QR. Trả về null nếu không kết nối được server.</summary>
-    Task<QrVerifyResult?> VerifyAsync(string code, string deviceId);
+    // OLD CODE (kept for reference): Task<QrVerifyResult?> VerifyAsync(string code, string deviceId);
+    Task<QrVerifyResult?> VerifyAsync(string code, string deviceId, CancellationToken cancellationToken = default);
 
     /// <summary>Lưu quyền truy cập vào Preferences sau khi verify thành công.</summary>
     void SaveAccess(DateTime expiryAt);
@@ -61,21 +62,39 @@ public class QrService : IQrService
     /// Trả về null nếu mạng lỗi hoặc response không parse được (caller hiển thị lỗi kết nối).
     /// Trả về QrVerifyResult với IsValid=false nếu QR không hợp lệ (caller hiển thị message từ API).
     /// </summary>
-    public async Task<QrVerifyResult?> VerifyAsync(string code, string deviceId)
+    // OLD CODE (kept for reference): public async Task<QrVerifyResult?> VerifyAsync(string code, string deviceId)
+    public async Task<QrVerifyResult?> VerifyAsync(string code, string deviceId, CancellationToken cancellationToken = default)
     {
         try
         {
             var client  = _httpClientFactory.CreateClient();
+
+            // Kiểm tra cấu hình BaseAddress để tránh treo ngầm do URL sai.
+            if (client.BaseAddress is null)
+            {
+                _logger.LogError("[QrService] HttpClient.BaseAddress = null. Không thể gọi API verify.");
+                return null;
+            }
+
+            if (client.BaseAddress.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                client.BaseAddress.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError("[QrService] BaseAddress đang trỏ localhost ({BaseAddress}) trên thiết bị thật → không truy cập được.", client.BaseAddress);
+                return null;
+            }
+
             var request = new QrCodeVerifyRequestDto { Code = code, DeviceId = deviceId };
 
-            var response = await client.PostAsJsonAsync("api/qrcodes/verify", request);
+            // OLD CODE (kept for reference): var response = await client.PostAsJsonAsync("api/qrcodes/verify", request);
+            var response = await client.PostAsJsonAsync("api/qrcodes/verify", request, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("[QrService] Verify thất bại. StatusCode={Status}", response.StatusCode);
                 return null;
             }
 
-            var json = await response.Content.ReadAsStringAsync();
+            // OLD CODE (kept for reference): var json = await response.Content.ReadAsStringAsync();
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
@@ -95,6 +114,21 @@ public class QrService : IQrService
 
             _logger.LogInformation("[QrService] Verify kết quả: isValid={IsValid}, expiryAt={ExpiryAt:O}", isValid, expiryAt);
             return new QrVerifyResult(isValid, message, expiryAt);
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "[QrService] VerifyAsync bị hủy (timeout hoặc user cancel)");
+            return null;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "[QrService] Lỗi HTTP khi verify mã QR. Có thể mất mạng/SSL/BaseAddress sai.");
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "[QrService] Lỗi parse JSON khi verify mã QR");
+            return null;
         }
         catch (Exception ex)
         {
