@@ -28,6 +28,12 @@ public interface IStallService
     /// Lấy một gian hàng theo ID
     /// </summary>
     Task<StallItem?> GetStallByIdAsync(Guid stallId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Xóa memory cache để lần gọi tiếp theo đọc lại từ SQLite (không gọi API).
+    /// Gọi sau khi SyncService đã upsert SQLite để tránh gọi API trùng lặp.
+    /// </summary>
+    void InvalidateCache();
 }
 
 /// <summary>
@@ -146,6 +152,12 @@ public class StallService : IStallService
     {
         var stalls = await GetAllStallsAsync(false, cancellationToken);
         return stalls.FirstOrDefault(s => s.Id == stallId);
+    }
+
+    public void InvalidateCache()
+    {
+        _cachedStalls = null;
+        _lastFetchUtc = DateTime.MinValue;
     }
 
     // ====================== MAPPING ======================

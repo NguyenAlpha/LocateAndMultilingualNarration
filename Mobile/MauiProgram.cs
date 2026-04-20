@@ -67,7 +67,7 @@ public static class MauiProgram
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddSingleton<MapViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<StallListViewModel>(builder.Services);
@@ -77,11 +77,11 @@ public static class MauiProgram
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<MainPage>();
-        builder.Services.AddTransient<MapPage>();
+        builder.Services.AddSingleton<MapPage>();
         builder.Services.AddTransient<ProfilePage>();
         builder.Services.AddTransient<ScanPage>();
         builder.Services.AddTransient<StallListPage>();
-        builder.Services.AddTransient<StallPopup>();
+        builder.Services.AddSingleton<StallPopup>();
 
         ConfigureLogging(builder.Logging);
 

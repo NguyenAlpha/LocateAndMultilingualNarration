@@ -133,6 +133,7 @@ public partial class MapPage : ContentPage
 
         _viewModel.StartPolling();
         _viewModel.SelectedStall = null;
+        _syncBackgroundService.Start(); // start lại mỗi lần vào trang (kể cả lần quay lại)
 
         if (_isInitialized)
         {
@@ -155,7 +156,8 @@ public partial class MapPage : ContentPage
         }
 
         _isInitialized = true;
-        _syncBackgroundService.Start();
+        _lastLanguageCode = LanguageHelper.GetLanguage();
+        _lastVoiceId      = LanguageHelper.GetVoice();
         _ = InitializePageAsync(); // fire-and-forget rõ ràng, exception được bắt bên trong
     }
 
@@ -202,7 +204,6 @@ public partial class MapPage : ContentPage
         try
         {
             _viewModel.StopPolling();
-            _viewModel.Dispose();
             _ = _locationLogService.FlushAsync(); // flush GPS buffer trước khi dừng service
             _syncBackgroundService.Stop();
         }
