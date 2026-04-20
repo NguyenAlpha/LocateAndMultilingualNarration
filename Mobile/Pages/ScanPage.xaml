@@ -6,10 +6,12 @@
     x:Class="Mobile.Pages.ScanPage"
     BackgroundColor="Black"
     Shell.NavBarIsVisible="False"
-    ios:Page.UseSafeArea="False">
+    ios:Page.UseSafeArea="False"
+    Title="Quét mã QR">
 
     <Grid RowSpacing="0" ColumnSpacing="0" BackgroundColor="Black">
-        <!-- Camera preview full màn hình -->
+
+        <!-- Camera full screen -->
         <zxing:CameraBarcodeReaderView
             x:Name="cameraView"
             BarcodesDetected="OnQrDetected"
@@ -17,75 +19,115 @@
             HorizontalOptions="Fill"
             VerticalOptions="Fill" />
 
-        <!-- Overlay tối toàn màn hình -->
-        <Grid BackgroundColor="#80000000" />
+        <!-- Overlay tối nhẹ -->
+        <Grid BackgroundColor="#99000000" />
 
-        <!-- Header overlay -->
-        <Grid Padding="20,48,20,12" VerticalOptions="Start" ColumnDefinitions="Auto,*,Auto">
-            <Label Text="←" TextColor="White" FontSize="24" VerticalTextAlignment="Center">
+        <!-- Header -->
+        <Grid Padding="16,48,16,12" VerticalOptions="Start" ColumnDefinitions="Auto,*,Auto">
+            <Label Text="←" 
+                   TextColor="White" 
+                   FontSize="28" 
+                   VerticalTextAlignment="Center"
+                   FontAttributes="Bold">
                 <Label.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnBackClicked" />
                 </Label.GestureRecognizers>
             </Label>
 
-            <Label
-                Grid.Column="1"
-                Text="Quét mã QR"
-                TextColor="White"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                FontSize="20"
-                FontAttributes="Bold" />
+            <Label Grid.Column="1"
+                   Text="Quét mã QR truy cập"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   FontSize="20"
+                   FontAttributes="Bold" />
 
-            <Label Grid.Column="2" Text="⚡" TextColor="Yellow" FontSize="22" VerticalTextAlignment="Center">
-                <Label.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnFlashClicked" />
-                </Label.GestureRecognizers>
-            </Label>
+            <!-- Flash button -->
+            <Border Grid.Column="2"
+                    BackgroundColor="#33FFFFFF"
+                    Stroke="Transparent"
+                    WidthRequest="48"
+                    HeightRequest="48"
+                    HorizontalOptions="End"
+                    VerticalOptions="Center">
+                <Label Text="⚡" 
+                       TextColor="Yellow"
+                       FontSize="24"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnFlashClicked" />
+                    </Label.GestureRecognizers>
+                </Label>
+            </Border>
         </Grid>
 
-        <!-- Khung scan ở giữa -->
-        <Frame
-            WidthRequest="250"
-            HeightRequest="250"
-            CornerRadius="20"
-            BorderColor="White"
-            BackgroundColor="Transparent"
-            HasShadow="False"
+        <!-- ================== KHUNG SCAN NEON - SỬ DỤNG BORDER (FIX LỖI) ================== -->
+        <Border
+            WidthRequest="280"
+            HeightRequest="280"
             HorizontalOptions="Center"
-            VerticalOptions="Center" />
+            VerticalOptions="Center"
+            BackgroundColor="Transparent"
+            Stroke="#00D4FF"
+            StrokeThickness="3"
+            Padding="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="24" />
+            </Border.StrokeShape>
+        </Border>
 
-        <!-- Khu vực hướng dẫn phía dưới -->
-        <VerticalStackLayout VerticalOptions="End" Padding="20,0,20,24" Spacing="12">
+        <!-- Footer - Nút luôn hoạt động -->
+        <VerticalStackLayout 
+            VerticalOptions="End" 
+            Padding="20,0,20,40" 
+            Spacing="16">
+
             <Label
-                Text="Di chuyển camera đến mã QR để quét"
-                TextColor="White"
+                Text="Di chuyển camera đến mã QR để quét tự động"
+                TextColor="#CCCCCC"
                 HorizontalOptions="Center"
                 HorizontalTextAlignment="Center"
-                FontSize="14" />
+                FontSize="15" />
 
             <Button
-                Text="Chọn từ thư viện ảnh"
-                BackgroundColor="#333333"
-                TextColor="White"
-                CornerRadius="25"
-                HeightRequest="48"
+                Text="📷 Chọn từ thư viện ảnh"
+                BackgroundColor="#00D4FF"
+                TextColor="Black"
+                FontAttributes="Bold"
+                CornerRadius="30"
+                HeightRequest="56"
                 Command="{Binding PickImageFromGalleryCommand}" />
 
             <Label
                 Text="{Binding ErrorMessage}"
-                TextColor="#FFB4B4"
+                TextColor="#FF6B6B"
                 IsVisible="{Binding HasError}"
-                HorizontalTextAlignment="Center" />
+                HorizontalTextAlignment="Center"
+                FontSize="14" />
         </VerticalStackLayout>
 
-        <!-- Loading giữ nguyên để tương thích flow cũ -->
-        <Grid BackgroundColor="#66000000" IsVisible="{Binding IsBusy}">
-            <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Spacing="10">
-                <ActivityIndicator IsRunning="{Binding IsBusy}" Color="White" />
-                <Label Text="Đang xử lý mã QR..." TextColor="White" />
+        <!-- Loading nhỏ ở giữa -->
+        <Grid IsVisible="{Binding IsBusy}" 
+              BackgroundColor="#66000000"
+              VerticalOptions="Center"
+              HorizontalOptions="Center"
+              WidthRequest="180"
+              HeightRequest="180"
+              Padding="20">
+            <VerticalStackLayout Spacing="16" VerticalOptions="Center" HorizontalOptions="Center">
+                <ActivityIndicator 
+                    IsRunning="{Binding IsBusy}" 
+                    Color="#00D4FF" 
+                    WidthRequest="60" 
+                    HeightRequest="60" />
+                <Label 
+                    Text="Đang xác thực mã QR..." 
+                    TextColor="White" 
+                    FontSize="15"
+                    HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
         </Grid>
-    </Grid>
 
+    </Grid>
 </ContentPage>
