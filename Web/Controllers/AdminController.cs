@@ -19,6 +19,9 @@ namespace Web.Controllers
         private readonly UserApiClient _userApiClient;
         private readonly QrCodeApiClient _qrCodeApiClient;
         private readonly DeviceApiClient _deviceApiClient;
+        private readonly DeviceLocationLogApiClient _deviceLocationLogApiClient;
+        private readonly GeoApiClient _geoApiClient;
+        private readonly IConfiguration _configuration;
 
         public AdminController(
             BusinessApiClient businessApiClient,
@@ -29,7 +32,10 @@ namespace Web.Controllers
             SubscriptionOrderApiClient subscriptionOrderApiClient,
             UserApiClient userApiClient,
             QrCodeApiClient qrCodeApiClient,
-            DeviceApiClient deviceApiClient)
+            DeviceApiClient deviceApiClient,
+            DeviceLocationLogApiClient deviceLocationLogApiClient,
+            GeoApiClient geoApiClient,
+            IConfiguration configuration)
         {
             _businessApiClient = businessApiClient;
             _stallApiClient = stallApiClient;
@@ -40,6 +46,9 @@ namespace Web.Controllers
             _userApiClient = userApiClient;
             _qrCodeApiClient = qrCodeApiClient;
             _deviceApiClient = deviceApiClient;
+            _deviceLocationLogApiClient = deviceLocationLogApiClient;
+            _geoApiClient = geoApiClient;
+            _configuration = configuration;
         }
 
         public IActionResult Index() => RedirectToAction("Dashboard");
@@ -367,6 +376,44 @@ namespace Web.Controllers
 
             var ok = await _deviceApiClient.ResetDeviceAsync(deviceId, cancellationToken);
             return Json(new { success = ok, message = ok ? "Đã gửi lệnh reset" : "Reset thất bại" });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Heatmap(
+            DateTimeOffset? from = null, DateTimeOffset? to = null, string? deviceId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var toUtc = (to ?? DateTimeOffset.UtcNow).ToUniversalTime();
+            var fromUtc = (from ?? toUtc.AddDays(-7)).ToUniversalTime();
+
+            // Load song song: heatmap points + danh sách stalls
+            var heatmapTask = _deviceLocationLogApiClient.GetHeatmapAsync(fromUtc, toUtc, deviceId, cancellationToken);
+            var stallsTask = _geoApiClient.GetStallsForMapAsync(cancellationToken);
+            await Task.WhenAll(heatmapTask, stallsTask);
+
+            var result = await heatmapTask;
+            var stalls = await stallsTask;
+
+            var vm = new HeatmapViewModel
+            {
+                Points = result?.Data ?? [],
+                Stalls = stalls?.Data ?? [],
+                From = fromUtc,
+                To = toUtc,
+                DeviceId = deviceId,
+                ErrorMessage = result?.Success == false ? result.Error?.Message : null
+            };
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> HeatmapData(
+            DateTimeOffset? from = null, DateTimeOffset? to = null, string? deviceId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _deviceLocationLogApiClient.GetHeatmapAsync(from, to, deviceId, cancellationToken);
+            return Json(result);
         }
 
         [HttpGet]

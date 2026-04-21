@@ -145,7 +145,10 @@
 
                             @if (userRole == "Admin")
                             {
-                                var adminOpen = currentController == "Admin";
+                                var monitoringActions = new[] { "ActiveDevices", "Heatmap" };
+                                var isMonitoringAction = currentController == "Admin" && monitoringActions.Contains(currentAction);
+                                var adminOpen = currentController == "Admin" && !isMonitoringAction;
+                                var monitoringOpen = isMonitoringAction;
                                 <!-- Quản trị -->
                                 <li class="nav-item">
                                     <a class="nav-link @(adminOpen ? "section-active" : "")"
@@ -195,10 +198,33 @@
                                                     <i class="ti ti-refresh me-2"></i>Tạo QR tự động
                                                 </a>
                                             </li>
+                                        </ul>
+                                    </div>
+                                </li>
+
+                                <!-- Giám sát -->
+                                <li class="nav-item">
+                                    <a class="nav-link @(monitoringOpen ? "section-active" : "")"
+                                       href="#sidebar-monitoring" data-bs-toggle="collapse" role="button"
+                                       aria-expanded="@(monitoringOpen ? "true" : "false")" aria-controls="sidebar-monitoring">
+                                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                            <i class="ti ti-activity"></i>
+                                        </span>
+                                        <span class="nav-link-title">Giám sát</span>
+                                        <i class="ti ti-chevron-right nav-section-arrow @(monitoringOpen ? "rotated" : "")"></i>
+                                    </a>
+                                    <div class="collapse @(monitoringOpen ? "show" : "")" id="sidebar-monitoring">
+                                        <ul class="navbar-nav nav-sub">
                                             <li class="nav-item">
-                                                <a class="nav-link @(adminOpen && currentAction == "ActiveDevices" ? "active" : "")"
+                                                <a class="nav-link @(monitoringOpen && currentAction == "ActiveDevices" ? "active" : "")"
                                                    asp-controller="Admin" asp-action="ActiveDevices">
                                                     <i class="ti ti-radio me-2"></i>Thiết bị online
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(monitoringOpen && currentAction == "Heatmap" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="Heatmap">
+                                                    <i class="ti ti-map-pin-heart me-2"></i>Bản đồ nhiệt
                                                 </a>
                                             </li>
                                         </ul>
@@ -341,7 +367,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <!-- jQuery Validation -->
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
     <!-- AOS – Animate On Scroll -->
     <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
     <!-- Custom JS -->

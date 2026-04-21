@@ -230,12 +230,15 @@ Session config: `IdleTimeout = 30 phút`, `HttpOnly`, `IsEssential`, `SecurePoli
 | ScanPage | ScanViewModel | Quét QR để active app |
 | LanguagePage | LanguageViewModel | Chọn ngôn ngữ + voice trong cùng trang, lưu DevicePreference + LocalPreference |
 | MainPage | MainViewModel | Shell home; quick action → StallListPage |
-| MapPage | MapViewModel | Bản đồ + geofence + audio queue |
-| StallListPage | StallListViewModel | Search + phân trang (⚠️ ViewModel chưa được đăng ký DI, resolve qua `ServiceHelper` sẽ lỗi) |
-| ProfilePage | ProfileViewModel | Đổi ngôn ngữ/voice/speechRate |
-| StallPopup | dùng chung MapViewModel | Popup chi tiết gian hàng |
+| MapPage | MapViewModel | Bản đồ + geofence (qua `GeofenceEngine`) + audio queue; lifecycle qua `_appearingDepth` + pref hash |
+| StallListPage | StallListViewModel | Search + phân trang |
+| StallPopup | dùng chung MapViewModel | Popup chi tiết gian hàng; gọi `PlayStallAsync(stall)` |
 
-**Mobile Services** (`Mobile/Services/`) – 14 services:
+**Geofence Engine** (`Mobile/ViewModels/GeofenceEngine.cs`): class thuần (không DI), sở hữu bởi `MapViewModel`. Giữ state `_triggeredIds` + `_queue`, compute Haversine. Event `AutoPlayRequested: Func<GeoStallDto, Task>` — **không chạm `SelectedStall`** (tách UI selection khỏi audio target).
+
+**MapViewModel state machine:** enum `MapState { Uninitialized, Syncing, Loading, Ready, Error }`; method idempotent `EnsureReadyAsync(bool forceReload = false)` guard bằng `SemaphoreSlim(1,1)`; implement `IDisposable` để unsubscribe event Singleton. MapPage dispose VM trong `Unloaded` handler.
+
+**Mobile Services** (`Mobile/Services/`) – 13 services:
 
 ```
 DeviceService              – GetOrCreateDeviceId (Preferences key "device_id") + GetDeviceInfo
@@ -245,23 +248,27 @@ QrService                  – Verify QR qua API + lưu "qr_verified"/"qr_expiry
 LanguageService            – GET /api/languages/active, cache 15 phút
 VoiceService               – GET /api/tts-voice-profiles/active?languageId=...
 StallService               – Cache-first: memory → SQLite → API /api/geo/stalls, cache 10 phút
-AudioGuideService          – Wrap Plugin.Maui.Audio; event PlaybackCompleted
-AudioCacheService          – Download MP3 về {AppDataDirectory}/audio/{lang}/{stallId}.mp3
-SyncService                – Orchestrate API → SQLite → audio (semaphore 3 song song)
-SyncBackgroundService      – PeriodicTimer: StallSyncInterval=3 phút, FlushInterval=1 phút + ConnectivityChanged
+AudioGuideService          – Wrap Plugin.Maui.Audio; event PlaybackCompleted (dùng HttpClient "download")
+AudioCacheService          – Download MP3 về {AppDataDirectory}/audio/{lang}/{stallId}.mp3 (dùng HttpClient "download")
+SyncService                – Orchestrate API → SQLite → audio (semaphore 3 song song); `EnsureSyncedAsync` cho rule sync-before-map; `IsSyncing` atomic (Interlocked)
+SyncBackgroundService      – PeriodicTimer: StallSyncInterval=3 phút, FlushInterval=20s + ConnectivityChanged (capture local `_cts` trước khi dùng)
 LocationLogService         – Buffer GPS in-memory, batch POST /api/device-location-log/batch, sample 5s, max 500 điểm
 GpsPollingService          – Vòng lặp Geolocation delay 1s, event LocationUpdated (dùng trong MapViewModel)
 LocalStallRepository       – SQLite stalls.db3 (LocalDb/), upsert batch có diff check
-AuthService                – ⚠️ DEAD CODE — vẫn có file nhưng DI đã comment, không flow nào gọi
 ```
 
 **Interfaces** (`Mobile/Services/`):
 - `IStallService`, `ILanguageService`, `IVoiceService`, `IAudioGuideService`, `IAudioCacheService`, `ISyncService`, `ISyncBackgroundService`, `ILocationLogService`, `IGpsPollingService`, `IQrService`, `ILocalPreferenceService`, `IDeviceService`, `IDevicePreferenceApiService`, `ILocalStallRepository`.
 
+**HttpClient factory** (`MauiProgram.cs` – `ConfigureHttpClients`):
+- Default + `"ApiHttp"` (BaseAddress = API, timeout 10s) — cho gọi REST.
+- `"download"` (không BaseAddress, timeout 30s) — cho `AudioCacheService` & `AudioGuideService` tải file audio từ Blob URL tuyệt đối.
+
 **DI Registration** (`MauiProgram.cs`):
-- **Singleton** cho tất cả services trên (ngoại trừ AuthService đã comment).
-- **Transient ViewModel**: MainViewModel, MapViewModel, LanguageViewModel, ScanViewModel, ProfileViewModel, StallListViewModel.
-- **Transient Page**: MapPage, LoadingPage, LanguagePage, StallPopup, ProfilePage. `ScanPage`, `MainPage`, `StallListPage` dùng `ServiceHelper.GetService<VM>()` trong ctor không tham số.
+- **Singleton** cho tất cả 13 services trên + `IAudioManager`.
+- **Transient ViewModel**: LanguageViewModel, MainViewModel, MapViewModel, ScanViewModel, StallListViewModel.
+- **Transient Page**: LanguagePage, LoadingPage, MainPage, MapPage, ScanPage, StallListPage, StallPopup.
+- MapViewModel/MapPage/StallPopup là Transient (đổi từ Singleton) để VM không giữ state cũ qua điều hướng; geofence state live theo VM, sync state live ở Singleton `SyncService` nên không mất.
 
 **Mobile Local DB** (`Mobile/LocalDb/`): SQLite via `sqlite-net-pcl`. `LocalStall` schema, `LocalStallRepository` upsert batch.
 
@@ -272,9 +279,8 @@ AuthService                – ⚠️ DEAD CODE — vẫn có file nhưng DI đ�
 
 **Phân biệt Preference storage:**
 - `DeviceService` → lưu 1 key `device_id` (GUID) trong `Preferences`.
-- `LocalPreferenceService` → 8 key `pref_language_id / pref_language_code / pref_language_name / pref_language_display_name / pref_language_flag_code / pref_voice_id / pref_speech_rate / pref_auto_play` – snapshot DevicePreferenceDetailDto.
+- `LocalPreferenceService` → 8 key `pref_language_id / pref_language_code / pref_language_name / pref_language_display_name / pref_language_flag_code / pref_voice_id / pref_speech_rate / pref_auto_play` – snapshot DevicePreferenceDetailDto. **Single source of truth** cho language/voice ở Mobile.
 - `QrService` → `qr_verified`, `qr_expiry`.
-- `LanguageHelper` → `app_selected_language`, `app_selected_voice` (⚠️ trùng với `LocalPreferenceService`, nên hợp nhất).
 - **Không dùng `SecureStorage`** ở đâu.
 
 ---
@@ -441,27 +447,36 @@ Khi cần query lặp lại trên một entity → thêm method vào file extens
 
 ### Bảo mật / nghiêm trọng
 - **`StallsController` (`/api/stalls`) là endpoint `AllowAnonymous` trùng chức năng GeoController**, trả `StallMapDto` không wrap `ApiResult`, không kiểm QR. Nên xoá sau khi verify Mobile không gọi.
-- **Azure Blob container được set `PublicAccessType.Blob`** trong `NarrationAudioService` và `NarrationAudioController` — file audio public với mọi người có URL. Cân nhắc chuyển sang `None` + SAS URL (cần refactor Mobile audio player để chấp nhận SAS token).
+- **Azure Blob container `narration-audio` đang dùng `PublicAccessType.Blob`** — ai có URL đều có thể download file audio. Nếu cần bảo mật, cân nhắc proxy stream qua API hoặc bật lại SAS URL.
 
 ### Race condition
 - **`TtsBackgroundService` claim job không nguyên tử** (SELECT rồi UPDATE riêng) — nếu chạy nhiều instance API sẽ xử lý job trùng, upload Blob trùng. Nên dùng `ExecuteUpdateAsync` với WHERE Status='Pending' để atomic.
 - **`QrCodeController.VerifyQrCode` set `IsUsed=true` không atomic** — 2 thiết bị scan cùng lúc đều nhận `isValid=true`. Dùng `ExecuteUpdateAsync` với WHERE `IsUsed=0`.
-- **Mobile `SyncService.IsSyncing` là bool non-volatile** và `FlushAsync` không có lock — 2 tick (ConnectivityChanged + Timer) có thể fire song song gây duplicate POST.
-- **`MapViewModel` subscribe event Singleton nhưng không unsubscribe** → memory leak và audio duplicate khi điều hướng lại. Cần Implement `IDisposable` + gỡ event trong `OnDisappearing`.
 - **`SyncService.LastUpdated` luôn set = `DateTimeOffset.UtcNow` cho stall mới** → `LocalStallRepository.HasChanged` luôn trả true → ghi toàn bộ SQLite mỗi 3 phút. Cần dùng timestamp thật từ API hoặc bỏ so sánh.
 
 ### Flow / UX
 - **`Web/Views/StallLocation/StallLocationMap.cshtml`** gọi API trực tiếp từ JS và cố đọc JWT từ `localStorage` — mà Web lưu JWT trong **Session server-side**. Flow create/update location trên bản đồ KHÔNG chạy được. Sửa: submit qua Controller Action hoặc proxy endpoint.
 - **`AdminController`** chưa có `[Authorize]` attribute — chỉ dựa vào `TokenExpirationFilter`; nên bổ sung policy-level để defense-in-depth.
-- **`LanguageHelper` (Mobile) và `LocalPreferenceService` trùng key** cho language/voice — nguy cơ out-of-sync.
 
 ### Dead / Duplicate code
 - `Api/Controllers/StallsController.cs` – duplicate của `GeoController`
 - `Api/Controllers/DevicePreferenceController.cs` có 2 action `Save` và `Upsert` trùng chức năng
-- `Mobile/Services/AuthService.cs` – vẫn còn file, DI đã comment
 - `Api/Domain/Entities/ScanLog.cs` – có migration, không controller nào dùng
 
 ### Đã fix (commit gần đây)
+- ✅ **Refactor MapPage + Mobile services** (commit `22a0179`):
+  - `SyncService.IsSyncing` giờ atomic qua `Interlocked.CompareExchange` + `Volatile.Read/Write`.
+  - `SyncBackgroundService.OnConnectivityChanged` capture local `_cts` tránh race với `Stop()`.
+  - `SyncService` bỏ call `InvalidateCache()` trùng; thêm `EnsureSyncedAsync()` để đưa rule sync-before-map vào contract.
+  - `MapViewModel` implement `IDisposable` + unsubscribe event Singleton trong `MapPage.Unloaded`.
+  - Tách `GeofenceEngine` riêng; fix bug "tap A → geofence B → popup ghi đè SelectedStall".
+  - `MapPage.xaml.cs` thay 5 bool flag bằng `_appearingDepth` + pref hash.
+  - Xóa `LanguageHelper` (trùng key với `LocalPreferenceService`).
+  - Xóa `Mobile/Services/AuthService.cs` (dead code).
+  - `AudioCacheService` + `AudioGuideService` dùng `IHttpClientFactory.CreateClient("download")` thay `new HttpClient()`.
+  - `MapViewModel` / `MapPage` / `StallPopup` chuyển Singleton → Transient.
+  - `StallService.MapToStallItemSafe` bỏ hardcoded `Rating=4.5` / `ImageUrl="dotnet_bot.png"` / `DistanceInKm=0`.
+  - `StallPopup.OnPlayClicked` await `PlayStallAsync` (thay `async void`).
 - ✅ `UserDetailDto` lộ `PasswordHash`/`SecurityStamp`/`ConcurrencyStamp` — xoá khỏi DTO và mapping trong `UserController`
 - ✅ `Mobile/DevConfig.cs` hardcode URL production → đổi về `http://10.0.2.2:5299`
 - ✅ `StallLocationController` fallback `ApiBaseUrl` trỏ sai → đổi về `http://localhost:5299/`
@@ -476,7 +491,7 @@ Khi cần query lặp lại trên một entity → thêm method vào file extens
 
 ## Cảnh báo Quan Trọng
 
-- `AuthService` (Mobile) **dead code** – khách không đăng nhập. Không thêm logic login vào Mobile trừ khi được yêu cầu rõ ràng.
+- Mobile hoàn toàn **anonymous** – khách không đăng nhập. Không thêm logic login vào Mobile trừ khi được yêu cầu rõ ràng.
 - Khi thêm entity mới → phải thêm migration EF Core và cập nhật `AppDbContext`.
 - Khi thêm DTO mới → đặt trong project `Shared`, không tạo DTO riêng trong từng project.
 - `GeoController.GetAllStalls`, `DevicePreferenceController`, `DeviceLocationLogController`, `QrCodeController.VerifyQrCode` phải giữ `[AllowAnonymous]` – Mobile gọi không có token.
