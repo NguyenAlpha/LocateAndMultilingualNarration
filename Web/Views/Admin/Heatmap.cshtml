@@ -7,7 +7,7 @@
     // Convert sang ISO cho input datetime-local (Vietnamese local time)
     var fromLocal = Model.From.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
     var toLocal = Model.To.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
-    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "http://localhost:5299/";
+    var jsonOpts = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase };
 }
 
 @section Styles {
@@ -129,9 +129,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script>
-        // Dữ liệu từ server: [{latitude, longitude, weight}, ...]
-        const rawPoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
-        const apiBaseUrl = '@Html.Raw(apiBaseUrl)'.replace(/\/$/, '');
+        // Dữ liệu từ server (đã preload — không cần fetch, tránh CORS khi Web và API khác origin)
+        const rawPoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points, jsonOpts));
+        const rawStalls = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Stalls, jsonOpts));
 
         const map = L.map('heatmap').setView([@defaultLat, @defaultLng], 17);
 
@@ -207,17 +207,8 @@
             });
         }
 
-        let cachedStalls = [];
-        function loadStalls() {
-            fetch(apiBaseUrl + '/api/geo/stalls')
-                .then(function (r) { return r.json(); })
-                .then(function (result) {
-                    if (!result || !result.success || !result.data) return;
-                    cachedStalls = result.data;
-                    renderStallMarkers(cachedStalls);
-                })
-                .catch(function () { /* im lặng — markers là lớp phụ */ });
-        }
+        const cachedStalls = rawStalls;
+        renderStallMarkers(cachedStalls);
 
         // ---- Toggle buttons ----
         document.getElementById('toggleStallsBtn').addEventListener('click', function () {
@@ -238,7 +229,5 @@
                 item.marker.bindTooltip(item.label, { permanent: showLabels, direction: 'top', className: 'stall-label' });
             });
         });
-
-        loadStalls();
     </script>
 }

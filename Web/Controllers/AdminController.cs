@@ -20,6 +20,7 @@ namespace Web.Controllers
         private readonly QrCodeApiClient _qrCodeApiClient;
         private readonly DeviceApiClient _deviceApiClient;
         private readonly DeviceLocationLogApiClient _deviceLocationLogApiClient;
+        private readonly GeoApiClient _geoApiClient;
         private readonly IConfiguration _configuration;
 
         public AdminController(
@@ -33,6 +34,7 @@ namespace Web.Controllers
             QrCodeApiClient qrCodeApiClient,
             DeviceApiClient deviceApiClient,
             DeviceLocationLogApiClient deviceLocationLogApiClient,
+            GeoApiClient geoApiClient,
             IConfiguration configuration)
         {
             _businessApiClient = businessApiClient;
@@ -45,6 +47,7 @@ namespace Web.Controllers
             _qrCodeApiClient = qrCodeApiClient;
             _deviceApiClient = deviceApiClient;
             _deviceLocationLogApiClient = deviceLocationLogApiClient;
+            _geoApiClient = geoApiClient;
             _configuration = configuration;
         }
 
@@ -383,13 +386,18 @@ namespace Web.Controllers
             var toUtc = (to ?? DateTimeOffset.UtcNow).ToUniversalTime();
             var fromUtc = (from ?? toUtc.AddDays(-7)).ToUniversalTime();
 
-            var result = await _deviceLocationLogApiClient.GetHeatmapAsync(fromUtc, toUtc, deviceId, cancellationToken);
+            // Load song song: heatmap points + danh sách stalls
+            var heatmapTask = _deviceLocationLogApiClient.GetHeatmapAsync(fromUtc, toUtc, deviceId, cancellationToken);
+            var stallsTask = _geoApiClient.GetStallsForMapAsync(cancellationToken);
+            await Task.WhenAll(heatmapTask, stallsTask);
 
-            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "http://localhost:5299/";
+            var result = await heatmapTask;
+            var stalls = await stallsTask;
 
             var vm = new HeatmapViewModel
             {
                 Points = result?.Data ?? [],
+                Stalls = stalls?.Data ?? [],
                 From = fromUtc,
                 To = toUtc,
                 DeviceId = deviceId,
