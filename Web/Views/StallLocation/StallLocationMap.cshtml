@@ -204,10 +204,10 @@
                     <!-- IsActive -->
                     <div class="mb-3">
                         <div class="form-check">
-                            <input type="hidden" name="isActive" value="false" />
                             <input class="form-check-input" type="checkbox" id="isActive" name="isActive" value="true"
-                                @(mode != "view" ? "checked" : ((bool)(ViewBag.IsActive ?? false) ? "checked" : ""))
+                                @(mode == "create" ? "checked" : ((bool)(ViewBag.IsActive ?? false) ? "checked" : ""))
                                 @(mode == "view" ? "disabled" : "") />
+                            <input type="hidden" name="isActive" value="false" />
                             <label class="form-check-label" for="isActive">
                                 Kích hoạt
                             </label>
