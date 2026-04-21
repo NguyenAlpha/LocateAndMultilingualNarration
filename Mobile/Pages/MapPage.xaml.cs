@@ -44,6 +44,7 @@ public partial class MapPage : ContentPage
     private readonly ILogger<MapPage> _logger;
     private readonly StallPopup _stallPopup;
     private readonly ISyncBackgroundService _syncBackgroundService;
+    private readonly ISyncService _syncService;
     private readonly ILocationLogService _locationLogService;
 
     // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
@@ -73,7 +74,7 @@ public partial class MapPage : ContentPage
     /// <summary>
     /// Constructor: khởi tạo UI, lấy ViewModel từ DI, đăng ký event, cấu hình bản đồ.
     /// </summary>
-    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService, ILocationLogService locationLogService)
+    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService, ISyncService syncService, ILocationLogService locationLogService)
     {
         InitializeComponent();
 
@@ -81,6 +82,7 @@ public partial class MapPage : ContentPage
         _logger = logger;
         _stallPopup = stallPopup;
         _syncBackgroundService = syncBackgroundService;
+        _syncService = syncService;
         _locationLogService = locationLogService;
         BindingContext = _viewModel;
         Console.WriteLine($"[DEBUG] MapPage constructor — instance #{GetHashCode()}");
@@ -172,10 +174,13 @@ public partial class MapPage : ContentPage
             // 1. Xin quyền GPS nếu chưa có
             await EnsureLocationPermissionAsync();
 
-            // 2. Tải danh sách gian hàng từ API
+            // 2. Sync và download audio xong trước — đảm bảo map luôn dùng dữ liệu mới nhất
+            await _syncService.SyncAsync();
+
+            // 3. Tải danh sách gian hàng từ SQLite (đã được sync cập nhật ở bước 2)
             await _viewModel.InitializeAsync();
 
-            // 3. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
+            // 4. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
             var located = await MoveToCurrentLocationAsync();
             if (!located)
             {

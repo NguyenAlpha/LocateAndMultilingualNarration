@@ -369,12 +369,19 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
         _syncService.AudioDownloaded -= OnAudioDownloaded;
     }
 
-    // SyncService download audio xong → reload DTO từ SQLite để lấy LocalAudioPath mới.
+    // SyncService download audio xong → xoá triggered state + reload DTO để geofence re-trigger với audio mới.
     void OnAudioDownloaded(object? sender, EventArgs e)
     {
         MainThread.BeginInvokeOnMainThread(async () =>
         {
-            try { await LoadStallsAsync(false); }
+            try
+            {
+                // Xoá triggered state để GPS tick tiếp theo re-enqueue stall với AudioUrl mới từ API.
+                // Không xoá sẽ khiến stall không bao giờ re-trigger vì _triggeredStallIds vẫn còn ID cũ.
+                _triggeredStallIds.Clear();
+                _audioQueue = new Queue<GeoStallDto>();
+                await LoadStallsAsync(false);
+            }
             catch (Exception ex) { _logger.LogError(ex, "[MapViewModel] Reload sau AudioDownloaded thất bại"); }
         });
     }
