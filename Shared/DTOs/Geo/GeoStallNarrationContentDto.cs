@@ -9,6 +9,5 @@ namespace Shared.DTOs.Geo
         public string ScriptText { get; set; } = string.Empty;
         public DateTimeOffset? UpdatedAt { get; set; }
         public string? AudioUrl { get; set; }
-        public string? BlobId { get; set; }
     }
 }

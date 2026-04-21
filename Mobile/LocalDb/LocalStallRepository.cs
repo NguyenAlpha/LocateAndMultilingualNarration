@@ -137,7 +137,7 @@ public class LocalStallRepository : ILocalStallRepository
             foreach (var s in toWrite)
                 if (existing.TryGetValue(s.StallId, out var old)
                     && old.LocalAudioPath is not null
-                    && old.BlobId == s.BlobId)
+                    && old.AudioUrl == s.AudioUrl)
                     s.LocalAudioPath = old.LocalAudioPath;
 
             await db.RunInTransactionAsync(conn =>
@@ -161,7 +161,7 @@ public class LocalStallRepository : ILocalStallRepository
         || old.Latitude      != s.Latitude
         || old.Longitude     != s.Longitude
         || old.RadiusMeters  != s.RadiusMeters
-        || old.BlobId        != s.BlobId
+        || old.AudioUrl      != s.AudioUrl
         || old.LanguageCode  != s.LanguageCode
         || old.VoiceId       != s.VoiceId
         || old.NarrationContentId  != s.NarrationContentId

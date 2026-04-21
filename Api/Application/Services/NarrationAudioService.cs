@@ -260,7 +260,7 @@ namespace Api.Application.Services
 
             var blobServiceClient = new BlobServiceClient(_blobSettings.ConnectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(_blobSettings.ContainerName);
-            await containerClient.CreateIfNotExistsAsync(PublicAccessType.None);
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
 
             var blobName = $"narration-audio/{narrationContentId}/{DateTime.UtcNow:yyyyMMddHHmmssfff}.mp3";
             var blobClient = containerClient.GetBlobClient(blobName);

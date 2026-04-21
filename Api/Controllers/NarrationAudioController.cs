@@ -28,18 +28,15 @@ namespace Api.Controllers
 
         private readonly AppDbContext _context;
         private readonly BlobStorageSettings _blobSettings;
-        private readonly IBlobUrlService _blobUrl;
         private readonly ILogger<NarrationAudioController> _logger;
 
         public NarrationAudioController(
             AppDbContext context,
             IOptions<BlobStorageSettings> blobSettings,
-            IBlobUrlService blobUrl,
             ILogger<NarrationAudioController> logger)
         {
             _context = context;
             _blobSettings = blobSettings.Value;
-            _blobUrl = blobUrl;
             _logger = logger;
         }
 
@@ -126,7 +123,7 @@ namespace Api.Controllers
 
             var containerClient = new BlobServiceClient(_blobSettings.ConnectionString)
                 .GetBlobContainerClient(_blobSettings.ContainerName);
-            await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: cancellationToken);
 
             var blobClient = containerClient.GetBlobClient(blobName);
             await using var stream = audioFile.OpenReadStream();
@@ -137,7 +134,7 @@ namespace Api.Controllers
             return (blobClient.Uri.ToString(), blobName);
         }
 
-        private NarrationAudioDetailDto MapAudioDetail(NarrationAudio audio, TimeZoneInfo timeZone)
+        private static NarrationAudioDetailDto MapAudioDetail(NarrationAudio audio, TimeZoneInfo timeZone)
         {
             return new NarrationAudioDetailDto
             {
@@ -147,7 +144,7 @@ namespace Api.Controllers
                 TtsVoiceProfileDisplayName = audio.TtsVoiceProfile?.DisplayName,
                 TtsVoiceProfileDescription = audio.TtsVoiceProfile?.Description,
                 TtsVoiceProfileLanguageName = audio.TtsVoiceProfile?.Language?.Name,
-                AudioUrl = _blobUrl.GetSasUrl(audio.BlobId),
+                AudioUrl = audio.AudioUrl,
                 BlobId = audio.BlobId,
                 Voice = audio.Voice,
                 Provider = audio.Provider,

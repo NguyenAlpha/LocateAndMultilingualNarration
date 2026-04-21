@@ -27,13 +27,11 @@ namespace Api.Controllers
     {
         private const int MaxPageSize = 100;
         private readonly AppDbContext _context;
-        private readonly IBlobUrlService _blobUrl;
         private readonly ILogger<StallNarrationContentController> _logger;
 
-        public StallNarrationContentController(AppDbContext context, IBlobUrlService blobUrl, ILogger<StallNarrationContentController> logger)
+        public StallNarrationContentController(AppDbContext context, ILogger<StallNarrationContentController> logger)
         {
             _context = context;
-            _blobUrl = blobUrl;
             _logger = logger;
         }
 
@@ -508,7 +506,7 @@ namespace Api.Controllers
             };
         }
 
-        private NarrationAudioDetailDto MapAudioDetail(NarrationAudio audio, TimeZoneInfo timeZone)
+        private static NarrationAudioDetailDto MapAudioDetail(NarrationAudio audio, TimeZoneInfo timeZone)
         {
             return new NarrationAudioDetailDto
             {
@@ -518,7 +516,7 @@ namespace Api.Controllers
                 TtsVoiceProfileDisplayName = audio.TtsVoiceProfile?.DisplayName,
                 TtsVoiceProfileDescription = audio.TtsVoiceProfile?.Description,
                 TtsVoiceProfileLanguageName = audio.TtsVoiceProfile?.Language?.Name,
-                AudioUrl = _blobUrl.GetSasUrl(audio.BlobId),
+                AudioUrl = audio.AudioUrl,
                 BlobId = audio.BlobId,
                 Voice = audio.Voice,
                 Provider = audio.Provider,

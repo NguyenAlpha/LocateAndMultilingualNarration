@@ -12,7 +12,6 @@ public class LocalStall
     public double Longitude { get; set; }
     public double RadiusMeters { get; set; }
     public string? AudioUrl { get; set; }           // URL remote từ API
-    public string? BlobId { get; set; }             // BlobId stable dùng để so sánh thay vì SAS URL
     public string? LocalAudioPath { get; set; }     // Path file local sau khi download
     public string LanguageCode { get; set; } = string.Empty;
     public string VoiceId { get; set; } = string.Empty;  // TtsVoiceProfileId

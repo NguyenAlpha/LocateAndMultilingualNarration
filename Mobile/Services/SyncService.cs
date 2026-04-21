@@ -123,7 +123,6 @@ public class SyncService : ISyncService
                 Longitude             = s.Longitude,
                 RadiusMeters          = s.RadiusMeters,
                 AudioUrl              = s.NarrationContent?.AudioUrl,
-                BlobId                = s.NarrationContent?.BlobId,
                 LanguageCode          = languageCode,
                 VoiceId               = voiceId,
                 LastUpdated           = DateTimeOffset.UtcNow,
@@ -163,8 +162,7 @@ public class SyncService : ISyncService
                         // Bỏ qua nếu URL không đổi và file vẫn còn trên máy — không cần tải lại.
                         var old = existingMap.GetValueOrDefault(s.StallId);
                         if (old is not null
-                            && old.BlobId is not null
-                            && old.BlobId == s.BlobId
+                            && old.AudioUrl == s.AudioUrl
                             && old.LocalAudioPath is not null
                             && File.Exists(old.LocalAudioPath))
                         {
