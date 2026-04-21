@@ -29,6 +29,13 @@ public interface ISyncService
     Task SyncAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Đảm bảo đã sync ít nhất một lần thành công. Nếu chưa → gọi SyncAsync; nếu rồi → no-op.
+    /// MapPage gọi qua method này thay vì SyncAsync trực tiếp để rule "sync-before-map" không rò rỉ ra Page.
+    /// </summary>
+    /// <param name="ct">Token hủy tác vụ.</param>
+    Task EnsureSyncedAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Bắn khi có audio mới được download và ghi LocalAudioPath — ViewModel nên reload DTO.
     /// </summary>
     event EventHandler? AudioDownloaded;
@@ -51,7 +58,16 @@ public class SyncService : ISyncService
     private const string StallsEndpoint = "/api/geo/stalls";
 
     public DateTime? LastSyncedAt { get; private set; }
-    public bool IsSyncing { get; private set; }
+
+    // Atomic flag — 0 = idle, 1 = đang sync. Dùng Interlocked để ConnectivityChanged + Timer không cùng enter.
+    private int _syncInFlight;
+    public bool IsSyncing => Volatile.Read(ref _syncInFlight) == 1;
+
+    // Mốc sync thành công đầu tiên — dùng để EnsureSyncedAsync biết có cần gọi SyncAsync hay không.
+    private DateTime? _firstSyncCompletedAt;
+
+    public Task EnsureSyncedAsync(CancellationToken ct = default)
+        => _firstSyncCompletedAt is not null ? Task.CompletedTask : SyncAsync(ct);
 
     public event EventHandler? AudioDownloaded;
 
@@ -80,9 +96,8 @@ public class SyncService : ISyncService
     /// <returns>Task đại diện cho quá trình đồng bộ.</returns>
     public async Task SyncAsync(CancellationToken ct = default)
     {
-        // Tránh chạy đồng bộ song song nhiều lần cùng lúc.
-        if (IsSyncing) return; // tránh chạy song song
-        IsSyncing = true;
+        // Tránh chạy đồng bộ song song nhiều lần cùng lúc — atomic, không race được.
+        if (Interlocked.CompareExchange(ref _syncInFlight, 1, 0) != 0) return;
 
         try
         {
@@ -192,6 +207,7 @@ public class SyncService : ISyncService
 
             // Chờ tất cả tác vụ download hoàn tất.
             await Task.WhenAll(downloadTasks);
+            _firstSyncCompletedAt ??= DateTime.UtcNow;
             LastSyncedAt = DateTime.UtcNow;
             if (_logger.IsEnabled(LogLevel.Information))
                 _logger.LogInformation(
@@ -199,9 +215,9 @@ public class SyncService : ISyncService
                     audioDownloaded, audioSkipped, audioTotal, LastSyncedAt);
 
             // Báo cho UI (MapViewModel) reload DTO để dùng LocalAudioPath mới.
+            // InvalidateCache đã được gọi ở line 145 sau UpsertBatch — không cần gọi lại.
             if (audioDownloaded > 0)
             {
-                _stallService.InvalidateCache();
                 AudioDownloaded?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -210,6 +226,6 @@ public class SyncService : ISyncService
         {
             _logger.LogError(ex, "[SyncAsync]: lỗi không mong muốn");
         }
-        finally { IsSyncing = false; }
+        finally { Volatile.Write(ref _syncInFlight, 0); }
     }
 }

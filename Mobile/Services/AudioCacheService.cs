@@ -44,6 +44,15 @@ public interface IAudioCacheService
 /// </summary>
 public class AudioCacheService : IAudioCacheService
 {
+    private const string DownloadHttpClientName = "download";
+
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public AudioCacheService(IHttpClientFactory httpClientFactory)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
+
     // Path: {AppDataDirectory}/audio/{languageCode}/{stallId}.mp3
     private static string AudioRootDir =>
         Path.Combine(FileSystem.AppDataDirectory, "audio");
@@ -89,8 +98,8 @@ public class AudioCacheService : IAudioCacheService
             // Đảm bảo thư mục theo ngôn ngữ đã tồn tại trước khi ghi file.
             Directory.CreateDirectory(GetAudioDir(languageCode));
 
-            // Tạo HttpClient tạm thời để tải file audio từ URL.
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            // Dùng named HttpClient "download" từ factory — timeout 30s, pool socket handler.
+            var client = _httpClientFactory.CreateClient(DownloadHttpClientName);
             // Tải dữ liệu nhị phân của file audio.
             var bytes = await client.GetByteArrayAsync(audioUrl, ct);
             // Ghi toàn bộ bytes xuống file local.

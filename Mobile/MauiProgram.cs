@@ -21,7 +21,9 @@ namespace Mobile;
 public static class MauiProgram
 {
     private const string ApiHttpClientName = "ApiHttp";
+    private const string DownloadHttpClientName = "download";
     private static readonly TimeSpan DefaultHttpTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan DownloadHttpTimeout = TimeSpan.FromSeconds(30);
 
     public static MauiApp CreateMauiApp()
     {
@@ -67,7 +69,7 @@ public static class MauiProgram
         // tránh state cũ của trang trước bị giữ lại khi điều hướng
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
-        ServiceCollectionServiceExtensions.AddSingleton<MapViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<StallListViewModel>(builder.Services);
 
@@ -76,10 +78,10 @@ public static class MauiProgram
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<LoadingPage>();
         builder.Services.AddTransient<MainPage>();
-        builder.Services.AddSingleton<MapPage>();
+        builder.Services.AddTransient<MapPage>();
         builder.Services.AddTransient<ScanPage>();
         builder.Services.AddTransient<StallListPage>();
-        builder.Services.AddSingleton<StallPopup>();
+        builder.Services.AddTransient<StallPopup>();
 
         ConfigureLogging(builder.Logging);
 
@@ -103,6 +105,12 @@ public static class MauiProgram
         {
             client.BaseAddress = baseUri;
             client.Timeout = DefaultHttpTimeout;
+        });
+
+        // HttpClient chuyên cho tải file audio — URL là absolute Blob URL, timeout dài hơn.
+        services.AddHttpClient(DownloadHttpClientName, client =>
+        {
+            client.Timeout = DownloadHttpTimeout;
         });
     }
 

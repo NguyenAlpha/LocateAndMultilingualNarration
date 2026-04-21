@@ -145,10 +145,8 @@ public class SyncBackgroundService : ISyncBackgroundService
     }
 
     /// <summary>
-    /// Xử lý sự kiện thay đổi kết nối mạng và kích hoạt sync ngay khi có Internet.
+    /// Kiểm tra flag reset từ admin. Nếu có → clear Preferences và quay về LoadingPage.
     /// </summary>
-    /// <param name="sender">Nguồn phát sinh sự kiện.</param>
-    /// <param name="e">Thông tin thay đổi kết nối mạng.</param>
     private async Task CheckResetFlagAsync(CancellationToken ct)
     {
         try
@@ -171,12 +169,14 @@ public class SyncBackgroundService : ISyncBackgroundService
     {
         // Chỉ sync khi mạng vừa được khôi phục.
         if (e.NetworkAccess != NetworkAccess.Internet) return;
-        // Nếu service đã bị dừng thì không chạy nữa.
-        if (_cts is null || _cts.IsCancellationRequested) return;
+
+        // Capture local để tránh race với Stop()/CleanupInternal() đang dispose _cts song song.
+        var cts = _cts;
+        if (cts is null || cts.IsCancellationRequested) return;
 
         // Khi có mạng trở lại, đồng bộ ngay để giảm độ trễ dữ liệu.
         _logger.LogInformation("SyncBackgroundService: mạng kết nối lại → sync ngay");
-        _ = _syncService.SyncAsync(_cts.Token);
+        _ = _syncService.SyncAsync(cts.Token);
         _ = _locationLogService.FlushAsync();
     }
 }

@@ -49,7 +49,10 @@ public interface IAudioGuideService
 /// </summary>
 public class AudioGuideService : IAudioGuideService
 {
+    private const string DownloadHttpClientName = "download";
+
     private readonly IAudioManager _audioManager;
+    private readonly IHttpClientFactory _httpClientFactory;
     private IAudioPlayer? _player;
     private MemoryStream? _buffer;
     private readonly SemaphoreSlim _playerLock = new(1, 1);
@@ -71,11 +74,13 @@ public class AudioGuideService : IAudioGuideService
     public event Action? PlaybackCompleted;
 
     /// <summary>
-    /// Khởi tạo service với audio manager của plugin.
+    /// Khởi tạo service với audio manager của plugin và factory để tải file qua mạng.
     /// </summary>
-    /// <param name="audioManager">Audio manager dùng để tạo player.</param>
-    public AudioGuideService(IAudioManager audioManager)
-        => _audioManager = audioManager;
+    public AudioGuideService(IAudioManager audioManager, IHttpClientFactory httpClientFactory)
+    {
+        _audioManager = audioManager;
+        _httpClientFactory = httpClientFactory;
+    }
 
     /// <summary>
     /// Phát audio từ đường dẫn local hoặc từ URL mạng.
@@ -210,7 +215,7 @@ public class AudioGuideService : IAudioGuideService
     /// </summary>
     /// <param name="url">Địa chỉ audio từ internet.</param>
     /// <returns>MemoryStream chứa toàn bộ audio nếu thành công; ngược lại <c>null</c>.</returns>
-    private static async Task<Stream?> GetStreamFromUrlAsync(string url)
+    private async Task<Stream?> GetStreamFromUrlAsync(string url)
     {
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
             return null;
@@ -218,8 +223,8 @@ public class AudioGuideService : IAudioGuideService
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(30);
+            // Dùng named HttpClient "download" từ factory — timeout 30s, pool socket handler.
+            var client = _httpClientFactory.CreateClient(DownloadHttpClientName);
 
             // GetByteArrayAsync tải toàn bộ rồi trả MemoryStream — tránh CopyToAsync treo UI.
             var bytes = await client.GetByteArrayAsync(url, cts.Token);

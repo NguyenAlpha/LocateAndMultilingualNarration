@@ -14,7 +14,6 @@ using Mapsui.Tiling;
 using Mapsui.UI.Maui;
 using CommunityToolkit.Maui.Extensions;
 using Microsoft.Extensions.Logging;
-using Mobile.Helpers;
 using Mobile.Services;
 using Mobile.ViewModels;
 using Shared.DTOs.Geo;
@@ -44,21 +43,16 @@ public partial class MapPage : ContentPage
     private readonly ILogger<MapPage> _logger;
     private readonly StallPopup _stallPopup;
     private readonly ISyncBackgroundService _syncBackgroundService;
-    private readonly ISyncService _syncService;
+    private readonly IGpsPollingService _gpsPollingService;
     private readonly ILocationLogService _locationLogService;
+    private readonly ILocalPreferenceService _localPreference;
 
-    // Cờ tránh chạy logic khởi tạo nhiều lần khi quay lại trang (OnAppearing gọi lại nhiều lần)
-    private bool _isInitialized;
+    // Depth = số lần Appearing chưa kết đôi với Disappearing. Init chạy khi 0→1.
+    // Popup cũng trigger Disappearing/Appearing — depth lặp về 1, EnsureReadyAsync no-op vì State=Ready.
+    private int _appearingDepth;
 
-    // Cờ báo hiệu đang hiển thị popup — tránh StopPolling/StartPolling không cần thiết khi popup mở/đóng.
-    private bool _isPopupOpen;
-
-    // Cờ tránh gọi Stop/Flush/NotifyOffline nhiều lần khi OnDisappearing bị trigger liên tiếp.
-    private bool _isStopping;
-
-    // Lưu ngôn ngữ/voice lần trước để so sánh — chỉ reload khi thực sự thay đổi.
-    private string? _lastLanguageCode;
-    private string? _lastVoiceId;
+    // Hash của preference lần gần nhất — đổi ngôn ngữ/voice = hash đổi = force reload.
+    private string? _lastPrefHash;
 
     // Layer riêng để vẽ vòng tròn geofence (bán kính phủ sóng) của từng gian hàng
     // Style = null để mỗi feature tự mang style riêng (màu khác nhau khi selected/unselected)
@@ -74,7 +68,14 @@ public partial class MapPage : ContentPage
     /// <summary>
     /// Constructor: khởi tạo UI, lấy ViewModel từ DI, đăng ký event, cấu hình bản đồ.
     /// </summary>
-    public MapPage(MapViewModel viewModel, ILogger<MapPage> logger, StallPopup stallPopup, ISyncBackgroundService syncBackgroundService, ISyncService syncService, ILocationLogService locationLogService)
+    public MapPage(
+        MapViewModel viewModel,
+        ILogger<MapPage> logger,
+        StallPopup stallPopup,
+        ISyncBackgroundService syncBackgroundService,
+        IGpsPollingService gpsPollingService,
+        ILocationLogService locationLogService,
+        ILocalPreferenceService localPreference)
     {
         InitializeComponent();
 
@@ -82,10 +83,10 @@ public partial class MapPage : ContentPage
         _logger = logger;
         _stallPopup = stallPopup;
         _syncBackgroundService = syncBackgroundService;
-        _syncService = syncService;
+        _gpsPollingService = gpsPollingService;
         _locationLogService = locationLogService;
+        _localPreference = localPreference;
         BindingContext = _viewModel;
-        Console.WriteLine($"[DEBUG] MapPage constructor — instance #{GetHashCode()}");
 
         // Lắng nghe event từ ViewModel để thực hiện thao tác trên MapView
         // (ViewModel không được giữ reference đến View, nên dùng event)
@@ -112,80 +113,70 @@ public partial class MapPage : ContentPage
                 await OnPinClickedAsync(stall);
             }
         };
+
+        // Page Transient → cần dispose VM khi page rời visual tree để gỡ event trên Singleton service,
+        // tránh leak + duplicate audio sau mỗi lần nav.
+        Unloaded += OnPageUnloaded;
+    }
+
+    private void OnPageUnloaded(object? sender, EventArgs e)
+    {
+        Unloaded -= OnPageUnloaded;
+        _viewModel.FocusStallRequested -= OnFocusStallRequested;
+        _viewModel.PinsRefreshRequested -= RenderPins;
+        _viewModel.LocationUpdated -= OnLocationUpdated;
+        _viewModel.Dispose();
     }
 
     /// <summary>
-    /// Chạy mỗi khi trang hiện ra (lần đầu và khi quay lại từ trang khác).
-    /// Không async để tránh async void — delegate toàn bộ logic async sang InitializePageAsync.
+    /// OnAppearing fire cả khi nav tới và khi popup đóng. Dùng _appearingDepth để biết đây là
+    /// lần đầu vào trang (0→1) hay chỉ là popup closing (cũng 0→1 sau khi Disappearing đã giảm về 0).
+    /// Trong cả 2 trường hợp: start service + gọi EnsureReadyAsync (idempotent — no-op nếu State=Ready).
     /// </summary>
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        _appearingDepth++;
+
         if (_logger.IsEnabled(LogLevel.Information))
-            _logger.LogInformation("[MapPage][OnAppearing] — _isInitialized={IsInitialized}", _isInitialized);
+            _logger.LogInformation("[MapPage][OnAppearing] — depth={Depth}", _appearingDepth);
 
-        // Popup mở/đóng cũng trigger OnAppearing/OnDisappearing — bỏ qua để không restart polling thừa.
-        if (_isPopupOpen)
-        {
-            _isPopupOpen = false;
-            return;
-        }
+        _gpsPollingService.Start();
+        _syncBackgroundService.Start();
 
-        _isStopping = false; // reset để OnDisappearing tiếp theo vẫn chạy được
+        // Chỉ reset SelectedStall khi đây là lần đầu vào trang (depth=1 sau popup-close không cần).
+        if (_appearingDepth == 1)
+            _viewModel.SelectedStall = null;
 
-        _viewModel.StartPolling();
-        _viewModel.SelectedStall = null;
-        _syncBackgroundService.Start(); // start lại mỗi lần vào trang (kể cả lần quay lại)
+        // Detect language/voice change qua hash — đổi thì force reload stall + audio.
+        var pref = _localPreference.Load();
+        var currentHash = $"{pref?.LanguageCode}|{pref?.VoiceId}";
+        var prefChanged = _lastPrefHash is not null && _lastPrefHash != currentHash;
+        _lastPrefHash = currentHash;
 
-        if (_isInitialized)
-        {
-            // Đọc ngôn ngữ/voice hiện tại từ LanguageHelper (được VoicePage ghi trước khi navigate).
-            var currentLanguage = LanguageHelper.GetLanguage();
-            var currentVoice    = LanguageHelper.GetVoice();
-
-            // Chỉ reload khi ngôn ngữ hoặc voice thực sự thay đổi so với lần trước.
-            var languageChanged = currentLanguage is not null && currentLanguage != _lastLanguageCode;
-            var voiceChanged    = currentVoice is not null && currentVoice != _lastVoiceId;
-
-            if (languageChanged || voiceChanged)
-            {
-                _lastLanguageCode = currentLanguage;
-                _lastVoiceId      = currentVoice;
-                _ = _viewModel.ReloadAsync();
-            }
-
-            return;
-        }
-
-        _isInitialized = true;
-        _lastLanguageCode = LanguageHelper.GetLanguage();
-        _lastVoiceId      = LanguageHelper.GetVoice();
-        _ = InitializePageAsync(); // fire-and-forget rõ ràng, exception được bắt bên trong
+        _ = InitializePageAsync(forceReload: prefChanged);
     }
 
     /// <summary>
-    /// Chuỗi khởi tạo bất đồng bộ khi lần đầu vào trang.
-    /// Tách ra khỏi OnAppearing để có thể bắt exception — async void không bắt được exception.
+    /// Chuỗi khởi tạo bất đồng bộ. EnsureReadyAsync là idempotent — gọi lại an toàn, no-op nếu đã Ready.
     /// </summary>
-    private async Task InitializePageAsync()
+    private async Task InitializePageAsync(bool forceReload)
     {
         try
         {
-            // 1. Xin quyền GPS nếu chưa có
             await EnsureLocationPermissionAsync();
 
-            // 2. Sync và download audio xong trước — đảm bảo map luôn dùng dữ liệu mới nhất
-            await _syncService.SyncAsync();
+            await _viewModel.EnsureReadyAsync(forceReload);
 
-            // 3. Tải danh sách gian hàng từ SQLite (đã được sync cập nhật ở bước 2)
-            await _viewModel.InitializeAsync();
-
-            // 4. Di chuyển camera đến vị trí người dùng, fallback về tọa độ trung tâm triển lãm nếu không lấy được GPS
-            var located = await MoveToCurrentLocationAsync();
-            if (!located)
+            // Chỉ center camera lần đầu — nav-back hoặc popup-close không jump camera.
+            if (_appearingDepth == 1 && !forceReload)
             {
-                var (x, y) = SphericalMercator.FromLonLat(106.710669, 10.777534);
-                mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 0.7, 0);
+                var located = await MoveToCurrentLocationAsync();
+                if (!located)
+                {
+                    var (x, y) = SphericalMercator.FromLonLat(106.710669, 10.777534);
+                    mapView.Map?.Navigator.CenterOnAndZoomTo(new MPoint(x, y), 0.7, 0);
+                }
             }
         }
         catch (Exception ex)
@@ -194,22 +185,18 @@ public partial class MapPage : ContentPage
         }
     }
 
+    /// <summary>
+    /// Stop được gọi mỗi lần Disappearing — các service tự null-check để idempotent.
+    /// </summary>
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-
-        if (_isPopupOpen)
-            return; // popup đang mở — không stop polling
-
-        if (_isStopping)
-            return; // đã stop rồi, tránh gọi lại lần 2
-
-        _isStopping = true;
+        if (_appearingDepth > 0) _appearingDepth--;
 
         try
         {
-            _viewModel.StopPolling();
-            _ = _locationLogService.FlushAsync(); // flush GPS buffer trước khi dừng service
+            _gpsPollingService.Stop();
+            _ = _locationLogService.FlushAsync();
             _syncBackgroundService.Stop();
         }
         catch (Exception ex)
@@ -401,9 +388,7 @@ public partial class MapPage : ContentPage
         {
             _stallPopup.Init(stall);
             _logger.LogInformation("[Popup] Gọi ShowPopupAsync...");
-            _isPopupOpen = true;
             await this.ShowPopupAsync(_stallPopup);
-            _isPopupOpen = false;
             _logger.LogInformation("[Popup] ShowPopupAsync hoàn tất");
         }
         catch (Exception ex)
@@ -459,7 +444,7 @@ public partial class MapPage : ContentPage
 
     private async void OnBackClicked(object sender, EventArgs e)
     {
-        _viewModel.StopPolling();
+        _gpsPollingService.Stop();
         await Shell.Current.GoToAsync("//MainPage");
     }
 }
