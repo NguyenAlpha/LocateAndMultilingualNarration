@@ -58,5 +58,15 @@ namespace Web.Services
             }
             catch (Exception ex) when (ex is HttpRequestException or JsonException) { return null; }
         }
+
+        public async Task<ApiResult<StallLocationDetailDto>?> ToggleActiveAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var response = await _httpClient.PatchAsync($"api/stall-location/{id}/toggle-active", null, cancellationToken);
+                return await response.Content.ReadFromJsonAsync<ApiResult<StallLocationDetailDto>>(cancellationToken: cancellationToken);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or JsonException) { return null; }
+        }
     }
 }

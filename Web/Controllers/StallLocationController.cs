@@ -197,6 +197,22 @@ namespace Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleActive(Guid id, int page = 1, int pageSize = 10, string? stallName = null, bool? isActive = null, CancellationToken cancellationToken = default)
+        {
+            var result = await _stallLocationApiClient.ToggleActiveAsync(id, cancellationToken);
+            if (result?.Success != true)
+            {
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không thể thay đổi trạng thái vị trí.";
+                return RedirectToAction(nameof(Index), new { page, pageSize, stallName, isActive });
+            }
+
+            var isNowActive = result.Data?.IsActive ?? false;
+            TempData["SuccessMessage"] = isNowActive ? "Vị trí đã được kích hoạt." : "Vị trí đã được vô hiệu hóa.";
+            return RedirectToAction(nameof(Index), new { page, pageSize, stallName, isActive });
+        }
+
         [HttpGet]
         public async Task<IActionResult> LocationByStall(Guid stallId, CancellationToken cancellationToken = default)
         {
