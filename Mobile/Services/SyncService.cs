@@ -161,6 +161,26 @@ public class SyncService : ISyncService
             if (_logger.IsEnabled(LogLevel.Information))
                 _logger.LogInformation("[SyncAsync]: API trả về {Total} stall, đã upsert vào SQLite (chỉ ghi stall thay đổi)", localStalls.Count);
 
+            // Cleanup 1: Đổi ngôn ngữ → xóa folder audio cũ để tránh tích lũy file thừa.
+            var oldLanguageCode = existingMap.Values
+                .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s.LanguageCode))?.LanguageCode;
+            if (oldLanguageCode != null && oldLanguageCode != languageCode)
+            {
+                await _audioCacheService.DeleteByLanguageAsync(oldLanguageCode);
+                _logger.LogInformation("[SyncAsync]: ngôn ngữ đổi {Old}→{New}, đã xóa audio cache cũ", oldLanguageCode, languageCode);
+            }
+
+            // Cleanup 2: Stall bị xóa hoặc mất audio → xóa file local tương ứng.
+            var newStallMap = localStalls.ToDictionary(s => s.StallId);
+            foreach (var (stallId, old) in existingMap)
+            {
+                if (string.IsNullOrWhiteSpace(old.LocalAudioPath)) continue;
+                var isRemovedOrLostAudio = !newStallMap.TryGetValue(stallId, out var newStall)
+                    || string.IsNullOrWhiteSpace(newStall.AudioUrl);
+                if (isRemovedOrLostAudio && File.Exists(old.LocalAudioPath))
+                    File.Delete(old.LocalAudioPath);
+            }
+
             // Bước 4: Tải file âm thanh song song nhưng giới hạn số luồng để tránh quá tải.
             var semaphore   = new SemaphoreSlim(3);
             var audioTotal  = localStalls.Count(s => !string.IsNullOrWhiteSpace(s.AudioUrl));

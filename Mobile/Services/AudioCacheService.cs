@@ -90,8 +90,6 @@ public class AudioCacheService : IAudioCacheService
         CancellationToken ct = default)
     {
         var path = GetFilePath(stallId, languageCode);
-        // Nếu đã có file thì không tải lại.
-        if (File.Exists(path)) return path;
 
         try
         {

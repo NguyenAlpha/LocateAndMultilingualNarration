@@ -156,6 +156,11 @@ public class SyncBackgroundService : ISyncBackgroundService
 
             _logger.LogInformation("SyncBackgroundService: nhận lệnh reset từ admin — xóa Preferences và về LoadingPage");
             Preferences.Clear();
+
+            var audioDir = Path.Combine(FileSystem.AppDataDirectory, "audio");
+            if (Directory.Exists(audioDir))
+                Directory.Delete(audioDir, recursive: true);
+
             await MainThread.InvokeOnMainThreadAsync(() =>
                 Shell.Current.GoToAsync("//LoadingPage"));
         }
