@@ -95,6 +95,11 @@ builder.Services.AddHttpClient<DeviceApiClient>(client =>
     client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
 }).AddHttpMessageHandler<AuthTokenHandler>();
 
+builder.Services.AddHttpClient<DeviceLocationLogApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl, UriKind.Absolute);
+}).AddHttpMessageHandler<AuthTokenHandler>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();

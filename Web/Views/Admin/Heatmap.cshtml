@@ -1,0 +1,150 @@
+@model Web.Models.HeatmapViewModel
+@{
+    ViewData["Title"] = "Bản đồ nhiệt vị trí người dùng";
+    // Mặc định hiển thị ở khu vực trung tâm HCMC — dùng chung tọa độ với StallLocationMap
+    var defaultLat = 10.777451;
+    var defaultLng = 106.711203;
+    // Convert sang ISO cho input datetime-local (Vietnamese local time)
+    var fromLocal = Model.From.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
+    var toLocal = Model.To.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        #heatmap {
+            height: calc(100vh - 280px);
+            min-height: 500px;
+            border-radius: 6px;
+        }
+        .leaflet-container { background: #f5f5f5; }
+    </style>
+}
+
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">Phân tích vị trí</div>
+                <h2 class="page-title">
+                    <i class="ti ti-map-pin-heart me-2 text-danger"></i>
+                    Bản đồ nhiệt vị trí người dùng
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
+    <div class="container-xl">
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-1"></i> @Model.ErrorMessage
+            </div>
+        }
+
+        <!-- Filter form -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="get" asp-action="Heatmap" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Từ ngày</label>
+                        <input type="datetime-local" class="form-control" name="from" value="@fromLocal" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Đến ngày</label>
+                        <input type="datetime-local" class="form-control" name="to" value="@toLocal" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Device ID (tùy chọn)</label>
+                        <input type="text" class="form-control" name="deviceId" value="@Model.DeviceId" placeholder="Để trống để xem toàn bộ" />
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ti ti-filter me-1"></i> Lọc
+                        </button>
+                        <a asp-action="Heatmap" class="btn btn-outline-secondary">
+                            <i class="ti ti-refresh me-1"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row row-deck row-cards mb-3">
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body text-center py-3">
+                        <div class="text-muted small text-uppercase">Điểm duy nhất</div>
+                        <div class="h1 mb-0">@Model.TotalPoints.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body text-center py-3">
+                        <div class="text-muted small text-uppercase">Tổng lần ghi nhận</div>
+                        <div class="h1 mb-0">@Model.TotalWeight.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="card">
+                    <div class="card-body text-center py-3">
+                        <div class="text-muted small text-uppercase">Khoảng thời gian</div>
+                        <div class="fw-bold">@Model.From.ToLocalTime().ToString("dd/MM HH:mm") → @Model.To.ToLocalTime().ToString("dd/MM HH:mm")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div id="heatmap"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script>
+        // Dữ liệu từ server: [{latitude, longitude, weight}, ...]
+        const rawPoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+        const map = L.map('heatmap').setView([@defaultLat, @defaultLng], 17);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+
+        if (rawPoints.length > 0) {
+            // Convert sang format leaflet.heat yêu cầu: [[lat, lng, intensity], ...]
+            // Normalize weight về [0, 1] để intensity không bị outlier làm lệch
+            const maxWeight = Math.max(...rawPoints.map(p => p.weight));
+            const heatData = rawPoints.map(p => [
+                p.latitude,
+                p.longitude,
+                Math.min(1, p.weight / Math.max(1, maxWeight))
+            ]);
+
+            L.heatLayer(heatData, {
+                radius: 25,
+                blur: 20,
+                maxZoom: 18,
+                gradient: { 0.2: 'blue', 0.4: 'cyan', 0.6: 'lime', 0.8: 'yellow', 1.0: 'red' }
+            }).addTo(map);
+
+            // Fit map tới bounds của dữ liệu
+            const bounds = L.latLngBounds(rawPoints.map(p => [p.latitude, p.longitude]));
+            map.fitBounds(bounds, { padding: [40, 40] });
+        }
+    </script>
+}

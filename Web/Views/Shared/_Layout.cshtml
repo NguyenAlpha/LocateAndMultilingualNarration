@@ -201,6 +201,12 @@
                                                     <i class="ti ti-radio me-2"></i>Thiết bị online
                                                 </a>
                                             </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(adminOpen && currentAction == "Heatmap" ? "active" : "")"
+                                                   asp-controller="Admin" asp-action="Heatmap">
+                                                    <i class="ti ti-map-pin-heart me-2"></i>Bản đồ nhiệt
+                                                </a>
+                                            </li>
                                         </ul>
                                     </div>
                                 </li>
