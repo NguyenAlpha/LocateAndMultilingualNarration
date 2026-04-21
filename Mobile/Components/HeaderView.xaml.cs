@@ -51,6 +51,11 @@ public partial class HeaderView : Grid
         var stallService = IPlatformApplication.Current?.Services.GetService<IStallService>();
         stallService?.InvalidateCache();
 
+        // Xóa file audio đã tải
+        var audioCache = IPlatformApplication.Current?.Services.GetService<IAudioCacheService>();
+        if (audioCache is not null)
+            await audioCache.ClearAllAsync();
+
         // Xóa Preferences (QR, language, device preference)
         Preferences.Clear();
 
