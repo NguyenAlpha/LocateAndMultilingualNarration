@@ -31,6 +31,7 @@ namespace Api.Controllers
             var preference = await _context.DevicePreferences
                 .AsNoTracking()
                 .Include(x => x.Language)
+                .Include(x => x.VoiceProfile)
                 .FirstOrDefaultAsync(x => x.DeviceId == deviceId);
 
             if (preference is null)
@@ -62,6 +63,7 @@ namespace Api.Controllers
 
             var preference = await _context.DevicePreferences
                 .Include(x => x.Language)
+                .Include(x => x.VoiceProfile)
                 .FirstOrDefaultAsync(x => x.DeviceId == request.DeviceId);
 
             if (preference is null)
@@ -169,6 +171,7 @@ namespace Api.Controllers
             LanguageDisplayName = p.Language.DisplayName,
             LanguageFlagCode    = p.Language.FlagCode,
             VoiceId             = p.VoiceId,
+            VoiceDisplayName    = p.VoiceProfile?.DisplayName,
             SpeechRate          = p.SpeechRate,
             AutoPlay            = p.AutoPlay,
             FirstSeenAt         = p.FirstSeenAt,

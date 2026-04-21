@@ -30,6 +30,7 @@ public class LocalPreferenceService : ILocalPreferenceService
     private const string KeyLanguageDisplayName = "pref_language_display_name";
     private const string KeyLanguageFlagCode    = "pref_language_flag_code";
     private const string KeyVoiceId             = "pref_voice_id";
+    private const string KeyVoiceDisplayName    = "pref_voice_display_name";
     private const string KeySpeechRate          = "pref_speech_rate";
     private const string KeyAutoPlay            = "pref_auto_play";
 
@@ -41,6 +42,7 @@ public class LocalPreferenceService : ILocalPreferenceService
         Preferences.Set(KeyLanguageDisplayName, dto.LanguageDisplayName ?? string.Empty);
         Preferences.Set(KeyLanguageFlagCode,    dto.LanguageFlagCode    ?? string.Empty);
         Preferences.Set(KeyVoiceId,             dto.VoiceId?.ToString() ?? string.Empty);
+        Preferences.Set(KeyVoiceDisplayName,    dto.VoiceDisplayName    ?? string.Empty);
         Preferences.Set(KeySpeechRate,          dto.SpeechRate.ToString());
         Preferences.Set(KeyAutoPlay,            dto.AutoPlay);
     }
@@ -70,6 +72,7 @@ public class LocalPreferenceService : ILocalPreferenceService
             LanguageDisplayName = Preferences.Get(KeyLanguageDisplayName, null),
             LanguageFlagCode    = Preferences.Get(KeyLanguageFlagCode,    null),
             VoiceId             = voiceId,
+            VoiceDisplayName    = Preferences.Get(KeyVoiceDisplayName, null),
             SpeechRate          = speechRate <= 0 ? 1.0m : speechRate,
             AutoPlay            = Preferences.Get(KeyAutoPlay, true)
         };
@@ -83,6 +86,7 @@ public class LocalPreferenceService : ILocalPreferenceService
         Preferences.Remove(KeyLanguageDisplayName);
         Preferences.Remove(KeyLanguageFlagCode);
         Preferences.Remove(KeyVoiceId);
+        Preferences.Remove(KeyVoiceDisplayName);
         Preferences.Remove(KeySpeechRate);
         Preferences.Remove(KeyAutoPlay);
     }
