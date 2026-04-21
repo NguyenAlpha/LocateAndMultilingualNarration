@@ -20,6 +20,7 @@ namespace Web.Controllers
         private readonly QrCodeApiClient _qrCodeApiClient;
         private readonly DeviceApiClient _deviceApiClient;
         private readonly DeviceLocationLogApiClient _deviceLocationLogApiClient;
+        private readonly IConfiguration _configuration;
 
         public AdminController(
             BusinessApiClient businessApiClient,
@@ -31,7 +32,8 @@ namespace Web.Controllers
             UserApiClient userApiClient,
             QrCodeApiClient qrCodeApiClient,
             DeviceApiClient deviceApiClient,
-            DeviceLocationLogApiClient deviceLocationLogApiClient)
+            DeviceLocationLogApiClient deviceLocationLogApiClient,
+            IConfiguration configuration)
         {
             _businessApiClient = businessApiClient;
             _stallApiClient = stallApiClient;
@@ -43,6 +45,7 @@ namespace Web.Controllers
             _qrCodeApiClient = qrCodeApiClient;
             _deviceApiClient = deviceApiClient;
             _deviceLocationLogApiClient = deviceLocationLogApiClient;
+            _configuration = configuration;
         }
 
         public IActionResult Index() => RedirectToAction("Dashboard");
@@ -381,6 +384,8 @@ namespace Web.Controllers
             var fromUtc = (from ?? toUtc.AddDays(-7)).ToUniversalTime();
 
             var result = await _deviceLocationLogApiClient.GetHeatmapAsync(fromUtc, toUtc, deviceId, cancellationToken);
+
+            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "http://localhost:5299/";
 
             var vm = new HeatmapViewModel
             {

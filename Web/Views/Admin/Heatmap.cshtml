@@ -7,6 +7,7 @@
     // Convert sang ISO cho input datetime-local (Vietnamese local time)
     var fromLocal = Model.From.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
     var toLocal = Model.To.ToLocalTime().ToString("yyyy-MM-ddTHH:mm");
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "http://localhost:5299/";
 }
 
 @section Styles {
@@ -103,6 +104,19 @@
 
         <!-- Map -->
         <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="ti ti-map-2 me-2"></i>Bản đồ
+                </h3>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="toggleStallsBtn">
+                        <i class="ti ti-map-pin me-1"></i><span>Ẩn gian hàng</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="toggleLabelsBtn">
+                        <i class="ti ti-tag me-1"></i><span>Hiện tên</span>
+                    </button>
+                </div>
+            </div>
             <div class="card-body p-0">
                 <div id="heatmap"></div>
             </div>
@@ -117,6 +131,7 @@
     <script>
         // Dữ liệu từ server: [{latitude, longitude, weight}, ...]
         const rawPoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+        const apiBaseUrl = '@Html.Raw(apiBaseUrl)'.replace(/\/$/, '');
 
         const map = L.map('heatmap').setView([@defaultLat, @defaultLng], 17);
 
@@ -125,6 +140,7 @@
             maxZoom: 19
         }).addTo(map);
 
+        // ---- Heatmap layer ----
         if (rawPoints.length > 0) {
             // Convert sang format leaflet.heat yêu cầu: [[lat, lng, intensity], ...]
             // Normalize weight về [0, 1] để intensity không bị outlier làm lệch
@@ -146,5 +162,83 @@
             const bounds = L.latLngBounds(rawPoints.map(p => [p.latitude, p.longitude]));
             map.fitBounds(bounds, { padding: [40, 40] });
         }
+
+        // ---- Stall markers (load từ /api/geo/stalls, AllowAnonymous) ----
+        let stallItems = [];     // { marker, circle, label }
+        let showStalls = true;
+        let showLabels = false;
+
+        function renderStallMarkers(stalls) {
+            // Xoá markers cũ
+            stallItems.forEach(function (item) {
+                map.removeLayer(item.marker);
+                map.removeLayer(item.circle);
+            });
+            stallItems = [];
+
+            if (!showStalls) return;
+
+            stalls.forEach(function (stall) {
+                const lat = parseFloat(stall.latitude);
+                const lng = parseFloat(stall.longitude);
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                const label = stall.stallName || stall.stallId;
+
+                const m = L.circleMarker([lat, lng], {
+                    color: '#1d4ed8',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.85,
+                    radius: 7,
+                    weight: 2
+                }).addTo(map);
+                m.bindTooltip(label, { permanent: showLabels, direction: 'top', className: 'stall-label' });
+
+                const radiusVal = parseFloat(stall.radiusMeters) || 8;
+                const c = L.circle([lat, lng], {
+                    color: '#1d4ed8',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.08,
+                    radius: radiusVal,
+                    weight: 1.2
+                }).addTo(map);
+
+                stallItems.push({ marker: m, circle: c, label: label });
+            });
+        }
+
+        let cachedStalls = [];
+        function loadStalls() {
+            fetch(apiBaseUrl + '/api/geo/stalls')
+                .then(function (r) { return r.json(); })
+                .then(function (result) {
+                    if (!result || !result.success || !result.data) return;
+                    cachedStalls = result.data;
+                    renderStallMarkers(cachedStalls);
+                })
+                .catch(function () { /* im lặng — markers là lớp phụ */ });
+        }
+
+        // ---- Toggle buttons ----
+        document.getElementById('toggleStallsBtn').addEventListener('click', function () {
+            showStalls = !showStalls;
+            this.classList.toggle('btn-primary');
+            this.classList.toggle('btn-outline-primary');
+            this.querySelector('span').textContent = showStalls ? 'Ẩn gian hàng' : 'Hiện gian hàng';
+            renderStallMarkers(cachedStalls);
+        });
+
+        document.getElementById('toggleLabelsBtn').addEventListener('click', function () {
+            showLabels = !showLabels;
+            this.classList.toggle('btn-primary');
+            this.classList.toggle('btn-outline-primary');
+            this.querySelector('span').textContent = showLabels ? 'Ẩn tên' : 'Hiện tên';
+            stallItems.forEach(function (item) {
+                item.marker.unbindTooltip();
+                item.marker.bindTooltip(item.label, { permanent: showLabels, direction: 'top', className: 'stall-label' });
+            });
+        });
+
+        loadStalls();
     </script>
 }
