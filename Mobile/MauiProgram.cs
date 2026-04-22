@@ -58,6 +58,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IStallService, StallService>();
         builder.Services.AddSingleton<ISyncBackgroundService, SyncBackgroundService>();
         builder.Services.AddSingleton<ISyncService, SyncService>();
+        builder.Services.AddSingleton<ITourService, TourService>();
         builder.Services.AddSingleton<IVoiceService, VoiceService>();
 
         builder.Services.AddSingleton<ILocalStallRepository, LocalStallRepository>();
@@ -72,6 +73,8 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<StallListViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddTransient<TourListViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddTransient<TourDetailViewModel>(builder.Services);
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
@@ -82,6 +85,8 @@ public static class MauiProgram
         builder.Services.AddTransient<ScanPage>();
         builder.Services.AddTransient<StallListPage>();
         builder.Services.AddTransient<StallPopup>();
+        builder.Services.AddTransient<TourListPage>();
+        builder.Services.AddTransient<TourDetailPage>();
 
         ConfigureLogging(builder.Logging);
 

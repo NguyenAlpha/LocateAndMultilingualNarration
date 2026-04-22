@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:dto="clr-namespace:Shared.DTOs.Tours;assembly=Shared"
+             x:Class="Mobile.Pages.TourDetailPage"
+             Title="Chi tiết tour"
+             BackgroundColor="#F8FAFC">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="20" Spacing="16">
+
+                <Label Text="{Binding Name}"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="#1E2937"/>
+
+                <Label Text="{Binding Description}"
+                       FontSize="14"
+                       TextColor="#64748B"
+                       LineBreakMode="WordWrap"
+                       IsVisible="{Binding HasTour}"/>
+
+                <HorizontalStackLayout Spacing="10" IsVisible="{Binding HasTour}">
+                    <Frame Padding="10,6"
+                           CornerRadius="12"
+                           BackgroundColor="#EEF2FF"
+                           BorderColor="#C7D2FE"
+                           HasShadow="False">
+                        <HorizontalStackLayout Spacing="4">
+                            <Label Text="📍" FontSize="13"/>
+                            <Label Text="{Binding StopCountText}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="#4338CA"/>
+                        </HorizontalStackLayout>
+                    </Frame>
+
+                    <Frame Padding="10,6"
+                           CornerRadius="12"
+                           BackgroundColor="#FFF7ED"
+                           BorderColor="#FED7AA"
+                           HasShadow="False">
+                        <HorizontalStackLayout Spacing="4">
+                            <Label Text="⏱" FontSize="13"/>
+                            <Label Text="{Binding EstimatedMinutesText}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="#9A3412"/>
+                        </HorizontalStackLayout>
+                    </Frame>
+                </HorizontalStackLayout>
+
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#DC2626"
+                       FontSize="13"
+                       IsVisible="{Binding HasError}"/>
+
+                <ActivityIndicator IsVisible="{Binding IsLoading}"
+                                   IsRunning="{Binding IsLoading}"
+                                   Color="#4F46E5"
+                                   HeightRequest="40"/>
+
+                <Label Text="Lộ trình"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#1E2937"
+                       Margin="0,8,0,0"
+                       IsVisible="{Binding HasTour}"/>
+
+                <CollectionView ItemsSource="{Binding Stops}"
+                                SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="dto:TourStopDetailDto">
+                            <Frame CornerRadius="14"
+                                   Padding="12"
+                                   Margin="0,6"
+                                   BackgroundColor="White"
+                                   BorderColor="Transparent"
+                                   HasShadow="True">
+                                <Grid ColumnDefinitions="44,*" ColumnSpacing="12">
+                                    <Frame Grid.Column="0"
+                                           WidthRequest="40"
+                                           HeightRequest="40"
+                                           CornerRadius="20"
+                                           BackgroundColor="#4F46E5"
+                                           Padding="0"
+                                           HasShadow="False">
+                                        <Label Text="{Binding Order}"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="White"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Frame>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="{Binding StallName}"
+                                               FontSize="15"
+                                               FontAttributes="Bold"
+                                               TextColor="#1F2937"/>
+                                        <Label Text="{Binding Note}"
+                                               FontSize="12.5"
+                                               TextColor="#64748B"
+                                               MaxLines="2"
+                                               LineBreakMode="TailTruncation"/>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="1"
+              BackgroundColor="White"
+              Padding="16"
+              ColumnDefinitions="*,Auto"
+              ColumnSpacing="10">
+
+            <Button Grid.Column="0"
+                    Text="{Binding StartButtonText}"
+                    BackgroundColor="#4F46E5"
+                    TextColor="White"
+                    CornerRadius="14"
+                    HeightRequest="48"
+                    FontAttributes="Bold"
+                    Command="{Binding StartTourCommand}"
+                    IsEnabled="{Binding HasTour}"/>
+
+            <Button Grid.Column="1"
+                    Text="Huỷ"
+                    BackgroundColor="#FEE2E2"
+                    TextColor="#B91C1C"
+                    CornerRadius="14"
+                    WidthRequest="90"
+                    HeightRequest="48"
+                    FontAttributes="Bold"
+                    IsVisible="{Binding ShowCancelButton}"
+                    Command="{Binding CancelTourCommand}"/>
+        </Grid>
+    </Grid>
+</ContentPage>

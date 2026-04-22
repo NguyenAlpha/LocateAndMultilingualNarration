@@ -147,7 +147,7 @@
                             {
                                 var monitoringActions = new[] { "ActiveDevices", "Heatmap" };
                                 var isMonitoringAction = currentController == "Admin" && monitoringActions.Contains(currentAction);
-                                var adminOpen = currentController == "Admin" && !isMonitoringAction;
+                                var adminOpen = (currentController == "Admin" && !isMonitoringAction) || currentController == "Tour";
                                 var monitoringOpen = isMonitoringAction;
                                 <!-- Quản trị -->
                                 <li class="nav-item">
@@ -196,6 +196,12 @@
                                                 <a class="nav-link @(adminOpen && currentAction == "AutoQr" ? "active" : "")"
                                                    asp-controller="Admin" asp-action="AutoQr">
                                                     <i class="ti ti-refresh me-2"></i>Tạo QR tự động
+                                                </a>
+                                            </li>
+                                            <li class="nav-item">
+                                                <a class="nav-link @(currentController == "Tour" ? "active" : "")"
+                                                   asp-controller="Tour" asp-action="Index">
+                                                    <i class="ti ti-route me-2"></i>Quản lý Tour
                                                 </a>
                                             </li>
                                         </ul>

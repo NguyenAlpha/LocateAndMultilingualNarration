@@ -5,6 +5,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Mobile.Services;
 using Shared.DTOs.Geo;
+using Shared.DTOs.Tours;
 
 namespace Mobile.ViewModels;
 
@@ -29,6 +30,8 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
     private readonly IAudioGuideService _audioGuideService;
     private readonly IGpsPollingService _gpsPollingService;
     private readonly ISyncService _syncService;
+    private readonly ITourService _tourService;
+    private readonly ILocalPreferenceService _localPreference;
     private readonly ILogger<MapViewModel> _logger;
 
     // Geofence state tách sang engine riêng — VM không giữ triggered/queue/stalls nữa.
@@ -42,6 +45,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
     public event Action<GeoStallDto>? FocusStallRequested;
     public event Action? PinsRefreshRequested;
     public event Action<double, double>? LocationUpdated;
+    public event Action? TourRouteChanged;
 
     public ObservableCollection<GeoStallDto> Stalls { get; } = [];
 
@@ -96,6 +100,84 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
 
     public bool HasSelectedStall => selectedStall != null;
 
+    // ==================== Tour mode ====================
+
+    Guid? _activeTourId;
+    public Guid? ActiveTourId
+    {
+        get => _activeTourId;
+        private set
+        {
+            if (_activeTourId == value) return;
+            _activeTourId = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsTourMode));
+        }
+    }
+
+    TourDetailDto? _activeTour;
+    public TourDetailDto? ActiveTour
+    {
+        get => _activeTour;
+        private set
+        {
+            if (_activeTour == value) return;
+            _activeTour = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TourName));
+            OnPropertyChanged(nameof(IsTourMode));
+            OnPropertyChanged(nameof(TourProgressText));
+        }
+    }
+
+    Guid? _nextStopStallId;
+    public Guid? NextStopStallId
+    {
+        get => _nextStopStallId;
+        private set
+        {
+            if (_nextStopStallId == value) return;
+            _nextStopStallId = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(NextStopName));
+            OnPropertyChanged(nameof(TourProgressText));
+        }
+    }
+
+    public bool IsTourMode => _activeTour is not null;
+    public string TourName => _activeTour?.Name ?? string.Empty;
+
+    public string NextStopName
+    {
+        get
+        {
+            if (_activeTour is null || _nextStopStallId is null) return string.Empty;
+            var stop = _activeTour.Stops.FirstOrDefault(s => s.StallId == _nextStopStallId.Value);
+            return stop is null ? string.Empty : $"{stop.Order}. {stop.StallName}";
+        }
+    }
+
+    public string TourProgressText
+    {
+        get
+        {
+            if (_activeTour is null) return string.Empty;
+            var done = _localPreference.GetCompletedStops().Count(id => _activeTour.Stops.Any(s => s.StallId == id));
+            return $"{done}/{_activeTour.StopCount} điểm đã qua";
+        }
+    }
+
+    /// <summary>Trả về tọa độ các stop theo thứ tự để vẽ polyline.</summary>
+    public IReadOnlyList<(double Lat, double Lng)> GetTourRouteCoordinates()
+    {
+        if (_activeTour is null) return [];
+        return _activeTour.Stops
+            .OrderBy(s => s.Order)
+            .Where(s => s.Latitude.HasValue && s.Longitude.HasValue)
+            .Select(s => ((double)s.Latitude!.Value, (double)s.Longitude!.Value))
+            .ToList();
+    }
+
     public ICommand RefreshCommand { get; }
     public ICommand PlayAudioCommand { get; }
     public ICommand PauseAudioCommand { get; }
@@ -106,12 +188,16 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
         IAudioGuideService audioGuideService,
         IGpsPollingService gpsPollingService,
         ISyncService syncService,
+        ITourService tourService,
+        ILocalPreferenceService localPreference,
         ILogger<MapViewModel> logger)
     {
         _stallService = stallService;
         _audioGuideService = audioGuideService;
         _gpsPollingService = gpsPollingService;
         _syncService = syncService;
+        _tourService = tourService;
+        _localPreference = localPreference;
         _logger = logger;
 
         _geofence = new GeofenceEngine(audioGuideService, logger);
@@ -260,12 +346,92 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable
     /// <summary>
     /// Engine quyết định phát stall → VM thực hiện phát audio. KHÔNG chạm SelectedStall
     /// để geofence không ghi đè lựa chọn UI của user (fix bug "tap A → geofence B → SelectedStall=B").
+    /// Khi đang ở tour mode: mark stall đã hoàn tất, cập nhật NextStop, hiển thị alert khi tour xong.
     /// </summary>
     private async Task OnGeofenceAutoPlayAsync(GeoStallDto stall)
     {
         var audioUrl = stall.NarrationContent?.AudioUrl;
         if (string.IsNullOrWhiteSpace(audioUrl)) return;
         await _audioGuideService.PlayAsync(audioUrl);
+
+        if (_activeTour is not null && _activeTour.Stops.Any(s => s.StallId == stall.StallId))
+        {
+            _localPreference.AddCompletedStop(stall.StallId);
+            RecomputeNextStop();
+            OnPropertyChanged(nameof(TourProgressText));
+
+            if (_nextStopStallId is null)
+                await CompleteTourAsync();
+        }
+    }
+
+    /// <summary>
+    /// Bật/tắt chế độ tour. Truyền null để tắt. Khi bật: tải chi tiết tour, giới hạn
+    /// geofence chỉ trigger stall trong tour, tính NextStopStallId từ progress đã lưu.
+    /// </summary>
+    public async Task SetActiveTourAsync(Guid? tourId, CancellationToken ct = default)
+    {
+        if (tourId is null)
+        {
+            ActiveTour = null;
+            ActiveTourId = null;
+            NextStopStallId = null;
+            _geofence.SetActiveTour(null);
+            TourRouteChanged?.Invoke();
+            return;
+        }
+
+        try
+        {
+            var tour = await _tourService.GetTourDetailAsync(tourId.Value, forceRefresh: false, ct);
+            if (tour is null || !tour.IsActive)
+            {
+                _logger.LogWarning("[MapViewModel] Không load được tour {Id} hoặc tour đã tắt", tourId);
+                _localPreference.ClearTourProgress();
+                await SetActiveTourAsync(null, ct);
+                return;
+            }
+
+            ActiveTour = tour;
+            ActiveTourId = tour.Id;
+            _geofence.SetActiveTour(tour.Stops.Select(s => s.StallId));
+            _localPreference.SetActiveTourId(tour.Id);
+
+            RecomputeNextStop();
+            TourRouteChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MapViewModel] SetActiveTourAsync thất bại");
+        }
+    }
+
+    private void RecomputeNextStop()
+    {
+        if (_activeTour is null) { NextStopStallId = null; return; }
+
+        var completed = _localPreference.GetCompletedStops();
+        var next = _activeTour.Stops
+            .OrderBy(s => s.Order)
+            .FirstOrDefault(s => !completed.Contains(s.StallId));
+        NextStopStallId = next?.StallId;
+    }
+
+    private async Task CompleteTourAsync()
+    {
+        var name = _activeTour?.Name ?? "tour";
+        _localPreference.ClearTourProgress();
+
+        var page = Application.Current?.Windows.FirstOrDefault()?.Page;
+        if (page is not null)
+        {
+            await page.DisplayAlertAsync(
+                "Hoàn thành tour",
+                $"Bạn đã hoàn tất \"{name}\". Cảm ơn đã tham quan!",
+                "OK");
+        }
+
+        await SetActiveTourAsync(null);
     }
 
     void OnAudioDownloaded(object? sender, EventArgs e)

@@ -21,6 +21,7 @@ public class MainViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ICommand MapCommand { get; }
+    public ICommand ToursCommand { get; }
     public ICommand LanguageCommand { get; }
     public ICommand LogoutCommand { get; }
     public ICommand LoadDataCommand { get; }
@@ -77,6 +78,7 @@ public class MainViewModel : INotifyPropertyChanged
         LoadUserName();
 
         MapCommand = new Command(async () => await NavigateQuickActionAsync("//MapPage"));
+        ToursCommand = new Command(async () => await NavigateQuickActionAsync("//TourListPage"));
         LanguageCommand = new Command(async () => await NavigateQuickActionAsync(nameof(LanguagePage)));
         LogoutCommand = new Command(async () => await LogoutAsync());
         LoadDataCommand = new Command(async () => await LoadFeaturedStallsAsync());

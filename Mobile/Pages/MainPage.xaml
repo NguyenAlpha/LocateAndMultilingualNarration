@@ -148,6 +148,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- Bản đồ -->
@@ -165,8 +166,23 @@
                 <Label Text="Bản đồ" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
-            <!-- Ngôn ngữ -->
+            <!-- Tour -->
             <VerticalStackLayout Grid.Column="1" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
+                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
+                    </Frame.Shadow>
+                    <ImageButton BackgroundColor="Transparent" Command="{Binding ToursCommand}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="🧭" Color="#F59E0B" Size="28"/>
+                        </ImageButton.Source>
+                    </ImageButton>
+                </Frame>
+                <Label Text="Tour" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Ngôn ngữ -->
+            <VerticalStackLayout Grid.Column="2" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
                 <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
                     <Frame.Shadow>
                         <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
