@@ -26,6 +26,9 @@ public class LanguageService : ILanguageService
     private List<LanguageDetailDto>? _cachedLanguages;
     private DateTime _lastFetchUtc;
 
+    // Cache local cho danh sách ngôn ngữ để LanguagePage vẫn hoạt động khi offline.
+    private static string LanguageCacheFilePath => Path.Combine(FileSystem.AppDataDirectory, "language_cache_active.json");
+
     public LanguageService(IHttpClientFactory httpClientFactory)
     {
         _httpClientFactory = httpClientFactory;
@@ -57,9 +60,12 @@ public class LanguageService : ILanguageService
             return _cachedLanguages;
         }
 
-        // Không có mạng và không có cache → báo cho UI biết để hiển thị thông báo.
+        // Không có mạng: ưu tiên cache memory, nếu chưa có thì đọc cache local từ disk.
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
-            throw new InvalidOperationException("no_network");
+        {
+            var offline = _cachedLanguages ?? await LoadLanguagesFromDiskAsync(cancellationToken);
+            return offline;
+        }
 
         try
         {
@@ -81,13 +87,37 @@ public class LanguageService : ILanguageService
             // Lưu lại cache trong bộ nhớ để dùng cho lần gọi tiếp theo.
             _cachedLanguages = languages;
             _lastFetchUtc = DateTime.UtcNow;
+
+            // Lưu thêm cache xuống disk để app có thể đổi ngôn ngữ khi offline sau khi mở lại app.
+            await SaveLanguagesToDiskAsync(languages, cancellationToken);
+
             return languages;
         }
         catch
         {
             // Nếu có lỗi bất kỳ thì ưu tiên trả cache hiện có để UI vẫn hoạt động.
-            return _cachedLanguages ?? [];
+            return _cachedLanguages ?? await LoadLanguagesFromDiskAsync(cancellationToken);
         }
+    }
+
+    private static async Task SaveLanguagesToDiskAsync(List<LanguageDetailDto> languages, CancellationToken cancellationToken)
+    {
+        var dir = Path.GetDirectoryName(LanguageCacheFilePath);
+        if (!string.IsNullOrWhiteSpace(dir))
+            Directory.CreateDirectory(dir);
+
+        await using var stream = File.Create(LanguageCacheFilePath);
+        await JsonSerializer.SerializeAsync(stream, languages, cancellationToken: cancellationToken);
+    }
+
+    private static async Task<List<LanguageDetailDto>> LoadLanguagesFromDiskAsync(CancellationToken cancellationToken)
+    {
+        if (!File.Exists(LanguageCacheFilePath))
+            return [];
+
+        await using var stream = File.OpenRead(LanguageCacheFilePath);
+        var data = await JsonSerializer.DeserializeAsync<List<LanguageDetailDto>>(stream, cancellationToken: cancellationToken);
+        return data ?? [];
     }
 
     /// <summary>
