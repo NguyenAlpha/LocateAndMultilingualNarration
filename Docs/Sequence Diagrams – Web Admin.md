@@ -21,6 +21,8 @@
 | [SD-W17](#sd-w17-admin-cập-nhật-subscription-business) | Admin cập nhật Subscription Business |
 | [SD-W18](#sd-w18-lịch-sử-đơn-đăng-ký) | Lịch sử Đơn đăng ký |
 | [SD-W19](#sd-w19-theo-dõi-thiết-bị-online) | Theo dõi Thiết bị Online |
+| [SD-W20](#sd-w20-quản-lý-tour) | Quản lý Tour |
+| [SD-W21](#sd-w21-bản-đồ-nhiệt-vị-trí-người-dùng) | Bản đồ nhiệt vị trí người dùng |
 
 ---
 
@@ -812,37 +814,201 @@ sequenceDiagram
     participant JS as JavaScript (polling)
     participant CTR as AdminController
     participant SVC as DeviceApiClient
-    participant API as GET /api/geo/active-devices
+    participant API as /api/geo/active-devices<br/>/api/device-preference/{id}/reset
 
     %% Tải trang lần đầu
-    ADMIN->>VIEW: Truy cập /Admin/ActiveDevices?withinMinutes=5
-    VIEW->>CTR: GET /Admin/ActiveDevices?withinMinutes=5
-    CTR->>SVC: GetActiveDevicesAsync(withinMinutes=5)
-    SVC->>API: GET /api/geo/active-devices?withinMinutes=5
-    API-->>SVC: ApiResult<ActiveDevicesSummaryDto> {activeCount, devices[]}
+    ADMIN->>VIEW: Truy cập /Admin/ActiveDevices?withinSeconds=30
+    VIEW->>CTR: GET /Admin/ActiveDevices?withinSeconds=30
+    Note over CTR: Clamp withinSeconds vào [10, 300]
+    CTR->>SVC: GetActiveDevicesAsync(withinSeconds=30)
+    SVC->>API: GET /api/geo/active-devices?withinSeconds=30
+    API-->>SVC: ApiResult<ActiveDevicesSummaryDto> {activeCount, withinSeconds, asOf, devices[]}
     SVC-->>CTR: ActiveDevicesSummaryDto
-    CTR-->>VIEW: Render ActiveDevices.cshtml (model=summary, ViewBag.WithinMinutes=5)
+    CTR-->>VIEW: Render ActiveDevices.cshtml (model=summary, ViewBag.WithinSeconds=30)
     VIEW-->>ADMIN: Bảng thiết bị + stats cards + countdown bar
 
-    %% Vòng lặp tự động làm mới (mỗi 20 giây)
-    VIEW->>JS: Khởi động countdown + progress bar
-    loop Mỗi 20 giây
-        JS->>CTR: GET /Admin/ActiveDevicesData?withinMinutes={current}
-        CTR->>SVC: GetActiveDevicesAsync(withinMinutes)
-        SVC->>API: GET /api/geo/active-devices?withinMinutes=...
+    %% Vòng lặp tự động làm mới (mỗi 5 giây)
+    VIEW->>JS: Khởi động countdown + progress bar (REFRESH_INTERVAL = 5s)
+    loop Mỗi 5 giây
+        JS->>CTR: GET /Admin/ActiveDevicesData?withinSeconds={current}
+        CTR->>SVC: GetActiveDevicesAsync(withinSeconds)
+        SVC->>API: GET /api/geo/active-devices?withinSeconds=...
         API-->>SVC: ActiveDevicesSummaryDto mới nhất
-        CTR-->>JS: JSON {success, data: {activeCount, devices[]}}
+        CTR-->>JS: JSON {success, data: {activeCount, withinSeconds, asOf, devices[]}}
         JS-->>VIEW: Cập nhật DOM (số đếm, bảng, timestamp)
-        JS->>JS: Reset countdown về 20s + reset progress bar
+        JS->>JS: Reset countdown về 5s + reset progress bar
     end
 
-    %% Admin thay đổi cửa sổ thời gian
-    ADMIN->>VIEW: Chọn dropdown "10 phút qua"
-    VIEW->>JS: change event → withinMinutes = 10
-    JS->>CTR: GET /Admin/ActiveDevicesData?withinMinutes=10
-    CTR->>SVC: GetActiveDevicesAsync(10)
-    SVC->>API: GET /api/geo/active-devices?withinMinutes=10
-    API-->>SVC: ActiveDevicesSummaryDto với cửa sổ 10 phút
+    %% Admin thay đổi cửa sổ thời gian (dropdown: 30s/60s/120s/180s/300s)
+    ADMIN->>VIEW: Chọn dropdown "1 phút qua" (value=60)
+    VIEW->>JS: change event → withinSeconds = 60
+    JS->>CTR: GET /Admin/ActiveDevicesData?withinSeconds=60
+    CTR->>SVC: GetActiveDevicesAsync(60)
+    SVC->>API: GET /api/geo/active-devices?withinSeconds=60
+    API-->>SVC: ActiveDevicesSummaryDto với cửa sổ 60 giây
     CTR-->>JS: JSON response
     JS-->>VIEW: Cập nhật toàn bộ UI + reset countdown
+
+    %% Reset thiết bị
+    ADMIN->>VIEW: Nhấn nút Reset trên dòng thiết bị, xác nhận
+    VIEW->>JS: click handler → FormData(deviceId, __RequestVerificationToken)
+    JS->>CTR: POST /Admin/ResetDevice (multipart/form-data)
+    Note over CTR: [ValidateAntiForgeryToken]
+    CTR->>SVC: ResetDeviceAsync(deviceId)
+    SVC->>API: POST /api/device-preference/{deviceId}/reset
+    alt Thành công
+        API-->>SVC: 2xx
+        SVC-->>CTR: true
+        CTR-->>JS: {success: true, message: "Đã gửi lệnh reset"}
+        JS-->>VIEW: Nút đổi icon check xanh
+        Note over VIEW,ADMIN: Mobile sẽ tự xóa Preferences<br/>và về LoadingPage trong tối đa 3 phút<br/>(qua SyncBackgroundService)
+    else Thất bại
+        SVC-->>CTR: false
+        CTR-->>JS: {success: false, message: "Reset thất bại"}
+        JS-->>VIEW: Alert lỗi + enable lại nút
+    end
+```
+
+---
+
+### SD-W20: Quản lý Tour
+
+```mermaid
+sequenceDiagram
+    actor ADMIN as Admin
+    participant VIEW as TourManagement / TourDesigner
+    participant JS as JavaScript (Leaflet + SortableJS)
+    participant CTR as TourController
+    participant TOUR as TourApiClient
+    participant GEO as GeoApiClient
+    participant API as /api/tours<br/>/api/geo/stalls
+
+    Note over CTR: Mọi action đều qua EnsureAdmin() —<br/>không phải Admin → redirect Home + ErrorMessage
+
+    %% Xem danh sách
+    ADMIN->>VIEW: Truy cập /Tour?page=&search=
+    VIEW->>CTR: GET /Tour/Index
+    CTR->>TOUR: GetToursAsync(page, pageSize, search, isActive=null)
+    TOUR->>API: GET /api/tours?page=...&search=...
+    API-->>TOUR: ApiResult<PagedResult<TourListItemDto>>
+    CTR-->>VIEW: Render TourManagement (list + search + nút Tạo/Sửa/Toggle/Xóa)
+
+    %% Mở Designer – tạo mới
+    ADMIN->>VIEW: Nhấn "Tạo Tour mới"
+    VIEW->>CTR: GET /Tour/Designer
+    CTR->>GEO: GetStallsForMapAsync()
+    GEO->>API: GET /api/geo/stalls
+    API-->>GEO: ApiResult<List<GeoStallDto>>
+    CTR-->>VIEW: Render TourDesigner (AvailableStalls, Tour=null, IsEdit=false)
+    VIEW->>JS: Init Leaflet map + markers xám (stall chưa chọn)
+
+    %% Mở Designer – chỉnh sửa
+    ADMIN->>VIEW: Nhấn "Sửa" trên 1 tour
+    VIEW->>CTR: GET /Tour/Designer?id=X
+    par Load song song
+        CTR->>GEO: GetStallsForMapAsync()
+        GEO->>API: GET /api/geo/stalls
+    and
+        CTR->>TOUR: GetTourDetailAsync(id)
+        TOUR->>API: GET /api/tours/{id}
+    end
+    API-->>CTR: TourDetailDto + danh sách stalls
+    CTR-->>VIEW: Render TourDesigner (IsEdit=true, prefill Stops)
+    VIEW->>JS: Render polyline + markers xanh (stop đã có) + drag-drop list
+
+    %% Thao tác trên designer
+    ADMIN->>JS: Click marker xám để thêm stop<br/>/ Click marker xanh để bỏ<br/>/ Drag-drop để đổi thứ tự
+    JS-->>VIEW: Cập nhật UI map + list stops (client-side)
+
+    %% Lưu tour (tạo mới hoặc cập nhật)
+    ADMIN->>VIEW: Nhập Name/Description/EstimatedMinutes, nhấn Lưu
+    VIEW->>JS: Build TourSavePayload (Name, Description, EstimatedMinutes, IsActive, Stops[])
+    JS->>CTR: POST /Tour/Save?id={optional} (JSON body)
+    Note over CTR: [ValidateAntiForgeryToken] + EnsureAdmin()<br/>Validate Stops != null && Stops.Count > 0
+    alt Tạo mới (id null)
+        CTR->>TOUR: CreateTourAsync(TourCreateDto)
+        TOUR->>API: POST /api/tours
+    else Cập nhật (id có giá trị)
+        CTR->>TOUR: UpdateTourAsync(id, TourUpdateDto)
+        TOUR->>API: PUT /api/tours/{id}
+    end
+    alt Thành công
+        API-->>TOUR: ApiResult<TourDetailDto>
+        CTR-->>JS: 200 {success: true, id}
+        JS-->>VIEW: Redirect /Tour + SuccessMessage (TempData)
+    else Thất bại (Stops rỗng, trùng StallId, validation...)
+        CTR-->>JS: 400 {success: false, message}
+        JS-->>VIEW: Alert lỗi
+    end
+
+    %% Toggle Active
+    ADMIN->>VIEW: Nhấn nút bật/tắt tour
+    VIEW->>CTR: POST /Tour/ToggleActive/{id}
+    Note over CTR: [ValidateAntiForgeryToken]
+    CTR->>TOUR: ToggleActiveAsync(id)
+    TOUR->>API: PATCH /api/tours/{id}/toggle-active
+    API-->>TOUR: TourDetailDto đã cập nhật
+    CTR-->>VIEW: Redirect /Tour + thông báo
+
+    %% Xóa
+    ADMIN->>VIEW: Nhấn Xóa, xác nhận
+    VIEW->>CTR: POST /Tour/Delete/{id}
+    Note over CTR: [ValidateAntiForgeryToken]
+    CTR->>TOUR: DeleteTourAsync(id)
+    TOUR->>API: DELETE /api/tours/{id}
+    API-->>TOUR: ApiResult<bool>
+    CTR-->>VIEW: Redirect /Tour + thông báo
+```
+
+---
+
+### SD-W21: Bản đồ nhiệt Vị trí Người dùng
+
+```mermaid
+sequenceDiagram
+    actor ADMIN as Admin
+    participant VIEW as Heatmap View
+    participant JS as JavaScript (Leaflet + leaflet.heat)
+    participant CTR as AdminController
+    participant LOG as DeviceLocationLogApiClient
+    participant GEO as GeoApiClient
+    participant API as /api/device-location-log/heatmap<br/>/api/geo/stalls
+
+    %% Tải trang lần đầu
+    ADMIN->>VIEW: Truy cập /Admin/Heatmap
+    VIEW->>CTR: GET /Admin/Heatmap?from=&to=&deviceId=
+    Note over CTR: Mặc định: from = now-7 days, to = now (UTC)
+    par Load song song (Task.WhenAll)
+        CTR->>LOG: GetHeatmapAsync(fromUtc, toUtc, deviceId)
+        LOG->>API: GET /api/device-location-log/heatmap?from=...&to=...&deviceId=...
+        Note over API: AdminOnly. Group by (Lat, Lng) → HeatmapPointDto{Lat, Lng, Weight}.<br/>API trả 400 nếu (to-from) > 90 ngày
+        API-->>LOG: ApiResult<List<HeatmapPointDto>>
+    and
+        CTR->>GEO: GetStallsForMapAsync()
+        GEO->>API: GET /api/geo/stalls
+        API-->>GEO: ApiResult<List<GeoStallDto>>
+    end
+    CTR-->>VIEW: Render Heatmap.cshtml (HeatmapViewModel: Points, Stalls, From, To, DeviceId)
+    Note over VIEW: Preload JSON (camelCase) vào biến rawPoints / rawStalls<br/>(tránh gọi API client-side cross-origin)
+    VIEW->>JS: Khởi tạo Leaflet map + OSM tile layer
+    alt Có dữ liệu
+        JS->>JS: Normalize weight về [0,1], build heatData [lat, lng, intensity]
+        JS-->>VIEW: L.heatLayer(...).addTo(map) — gradient blue→cyan→lime→yellow→red
+        JS->>JS: map.fitBounds(bounds dữ liệu)
+    else Không có dữ liệu
+        JS-->>VIEW: Chỉ hiển thị tile + stall markers, giữ view mặc định
+    end
+    JS-->>VIEW: Render stall markers (circle xanh) + vòng tròn radius từ rawStalls
+    VIEW-->>ADMIN: Stats cards + bản đồ nhiệt + nút "Ẩn/Hiện gian hàng" / "Ẩn/Hiện tên"
+
+    %% Lọc lại theo khoảng thời gian / device
+    ADMIN->>VIEW: Chọn From/To/DeviceId, submit form (method=get)
+    VIEW->>CTR: GET /Admin/Heatmap?from=...&to=...&deviceId=...
+    Note over CTR,VIEW: Reload toàn trang — lặp lại toàn bộ flow trên
+    CTR-->>VIEW: Render lại với dataset mới
+
+    %% Tương tác client-side (không gọi API)
+    ADMIN->>VIEW: Nhấn "Ẩn/Hiện gian hàng" / "Ẩn/Hiện tên"
+    VIEW->>JS: Toggle showStalls / showLabels
+    JS-->>VIEW: Re-render markers với tooltip permanent on/off
 ```

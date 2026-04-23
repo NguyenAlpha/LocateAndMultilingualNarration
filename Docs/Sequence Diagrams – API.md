@@ -9,6 +9,9 @@
 | [SD-A05](#sd-a05-thanh-toán--kích-hoạt-plan) | Thanh toán & Kích hoạt Plan |
 | [SD-A06](#sd-a06-lấy-danh-sách-gian-hàng-geo) | Lấy danh sách Gian hàng (Geo) |
 | [SD-A07](#sd-a07-heartbeat-thiết-bị--lấy-thiết-bị-đang-hoạt-động) | Heartbeat Thiết bị & Lấy Thiết bị Đang Hoạt Động |
+| [SD-A08](#sd-a08-quản-lý-tour) | Quản lý Tour |
+| [SD-A09](#sd-a09-upload-gps-batch--bản-đồ-nhiệt) | Upload GPS Batch & Bản đồ nhiệt |
+| [SD-A10](#sd-a10-cờ-reset-thiết-bị--offline-notification) | Cờ Reset Thiết bị & Offline Notification |
 
 ---
 
@@ -285,13 +288,240 @@ sequenceDiagram
     %% ── Phần B: Admin lấy danh sách thiết bị đang hoạt động ──
     Note over ADMIN,DB: Phần B — Admin query thiết bị active
 
-    ADMIN->>CTR: GET /api/geo/active-devices?withinMinutes=5
-    Note over CTR: [Authorize(Policy = AdminOnly)]
+    ADMIN->>CTR: GET /api/geo/active-devices?withinSeconds=30
+    Note over CTR: [Authorize(Policy = AdminOnly)]<br/>Clamp withinSeconds vào [10, 300]
 
-    CTR->>CTR: threshold = now − 5 phút
+    CTR->>CTR: threshold = now − withinSeconds giây
     CTR->>DB: SELECT DeviceId, Platform, DeviceModel, Manufacturer, LastSeenAt<br/>FROM DevicePreferences<br/>WHERE LastSeenAt >= threshold<br/>ORDER BY LastSeenAt DESC
 
     DB-->>CTR: Danh sách DevicePreference active
 
-    CTR-->>ADMIN: 200 ApiResult<ActiveDevicesSummaryDto><br/>{activeCount, withinMinutes, asOf, devices[]}
+    CTR-->>ADMIN: 200 ApiResult<ActiveDevicesSummaryDto><br/>{activeCount, withinSeconds, asOf, devices[]}
+
+    Note over MOBILE,DB: Ghi chú — ngoài piggyback ở /api/geo/stalls,<br/>LastSeenAt cũng được cập nhật ở<br/>POST /api/device-location-log/batch (tần suất ~20s)<br/>→ xem SD-A09
+```
+
+---
+
+### SD-A08: Quản lý Tour
+
+```mermaid
+sequenceDiagram
+    participant CLIENT as Client (Web Admin / Mobile)
+    participant CTR as TourController
+    participant DB as Database
+
+    %% ── Danh sách (anonymous) ──
+    CLIENT->>CTR: GET /api/tours?page=&pageSize=&search=&isActive=
+    Note over CTR: [AllowAnonymous]
+    alt Không phải Admin
+        CTR->>CTR: Force query.Where(t => t.IsActive)
+    else Admin và có isActive param
+        CTR->>CTR: query.Where(t => t.IsActive == param)
+    end
+    CTR->>DB: Query Tours + Projection {StopCount = t.Stops.Count}
+    DB-->>CTR: PagedResult<TourListItemDto>
+    CTR-->>CLIENT: 200 ApiResult
+
+    %% ── Chi tiết (anonymous, có filter inactive) ──
+    CLIENT->>CTR: GET /api/tours/{id}
+    Note over CTR: [AllowAnonymous]
+    CTR->>DB: Include Stops OrderBy Order → Stall → StallLocations + StallMedia
+    alt Không tìm thấy
+        CTR-->>CLIENT: 404 "Không tìm thấy tour"
+    else Tour inactive AND không phải Admin
+        CTR-->>CLIENT: 404 "Không tìm thấy tour"
+    else Tìm thấy
+        CTR->>CTR: MapTourDetail — chọn primary location (IsActive trước), thumbnail (MediaType=image, SortOrder asc)
+        CTR-->>CLIENT: 200 TourDetailDto
+    end
+
+    %% ── Tạo tour ──
+    CLIENT->>CTR: POST /api/tours (TourCreateDto)
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+    CTR->>CTR: TryGetUserId(out userId) từ JWT
+
+    alt Stops rỗng
+        CTR-->>CLIENT: 400 "Tour phải có ít nhất 1 stop"
+    end
+    alt Stops trùng StallId
+        CTR-->>CLIENT: 400 "Danh sách stops chứa stall trùng lặp"
+    end
+    CTR->>DB: COUNT Stalls WHERE Id IN (distinctStallIds)
+    alt Có StallId không tồn tại
+        CTR-->>CLIENT: 400 "Một hoặc nhiều stallId không tồn tại"
+    end
+    CTR->>DB: NameExistsAsync(name)
+    alt Tên trùng
+        CTR-->>CLIENT: 409 "Tên tour đã tồn tại"
+    end
+
+    CTR->>CTR: Re-index Order 1..N theo thứ tự client gửi (bỏ Order gốc)
+    CTR->>DB: INSERT Tour + INSERT TourStops (cascade qua navigation)
+    CTR->>DB: Reload với Include Stops → Stall → Locations + Media
+    CTR-->>CLIENT: 200 TourDetailDto
+
+    %% ── Cập nhật tour (full replace stops) ──
+    CLIENT->>CTR: PUT /api/tours/{id} (TourUpdateDto)
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+    Note over CTR: Cùng bộ validate như Create: Stops rỗng, trùng StallId, StallId tồn tại
+    CTR->>DB: Load Tour + Stops
+    alt Không tìm thấy
+        CTR-->>CLIENT: 404
+    end
+    alt Name đổi AND trùng tour khác (excludeId=id)
+        CTR-->>CLIENT: 409 "Tên tour đã tồn tại"
+    end
+
+    CTR->>DB: RemoveRange(tour.Stops) — full replace
+    CTR->>CTR: Build lại stops với Order re-index 1..N
+    CTR->>DB: SaveChanges (delete cũ + insert mới trong 1 transaction)
+    CTR->>DB: Reload detail
+    CTR-->>CLIENT: 200 TourDetailDto
+
+    %% ── Reorder stops ──
+    CLIENT->>CTR: POST /api/tours/{id}/stops/reorder (List<TourStopReorderDto>)
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+    alt request rỗng
+        CTR-->>CLIENT: 400 "Danh sách reorder rỗng"
+    end
+    CTR->>DB: Load Tour + Stops
+    alt Không tìm thấy
+        CTR-->>CLIENT: 404
+    end
+    alt request.Count != tour.Stops.Count
+        CTR-->>CLIENT: 400 "Số lượng stop không khớp"
+    end
+    alt requestStallIds.SetEquals(tourStallIds) = false
+        CTR-->>CLIENT: 400 "Danh sách stallId không khớp với tour"
+    end
+    CTR->>CTR: Foreach stop → set Order = i+1 theo request order
+    CTR->>DB: SaveChanges
+    CTR-->>CLIENT: 200 TourDetailDto
+
+    %% ── Toggle Active & Delete ──
+    CLIENT->>CTR: PATCH /api/tours/{id}/toggle-active
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+    CTR->>DB: tour.IsActive = !tour.IsActive; SaveChanges
+    CTR-->>CLIENT: 200 TourDetailDto
+
+    CLIENT->>CTR: DELETE /api/tours/{id}
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+    CTR->>DB: Remove Tour (FK Cascade xóa TourStops)
+    CTR-->>CLIENT: 200 true
+```
+
+---
+
+### SD-A09: Upload GPS Batch & Bản đồ nhiệt
+
+```mermaid
+sequenceDiagram
+    participant MOBILE as Mobile App
+    participant ADMIN as Web Admin
+    participant CTR as DeviceLocationLogController
+    participant DB as Database
+
+    %% ── Phần A: Mobile gửi batch GPS ──
+    Note over MOBILE,DB: Phần A — Batch GPS upload (Mobile, ~mỗi 20s)
+
+    MOBILE->>CTR: POST /api/device-location-log/batch<br/>{deviceId, points[{lat,lng,accuracy,capturedAt}]}
+    Note over CTR: [AllowAnonymous]
+
+    alt DeviceId rỗng
+        CTR-->>MOBILE: 400 "DeviceId không được để trống"
+    end
+    alt Points rỗng
+        CTR-->>MOBILE: 400 "Danh sách tọa độ không được rỗng"
+    end
+    alt Points.Count > 500
+        CTR-->>MOBILE: 400 "Tối đa 500 điểm mỗi lần gửi"
+    end
+
+    CTR->>DB: INSERT Range DeviceLocationLogs (Guid mới, Lat/Lng decimal, AccuracyMeters, CapturedAtUtc)
+
+    Note over CTR,DB: Piggyback heartbeat — cập nhật LastSeenAt<br/>(cao tần hơn SD-A07 ở /api/geo/stalls)
+    CTR->>DB: ExecuteUpdateAsync<br/>WHERE DeviceId = X<br/>SET LastSeenAt = now
+    Note over DB: Direct SQL UPDATE — không load entity.<br/>Nếu DevicePreference chưa có thì 0 rows affected (bỏ qua).
+
+    CTR-->>MOBILE: 200 ApiResult<int> — số điểm đã lưu
+
+    %% ── Phần B: Admin truy xuất heatmap ──
+    Note over ADMIN,DB: Phần B — Admin đọc heatmap
+
+    ADMIN->>CTR: GET /api/device-location-log/heatmap?from=&to=&deviceId=
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+
+    CTR->>CTR: toUtc = to ?? now; fromUtc = from ?? toUtc − 7 days
+    alt fromUtc > toUtc
+        CTR-->>ADMIN: 400 "Khoảng thời gian không hợp lệ: from > to"
+    end
+    alt (toUtc − fromUtc) > 90 ngày
+        CTR-->>ADMIN: 400 "Khoảng thời gian tối đa 90 ngày"
+    end
+
+    CTR->>DB: SELECT Latitude, Longitude, COUNT(*) AS Weight<br/>FROM DeviceLocationLogs<br/>WHERE CapturedAtUtc BETWEEN fromUtc AND toUtc<br/>[AND DeviceId = X]<br/>GROUP BY Latitude, Longitude
+    Note over DB: Lat/Lng decimal 9,6 (~0.11m) — GROUP BY gom các điểm trùng toạ độ
+
+    DB-->>CTR: List<{Lat, Lng, Weight}>
+    CTR-->>ADMIN: 200 ApiResult<List<HeatmapPointDto>>
+```
+
+---
+
+### SD-A10: Cờ Reset Thiết bị & Offline Notification
+
+```mermaid
+sequenceDiagram
+    participant ADMIN as Web Admin
+    participant MOBILE as Mobile App
+    participant CTR as DevicePreferenceController
+    participant DB as Database
+
+    %% ── A. Admin gửi lệnh reset ──
+    Note over ADMIN,DB: Phần A — Admin yêu cầu reset thiết bị
+
+    ADMIN->>CTR: POST /api/device-preference/{deviceId}/reset
+    Note over CTR: [Authorize(Policy = AdminOnly)]
+
+    CTR->>DB: ExecuteUpdateAsync<br/>WHERE DeviceId = X<br/>SET NeedsReset = true
+    alt Không có thiết bị khớp (updated = 0)
+        CTR-->>ADMIN: 404 "Không tìm thấy thiết bị"
+    else
+        CTR-->>ADMIN: 200 true
+    end
+    Note over DB: Atomic UPDATE — không load entity.<br/>Cờ NeedsReset sẽ được Mobile pick up ở poll tiếp theo.
+
+    %% ── B. Mobile poll cờ reset & auto-clear ──
+    Note over MOBILE,DB: Phần B — Mobile pull cờ reset (qua SyncBackgroundService, chu kỳ ~3 phút)
+
+    MOBILE->>CTR: GET /api/device-preference/reset-flag?deviceId=X
+    Note over CTR: [AllowAnonymous]
+
+    CTR->>DB: Tìm DevicePreference theo deviceId
+    alt Không tìm thấy
+        CTR-->>MOBILE: 200 false
+    else Có DevicePreference
+        CTR->>CTR: needsReset = preference.NeedsReset
+        alt needsReset = true
+            CTR->>DB: ExecuteUpdateAsync<br/>SET NeedsReset = false
+            Note over DB: Atomic clear — sau khi Mobile đọc xong,<br/>cờ về false ngay để không bị trigger lần 2
+        end
+        CTR-->>MOBILE: 200 needsReset
+    end
+
+    alt needsReset = true
+        Note over MOBILE: Clear toàn bộ Preferences (language, voice, qr...) + về LoadingPage
+    end
+
+    %% ── C. Mobile báo offline khi thoát app ──
+    Note over MOBILE,DB: Phần C — Mobile chủ động báo offline
+
+    MOBILE->>CTR: POST /api/device-preference/{deviceId}/offline
+    Note over CTR: [AllowAnonymous]
+
+    CTR->>DB: ExecuteUpdateAsync<br/>WHERE DeviceId = X<br/>SET LastSeenAt = DateTimeOffset.MinValue
+    Note over DB: Đặt giá trị sentinel (0001-01-01) để thiết bị<br/>rớt ngay khỏi danh sách active-devices (SD-A07)<br/>thay vì đợi hết cửa sổ 30 giây
+
+    CTR-->>MOBILE: 200 true
 ```
