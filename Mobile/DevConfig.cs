@@ -38,7 +38,7 @@ public static class DevConfig
     /// <summary>
     /// URL Local (dùng khi bạn và máy chạy API cùng một mạng WiFi)
     /// </summary>
-    public const string LocalApiBaseUrl = "http://192.168.0.100:5299";   // ← Thay IP này khi cần
+    public const string LocalApiBaseUrl = "http://192.168.1.10:5299";   // ← Thay IP này khi cần
 
     /// <summary>
     /// Thông tin debug để biết đang dùng URL nào

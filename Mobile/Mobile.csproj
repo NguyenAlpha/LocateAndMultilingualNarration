@@ -23,11 +23,17 @@
 
 		<WindowsPackageType>None</WindowsPackageType>
 
+		<!-- Supported OS Versions -->
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+
+		<!-- Quan trọng: Hỗ trợ Samsung A11 (32-bit) + máy 64-bit -->
+		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+			android-arm;android-arm64
+		</RuntimeIdentifiers>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -40,21 +46,21 @@
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
 		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
-		
+
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
 
-		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+		<!-- Raw Assets -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <AndroidResource Remove="Extensions\**" />
-	  <Compile Remove="Extensions\**" />
-	  <EmbeddedResource Remove="Extensions\**" />
-	  <MauiCss Remove="Extensions\**" />
-	  <MauiXaml Remove="Extensions\**" />
-	  <None Remove="Extensions\**" />
+		<AndroidResource Remove="Extensions\**" />
+		<Compile Remove="Extensions\**" />
+		<EmbeddedResource Remove="Extensions\**" />
+		<MauiCss Remove="Extensions\**" />
+		<MauiXaml Remove="Extensions\**" />
+		<None Remove="Extensions\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -67,8 +73,8 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
 		<PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
 		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2" />
-        <PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
-        <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
+		<PackageReference Include="ZXing.Net.Maui" Version="0.7.4" />
+		<PackageReference Include="ZXing.Net.Maui.Controls" Version="0.7.4" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
@@ -77,19 +83,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <MauiXaml Update="Pages\ProfilePage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="Pages\ScanPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
-	  <MauiXaml Update="Pages\StallListPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
+		<MauiXaml Update="Pages\ScanPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
+		<MauiXaml Update="Pages\StallListPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</MauiXaml>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Shared\Shared.csproj" />
+		<ProjectReference Include="..\Shared\Shared.csproj" />
 	</ItemGroup>
 
 </Project>
