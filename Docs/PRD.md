@@ -1,10 +1,10 @@
 # Product Requirements Document (PRD)
 # Hệ thống Thuyết minh Tự động Đa ngôn ngữ – Phố Ẩm Thực
 
-> **Phiên bản:** 2.3 (Merged – Mobile + Web)
-> **Ngày cập nhật:** Tháng 4, 2026
-> **Trạng thái:** Đang phát triển
-> **Mục đích tài liệu:** Mô tả đầy đủ yêu cầu sản phẩm để AI và nhóm phát triển hiểu rõ hệ thống, làm cơ sở viết tài liệu kỹ thuật, test cases, và thiết kế UI/UX.
+> **Phiên bản:** 3.0 (Full Rewrite – Khớp hiện trạng dự án)
+> **Ngày cập nhật:** 2026-04-23
+> **Trạng thái:** Đang phát triển — các module cốt lõi đã hoạt động
+> **Mục đích tài liệu:** Mô tả chính xác trạng thái hiện tại của sản phẩm — dùng làm baseline cho test, kiểm thử nghiệm thu, và lập kế hoạch giai đoạn tiếp theo.
 
 ---
 
@@ -12,26 +12,23 @@
 
 1. [Tổng quan sản phẩm](#1-tổng-quan-sản-phẩm)
 2. [Vấn đề & Mục tiêu](#2-vấn-đề--mục-tiêu)
-3. [Người dùng mục tiêu (User Personas)](#3-người-dùng-mục-tiêu-user-personas)
+3. [Người dùng mục tiêu](#3-người-dùng-mục-tiêu)
 4. [Phạm vi sản phẩm](#4-phạm-vi-sản-phẩm)
-5. [Kiến trúc hệ thống tổng quan](#5-kiến-trúc-hệ-thống-tổng-quan)
-6. [Mô hình dữ liệu (Domain Model)](#6-mô-hình-dữ-liệu-domain-model)
-7. [Yêu cầu chức năng – Mobile App (Khách tham quan)](#7-yêu-cầu-chức-năng--mobile-app-khách-tham-quan)
-8. [Yêu cầu chức năng – Web Admin (Admin & BusinessOwner)](#8-yêu-cầu-chức-năng--web-admin-admin--businessowner)
-9. [Yêu cầu chức năng – API Backend](#9-yêu-cầu-chức-năng--api-backend)
-10. [Luồng người dùng (User Flows)](#10-luồng-người-dùng-user-flows)
-11. [API Endpoints chính](#11-api-endpoints-chính)
+5. [Kiến trúc hệ thống](#5-kiến-trúc-hệ-thống)
+6. [Mô hình dữ liệu](#6-mô-hình-dữ-liệu)
+7. [Model Subscription & Business Rules](#7-model-subscription--business-rules)
+8. [Yêu cầu chức năng – Mobile App](#8-yêu-cầu-chức-năng--mobile-app)
+9. [Yêu cầu chức năng – Web Admin](#9-yêu-cầu-chức-năng--web-admin)
+10. [Yêu cầu chức năng – API Backend](#10-yêu-cầu-chức-năng--api-backend)
+11. [API Endpoints](#11-api-endpoints)
 12. [Tích hợp dịch vụ ngoài](#12-tích-hợp-dịch-vụ-ngoài)
-13. [Yêu cầu phi chức năng](#13-yêu-cầu-phi-chức-năng)
-14. [Quyết định kỹ thuật quan trọng](#14-quyết-định-kỹ-thuật-quan-trọng)
-15. [Backlog – Tính năng chưa triển khai](#15-backlog--tính-năng-chưa-triển-khai)
-16. [Use Cases – Mobile App](#16-use-cases--mobile-app)
-17. [Sequence Diagrams – Mobile App](#17-sequence-diagrams--mobile-app)
-18. [Use Cases – Web Admin](#18-use-cases--web-admin)
-19. [Sequence Diagrams – Web Admin](#19-sequence-diagrams--web-admin)
-20. [Activity Diagrams – Web Admin](#20-activity-diagrams--web-admin)
+13. [Phân quyền & Bảo mật](#13-phân-quyền--bảo-mật)
+14. [Yêu cầu phi chức năng](#14-yêu-cầu-phi-chức-năng)
+15. [Quyết định kỹ thuật chính](#15-quyết-định-kỹ-thuật-chính)
+16. [Vấn đề đã biết & Nợ kỹ thuật](#16-vấn-đề-đã-biết--nợ-kỹ-thuật)
+17. [Backlog](#17-backlog)
 - [Phụ lục A – Cấu hình môi trường](#phụ-lục-a--cấu-hình-môi-trường)
-- [Phụ lục B – NuGet Packages](#phụ-lục-b--nuget-packages-tham-chiếu)
+- [Phụ lục B – NuGet Packages](#phụ-lục-b--nuget-packages)
 
 ---
 
@@ -39,1110 +36,857 @@
 
 ### 1.1 Tên hệ thống
 
-**Hệ thống Thuyết minh Tự động Đa ngôn ngữ cho Phố Ẩm Thực**  
+**Hệ thống Thuyết minh Tự động Đa ngôn ngữ cho Phố Ẩm Thực**
 *(Locate & Multilingual Narration System)*
 
 ### 1.2 Mô tả ngắn
 
-Hệ thống cung cấp trải nghiệm tham quan thông minh tại Phố Ẩm Thực thông qua **ứng dụng di động** tự động phát thuyết minh audio khi khách đến gần từng gian hàng, kết hợp **cổng quản trị web** giúp Ban Tổ Chức và các Doanh Nghiệp quản lý nội dung thuyết minh đa ngôn ngữ.
+Hệ thống cung cấp trải nghiệm tham quan thông minh tại Phố Ẩm Thực thông qua ba thành phần:
+- **Mobile App** tự động phát audio thuyết minh khi khách đến gần từng gian hàng (geofencing). Khách truy cập ẩn danh qua mã QR — không cần đăng ký tài khoản.
+- **Web Admin** cho Ban Tổ Chức và Chủ doanh nghiệp quản lý gian hàng, nội dung thuyết minh đa ngôn ngữ, media, subscription plan, tour tham quan, và theo dõi thiết bị real-time.
+- **API Backend** xử lý business logic, tích hợp Azure (TTS / Blob / Translator), và background job tự động tổng hợp audio.
 
 ### 1.3 Thành phần hệ thống
 
 | Thành phần | Công nghệ | Người dùng |
 |-----------|-----------|-----------|
-| **Mobile App** | .NET MAUI 10.0 (Android, iOS, Windows, macOS) | Khách tham quan |
-| **Web Admin** | ASP.NET Core 10.0 MVC | Admin, BusinessOwner |
+| **Mobile App** | .NET MAUI 10.0 (Android / iOS / Windows / macOS) | Khách tham quan (anonymous) |
+| **Web Admin** | ASP.NET Core 10.0 MVC + Tabler UI | Admin, BusinessOwner |
 | **API Backend** | ASP.NET Core 10.0 Web API | Toàn hệ thống |
 | **Database** | SQL Server (EF Core 10.0) | – |
 | **Cloud Services** | Azure Speech, Azure Blob Storage, Azure Translator | – |
 
-### 1.4 Stack công nghệ tóm tắt
+### 1.4 Stack công nghệ
 
 ```
-Backend  : ASP.NET Core 10.0 Web API + EF Core 10.0 + SQL Server
-Web      : ASP.NET Core 10.0 MVC + HttpClientFactory
-Mobile   : .NET MAUI 10.0 + MVVM + Mapsui + SQLite (offline cache)
-Shared   : .NET 10.0 Class Library (DTOs dùng chung)
-Auth     : JWT Bearer + BCrypt + Refresh Token (30 ngày)
-Map      : Mapsui / OpenStreetMap
-TTS      : Azure Cognitive Services Speech
-Storage  : Azure Blob Storage
-Translate: Azure Translator v3.0
+Backend    : ASP.NET Core 10.0 Web API + EF Core 10.0 + SQL Server
+Web Admin  : ASP.NET Core 10.0 MVC + Tabler 1.0.0-beta20 + Leaflet + SortableJS
+Mobile     : .NET MAUI 10.0 + CommunityToolkit.Mvvm + Mapsui + SQLite + Plugin.Maui.Audio
+Shared     : .NET 10.0 Class Library (DTOs dùng chung)
+Auth       : JWT Bearer HS256 (30 phút) + Refresh Token SHA256 (30 ngày)
+Map        : Mapsui / OpenStreetMap (Mobile), Leaflet (Web)
+TTS        : Azure Cognitive Services Speech v1.48.2
+Storage    : Azure Blob Storage (container: narration-audio, access: Blob public)
+Translate  : Azure Translator v3.0
+QR         : ZXing.Net.Maui (Mobile scan) + QRCoder (API generate)
 ```
+
+### 1.5 Môi trường
+
+| Môi trường | URL |
+|-----------|-----|
+| API Dev | `http://localhost:5299` |
+| Web Dev | `https://localhost:7188` |
+| API Prod | `https://locateandmultilingualnarration-amgrfua6fbd7gnce.eastasia-01.azurewebsites.net/` |
+| Swagger (Dev) | `http://localhost:5299/swagger` |
+| Android Emulator → API | `http://10.0.2.2:5299` |
+
+**Timezone mặc định:** SE Asia Standard Time (UTC+7).
 
 ---
 
 ## 2. Vấn đề & Mục tiêu
 
-### 2.1 Vấn đề hiện tại
+### 2.1 Vấn đề
 
 - Khách tham quan Phố Ẩm Thực không có thông tin đầy đủ về từng gian hàng.
 - Khách quốc tế gặp rào cản ngôn ngữ, không hiểu sản phẩm/dịch vụ được giới thiệu.
 - Nhân viên giới thiệu thủ công tốn chi phí và không nhất quán.
 - Doanh nghiệp khó cập nhật thông tin thuyết minh linh hoạt theo sự kiện/mùa.
+- Ban Tổ Chức không có công cụ theo dõi lượng khách đang tham quan và phân bố di chuyển.
 
-### 2.2 Mục tiêu sản phẩm
+### 2.2 Mục tiêu
 
 | # | Mục tiêu | Đo lường thành công |
 |---|----------|-------------------|
-| 1 | Tự động phát thuyết minh khi khách đến gần gian hàng | Geofence trigger hoạt động chính xác trong bán kính cấu hình |
-| 2 | Hỗ trợ đa ngôn ngữ (tiếng Việt + các ngôn ngữ quốc tế) | Có ≥ 2 ngôn ngữ active, audio phát đúng ngôn ngữ đã chọn |
-| 3 | Khách tham quan không cần đăng ký tài khoản | App hoạt động hoàn toàn anonymous |
-| 4 | Doanh nghiệp tự quản lý nội dung thuyết minh | BusinessOwner cập nhật được script và audio không cần hỗ trợ kỹ thuật |
+| 1 | Tự động phát thuyết minh khi khách đến gần gian hàng | Geofence trigger chính xác trong bán kính cấu hình (thường 8–30m) |
+| 2 | Hỗ trợ đa ngôn ngữ | Có ≥ 2 ngôn ngữ active; audio phát đúng ngôn ngữ và giọng đã chọn |
+| 3 | Khách tham quan không cần đăng ký | App hoạt động hoàn toàn anonymous qua mã QR một lần |
+| 4 | Doanh nghiệp tự quản lý nội dung | BusinessOwner cập nhật được script và audio không cần kỹ thuật viên |
 | 5 | Hoạt động offline | App hiển thị dữ liệu và phát audio đã cache khi mất mạng |
-
-### 2.3 Giá trị mang lại
-
-- **Khách tham quan:** Trải nghiệm phong phú, hiểu rõ từng gian hàng bằng ngôn ngữ mẹ đẻ.
-- **Doanh nghiệp:** Tăng cơ hội tiếp cận khách quốc tế, chủ động cập nhật thông tin.
-- **Ban Tổ Chức:** Nâng tầm hình ảnh khu phố, thu hút sự kiện quy mô lớn.
+| 6 | Mô hình doanh thu bền vững | 3 plan (Free / Basic / Pro) với giới hạn stall rõ ràng và TTS gate |
+| 7 | Hỗ trợ tour tham quan có lộ trình | Admin tạo tour; khách chạy tour với thứ tự dẫn đường |
+| 8 | Theo dõi lượng khách real-time | Admin thấy thiết bị online với cửa sổ 30–300 giây |
 
 ---
 
-## 3. Người dùng mục tiêu (User Personas)
+## 3. Người dùng mục tiêu
 
-### Persona 1: Khách tham quan (Visitor) – Anonymous
-
-> **Không cần tạo tài khoản, không cần đăng nhập.**
+### 3.1 Khách tham quan (Visitor) – Anonymous
 
 | Thuộc tính | Mô tả |
 |-----------|-------|
 | **Đặc điểm** | Khách nội địa hoặc quốc tế, mọi độ tuổi, đến tham quan Phố Ẩm Thực |
 | **Mục tiêu** | Tìm hiểu về các gian hàng, nghe thuyết minh bằng ngôn ngữ phù hợp |
-| **Thiết bị** | Điện thoại Android hoặc iOS |
-| **Kỳ vọng** | Mở app → chọn ngôn ngữ → nghe audio tự động, không cần thao tác phức tạp |
-| **Pain point** | Không biết tiếng Việt (khách quốc tế), muốn thông tin chi tiết hơn biển hiệu |
+| **Thiết bị** | Smartphone Android / iOS |
+| **Kỳ vọng** | Quét QR tại cổng → chọn ngôn ngữ → dùng app không cần đăng ký |
+| **Pain point** | Không biết tiếng Việt, muốn thông tin chi tiết hơn biển hiệu, không muốn tạo tài khoản |
 
-**Định danh ẩn danh:** App tự sinh `DeviceId` duy nhất (SecureStorage) và lưu preference (ngôn ngữ, giọng đọc) lên server theo DeviceId — không cần tài khoản.
+**Định danh ẩn danh:** App đọc/sinh `device_id` (GUID) lưu trong `Microsoft.Maui.Storage.Preferences`. Mã QR là vé vào app — mỗi mã dùng một lần với số ngày hiệu lực (`ValidDays`) do Admin cấu hình. Preference ngôn ngữ/giọng đọc lưu trên server theo `DeviceId` và đồng bộ xuống local.
 
-### Persona 2: Chủ doanh nghiệp (BusinessOwner)
+### 3.2 Chủ doanh nghiệp (BusinessOwner)
 
 | Thuộc tính | Mô tả |
 |-----------|-------|
 | **Đặc điểm** | Chủ hoặc quản lý gian hàng tại Phố Ẩm Thực |
-| **Mục tiêu** | Quản lý thông tin gian hàng, nội dung thuyết minh, hình ảnh |
-| **Thiết bị** | PC/Laptop, trình duyệt web |
-| **Kỳ vọng** | Cập nhật nội dung dễ dàng, xem trước audio trước khi publish |
-| **Pain point** | Không có kỹ năng kỹ thuật sâu, cần giao diện đơn giản |
+| **Mục tiêu** | Quản lý thông tin gian hàng, nội dung thuyết minh, hình ảnh; nâng cấp plan khi cần thêm stall hoặc kích hoạt TTS |
+| **Thiết bị** | PC / Laptop, trình duyệt web |
+| **Quyền hạn** | Chỉ thao tác dữ liệu business của mình (không thấy dữ liệu business khác) |
 
-### Persona 3: Quản trị viên (Admin)
+### 3.3 Quản trị viên (Admin)
 
 | Thuộc tính | Mô tả |
 |-----------|-------|
 | **Đặc điểm** | Ban Tổ Chức / Quản trị hệ thống |
-| **Mục tiêu** | Quản lý toàn bộ hệ thống: doanh nghiệp, ngôn ngữ, người dùng, cấu hình |
-| **Thiết bị** | PC/Laptop |
-| **Quyền hạn** | Toàn bộ hệ thống, bao gồm thêm/xóa ngôn ngữ (chỉ Admin) |
+| **Mục tiêu** | Quản lý toàn bộ hệ thống; tạo mã QR; tạo tour; theo dõi real-time; cập nhật plan cho business |
+| **Quyền hạn** | Toàn bộ hệ thống; bypass giới hạn plan; được phép set plan tuỳ ý cho business |
 
 ---
 
 ## 4. Phạm vi sản phẩm
 
-### 4.1 Trong phạm vi (In Scope) – Hiện tại
+### 4.1 Trong phạm vi (đã triển khai)
 
-**Mobile App:**
-- Chọn ngôn ngữ và giọng đọc (lưu theo DeviceId)
-- Bản đồ tương tác hiển thị gian hàng và vùng geofence
-- Thuyết minh audio tự động / thủ công theo gian hàng đã chọn
-- Quét QR Code để focus gian hàng trên bản đồ
-- Danh sách gian hàng
-- Cache offline (SQLite + audio files)
-- Background sync mỗi 3 phút
+#### Mobile App (12 luồng chính)
+- Startup routing với kiểm tra QR access + preference
+- Quét QR kích hoạt quyền truy cập app (one-time use, hạn hiệu lực ngày)
+- Chọn ngôn ngữ + giọng đọc trong cùng màn hình
+- MainPage với bottom nav 3 nút (Bản đồ / Tour / Ngôn ngữ) + featured stalls + Đăng xuất
+- Bản đồ tương tác với geofence circles, tap pin → popup → phát audio
+- Geofence auto-play khi khách đi vào vùng (queue nếu đang phát)
+- Danh sách gian hàng có tìm kiếm + phân trang
+- Cache 3 lớp: memory (10 phút) → SQLite → API; offline vẫn xem được
+- Background sync stall (3 phút) + flush GPS (20 giây) + piggyback heartbeat
+- Tour flow: chọn tour → chạy với lộ trình → tự hoàn tất → resume sau kill app
+- Pull cờ reset từ Admin (3 phút poll) + notify offline khi thoát app
+- Chế độ tour: chỉ auto-play stall trong tour set
 
-**Web Admin:**
-- Đăng nhập / đăng ký BusinessOwner
-- Quản lý doanh nghiệp và gian hàng (CRUD)
-- Quản lý tọa độ GPS và geofence gian hàng
-- Quản lý media (hình ảnh) gian hàng
-- Quản lý nội dung thuyết minh đa ngôn ngữ (text script)
-- Upload audio hoặc tự sinh audio qua Azure TTS
-- Dịch tự động nội dung qua Azure Translator
-- Quản lý ngôn ngữ hỗ trợ (Admin only)
-- Quản lý tài khoản người dùng (Admin only)
+#### Web Admin
+- Đăng nhập / đăng ký BusinessOwner / đăng xuất
+- Dashboard Admin (9 API calls song song) với stats cards + recent orders
+- CRUD Business, Stall, StallLocation, StallGeoFence, StallMedia
+- CRUD Narration Content + theo dõi TTS status + retry TTS
+- Upload audio giọng người (thay thế TTS)
+- Xem bảng giá + Checkout + Payment (mock 16-digit card)
+- Quản lý QR Codes + Kiosk Auto QR tự động
+- Admin cập nhật plan cho Business + xem Lịch sử Đơn đăng ký
+- Quản lý User & Role (Admin only)
+- Active Devices real-time với 5 option dropdown (30/60/120/180/300s) + Reset thiết bị
+- Bản đồ nhiệt (Heatmap) vị trí người dùng với filter thời gian + device
+- Quản lý Tour (TourManagement + TourDesigner với Leaflet drag-drop)
 
-**API Backend:**
-- REST API đầy đủ cho tất cả chức năng trên
+#### API Backend
 - JWT authentication + refresh token
-- Geo service (tìm gian hàng gần nhất, Haversine)
-- DevicePreference API (anonymous, theo DeviceId)
+- 18 controllers + base controller với timezone helper
+- TTS Background Service (PeriodicTimer 5 giây, claim batch 5 job)
+- Geo service: trả stall + narration + audio theo ngôn ngữ + giọng của device
+- Subscription system với 3 plan + downgrade protection + extend logic
+- QR verify one-time use với `expiryAt = UsedAt + ValidDays`
+- Tour CRUD với Stops + reorder + validation
+- GPS batch log + heatmap aggregation
+- Active devices query + device reset flag + offline notify
+- Azure integration: TTS + Blob upload + Translator v3.0
 
-### 4.2 Ngoài phạm vi (Out of Scope) – Phiên bản hiện tại
+### 4.2 Ngoài phạm vi
 
-- Đăng nhập trên Mobile App (code tồn tại nhưng không sử dụng)
+- Background GPS polling khi app inactive (GpsPollingService chỉ chạy khi MapPage active)
 - Bookmark gian hàng yêu thích
 - Xem menu / thực đơn chi tiết
-- Background GPS polling liên tục (geofence auto-trigger)
-- Dashboard thống kê lượt nghe, ngôn ngữ phổ biến
-- Lịch sử chỉnh sửa (audit log)
-- Social login (Google/Apple/Facebook)
-- Role cộng tác viên (Collaborator)
-- Chọn giọng đọc (nam/nữ, tốc độ) trực tiếp trên UI Mobile
+- Dashboard thống kê lượt nghe audio (dữ liệu chưa thu thập)
+- Audit log cho CRUD operations
+- Social login
+- Role Collaborator (cộng tác viên hỗ trợ BusinessOwner)
+- Push notification
+- Gateway thanh toán thật (hiện mock 16-digit card)
+- Scheduler tự áp dụng plan hết hạn (hiện dùng effective plan logic runtime)
+- CRUD admin cho TTS voice profiles (chỉ có `GET active`)
+- CRUD admin cho Language (seed cứng qua migration)
 
 ---
 
-## 5. Kiến trúc hệ thống tổng quan
+## 5. Kiến trúc hệ thống
 
 ### 5.1 Sơ đồ tổng quan
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      CLIENT LAYER                           │
-│                                                             │
-│  ┌──────────────────────┐    ┌──────────────────────────┐  │
-│  │   Mobile App (MAUI)  │    │   Web Admin (MVC)        │  │
-│  │  Android/iOS/Win/Mac │    │  BusinessOwner / Admin   │  │
-│  │  ─ Mapsui (OSM)      │    │  ─ HttpClientFactory     │  │
-│  │  ─ SQLite cache       │    │  ─ AuthTokenHandler      │  │
-│  │  ─ Plugin.Maui.Audio │    │  ─ Session Auth           │  │
-│  │  ─ ZXing QR Scan      │    │                          │  │
-│  └──────────┬───────────┘    └────────────┬─────────────┘  │
-└─────────────┼────────────────────────────┼────────────────┘
-              │ HTTP/REST (JSON)            │ HTTP/REST (JSON)
-              ▼                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    API LAYER (ASP.NET Core 10.0)            │
-│                                                             │
-│  Controllers: Auth, Business, Stall, Geo, Language,        │
-│  NarrationContent, NarrationAudio, StallMedia,             │
-│  StallGeoFence, StallLocation, DevicePreference,           │
-│  TtsVoiceProfile, VisitorPreference, VisitorLocationLog     │
-│                                                             │
-│  Services: JwtService, GeoService, NarrationAudioService,  │
-│            AzureTranslationService                         │
-│                                                             │
-│  Auth: JWT Bearer + BCrypt + Refresh Token (SHA256)        │
-└──────┬────────────────────────────────────────┬────────────┘
-       │ EF Core 10.0                           │ Azure SDK
-       ▼                                        ▼
-┌──────────────────┐              ┌─────────────────────────┐
-│   SQL Server     │              │   Azure Cloud Services  │
-│   (19 Entities)  │              │  ─ Speech (TTS)         │
-│                  │              │  ─ Blob Storage (Audio) │
-│                  │              │  ─ Translator v3.0      │
-└──────────────────┘              └─────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                         CLIENT LAYER                             │
+│                                                                  │
+│  ┌──────────────────────────┐      ┌──────────────────────────┐ │
+│  │   Mobile App (MAUI)      │      │   Web Admin (MVC)        │ │
+│  │  Android / iOS / Win     │      │  BusinessOwner / Admin   │ │
+│  │  • Mapsui (OSM)          │      │  • Tabler 1.0.0-beta20   │ │
+│  │  • SQLite cache          │      │  • Leaflet + heat + OSRM │ │
+│  │  • Plugin.Maui.Audio     │      │  • SortableJS drag-drop  │ │
+│  │  • ZXing QR Scan         │      │  • AuthTokenHandler      │ │
+│  │  • Preferences (pref_*)  │      │  • Session + CSRF        │ │
+│  └────────────┬─────────────┘      └────────────┬─────────────┘ │
+└───────────────┼──────────────────────────────────┼──────────────┘
+                │ HTTP/JSON + deviceId              │ HTTP/JSON + JWT
+                ▼                                  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│               API LAYER (ASP.NET Core 10.0)                      │
+│                                                                  │
+│  18 Controllers (REST) + 1 AppControllerBase                     │
+│  4 Application Services: JwtService, GeoService,                 │
+│                          NarrationAudioService, AzureTranslation │
+│  1 Hosted Service: TtsBackgroundService (PeriodicTimer 5s)       │
+│                                                                  │
+│  Auth: JWT HS256 + BCrypt + RefreshToken SHA256                  │
+│  Policies: AdminOnly, AdminOrBusinessOwner, [AllowAnonymous]     │
+└──────┬────────────────────────────────────────────┬─────────────┘
+       │ EF Core 10.0                              │ Azure SDK
+       ▼                                          ▼
+┌──────────────────┐                ┌──────────────────────────────┐
+│   SQL Server     │                │   Azure Cloud Services       │
+│   24 Entities    │                │  • Speech (TTS)              │
+│                  │                │  • Blob Storage (public URL) │
+│                  │                │  • Translator v3.0           │
+└──────────────────┘                └──────────────────────────────┘
 
-       ┌──────────────────────────┐
-       │   Shared Library (.NET)  │
-       │   DTOs dùng chung        │
-       │   Api + Web + Mobile     │
-       └──────────────────────────┘
+                ┌────────────────────────────────┐
+                │   Shared Library (.NET 10.0)   │
+                │  DTOs dùng chung: 17 thư mục    │
+                │  Api + Web + Mobile            │
+                └────────────────────────────────┘
 ```
 
 ### 5.2 Cấu trúc Solution
 
 ```
 LocateAndMultilingualNarration/
-├── Api/                    # ASP.NET Core Web API
-│   ├── Controllers/        # 14 controllers
+├── Api/                    ASP.NET Core 10.0 Web API
+│   ├── Controllers/        18 controllers + AppControllerBase
 │   ├── Application/
-│   │   └── Services/       # JwtService, GeoService, NarrationAudioService, AzureTranslationService
+│   │   └── Services/       JwtService, GeoService, NarrationAudioService,
+│   │                       AzureTranslationService, TtsBackgroundService
+│   ├── Authorization/      AppPolicies (hằng số)
 │   ├── Domain/
-│   │   ├── Entities/       # 19 entities
-│   │   └── Settings/       # JwtSettings, AzureSpeechSettings, BlobStorageSettings, AzureTranslationSettings
-│   └── Infrastructure/
-│       └── Persistence/    # AppDbContext + EF Configurations
-├── Web/                    # ASP.NET Core MVC
-│   ├── Controllers/        # 9 controllers
-│   ├── Views/              # Razor views
-│   └── Services/           # ApiClient + 8 ApiClient implementations
-├── Mobile/                 # .NET MAUI
-│   ├── Pages/              # 8 pages (LoginPage không dùng)
-│   ├── ViewModels/         # 4 ViewModels (LoginViewModel không dùng)
-│   ├── Services/           # 12 services
-│   └── LocalDb/            # SQLite schema + repository
-├── Shared/                 # Class Library
-│   └── DTOs/               # 14 nhóm DTO
-└── TestAPI/                # Testing project
+│   │   ├── Entities/       24 entities
+│   │   ├── Settings/       JwtSettings, AzureSpeechSettings, BlobStorageSettings,
+│   │   │                   AzureTranslationSettings, QrCodeConfiguration
+│   │   └── SubscriptionPlan.cs  Hằng số + helper (GetMaxStalls, AllowsTts, GetPrice)
+│   ├── Infrastructure/
+│   │   └── Persistence/    AppDbContext + Configurations + QueryExtensions
+│   └── Migrations/         EF Core migrations
+├── Web/                    ASP.NET Core 10.0 MVC
+│   ├── Controllers/        12 controllers (Auth, Home, Admin,
+│   │                       Business, Stall, StallLocation, StallGeoFence,
+│   │                       StallMedia, Narration, Subscription, Tour, Docs)
+│   ├── Views/              Razor views (Tabler UI)
+│   ├── Services/           16 ApiClient + AuthTokenHandler + ApiClient (base)
+│   ├── Models/             ViewModels
+│   └── Filters/            TokenExpirationFilter (global)
+├── Mobile/                 .NET MAUI 10.0
+│   ├── Pages/              9 pages (Loading, Scan, Language, Main,
+│   │                       Map, StallList, TourList, TourDetail) + StallPopup
+│   ├── ViewModels/         7 ViewModels + GeofenceEngine (class thuần)
+│   ├── Services/           14 services + 15 interfaces
+│   ├── LocalDb/            SQLite schema + LocalStallRepository
+│   └── DevConfig.cs        API base URL cho emulator
+├── Shared/                 Class Library .NET 10.0
+│   └── DTOs/               17 nhóm: Auth, Businesses, Common, DeviceLocationLogs,
+│                           DevicePreferences, Geo, Languages, Narrations, QrCodes,
+│                           StallGeoFences, StallLocations, StallMedia, Stalls,
+│                           SubscriptionOrders, Tours, TtsVoiceProfiles, Users
+└── TestAPI/                Test project
 ```
+
+### 5.3 Nguyên tắc kiến trúc
+
+- **API là trung tâm duy nhất xử lý business logic.** Web và Mobile chỉ gọi API, không truy cập DB trực tiếp.
+- **Mapping thủ công trong Service layer của API.** Không dùng AutoMapper.
+- **Mobile dùng thẳng DTO từ Shared** — không có Model layer riêng.
+- **Cache-first Mobile:** memory (10 phút) → SQLite → API. Đảm bảo offline và UX instant.
+- **Background TTS:** Controller chỉ set `TtsStatus = Pending`, `TtsBackgroundService` xử lý async. Tránh HTTP request timeout khi TTS mất nhiều giây.
+- **Piggyback heartbeat:** `LastSeenAt` của `DevicePreference` được cập nhật trong `GeoController.GetAllStalls` và `DeviceLocationLogController.BatchCreate`. Không có endpoint ping riêng.
+- **Pull-based flag cho Admin → Mobile:** Admin không push được trực tiếp. Admin set cờ trong DB, Mobile poll định kỳ qua `SyncBackgroundService`.
 
 ---
 
-## 6. Mô hình dữ liệu (Domain Model)
+## 6. Mô hình dữ liệu
 
-### 6.1 Danh sách Entities (19 entities)
+### 6.1 Danh sách Entities (24)
 
-#### Nhóm User & Authorization
-
-| Entity | Mô tả | Trường chính |
-|--------|-------|-------------|
-| `User` | Tài khoản hệ thống (Web Admin) | Id, UserName, Email, PasswordHash, CreatedAt |
-| `Role` | Vai trò: Admin, BusinessOwner | Id, Name |
-| `UserRole` | Bảng nối User ↔ Role | UserId, RoleId |
-| `RefreshToken` | JWT refresh token | Id, UserId, TokenHash, ExpiresAt, IsRevoked |
-
-#### Nhóm Visitor
+#### Nhóm User & Authorization (4)
 
 | Entity | Mô tả | Trường chính |
 |--------|-------|-------------|
-| `VisitorProfile` | Hồ sơ khách tham quan | Id, DeviceId, CreatedAt |
-| `VisitorPreference` | Sở thích khách | Id, VisitorProfileId, LanguageId, VoiceProfileId |
-| `VisitorLocationLog` | Nhật ký vị trí GPS của khách | Id, VisitorProfileId, Latitude, Longitude, Timestamp |
+| `User` | Tài khoản hệ thống (Admin / BusinessOwner) | Id, UserName, Email, NormalizedEmail, NormalizedUserName, PasswordHash, DisplayName, Sex, DateOfBirth, IsActive, LastLoginAt, CreatedAt, LockoutEnd |
+| `Role` | Vai trò | Id, Name |
+| `UserRole` | Nối User ↔ Role | UserId, RoleId |
+| `RefreshToken` | JWT refresh token 30 ngày | Id, UserId, TokenHash (SHA256), ExpiresAtUtc, RevokedAtUtc, DeviceId, IpAddress, CreatedAtUtc |
 
-#### Nhóm Device (Anonymous)
-
-| Entity | Mô tả | Trường chính |
-|--------|-------|-------------|
-| `DevicePreference` | Preference ẩn danh theo DeviceId | Id, DeviceId, LanguageId, TtsVoiceProfileId, UpdatedAt |
-
-#### Nhóm Business & Stalls
+#### Nhóm Business & Stalls (7)
 
 | Entity | Mô tả | Trường chính |
 |--------|-------|-------------|
-| `Business` | Doanh nghiệp tham gia | Id, Name, Description, UserId, CreatedAt |
+| `Business` | Doanh nghiệp | Id, OwnerUserId, Name, TaxCode, ContactEmail, ContactPhone, IsActive, Plan, PlanExpiresAt, CreatedAt, UpdatedAt |
 | `BusinessOwnerProfile` | Profile chi tiết chủ DN | Id, UserId, PhoneNumber, Address |
 | `EmployeeProfile` | Profile nhân viên | Id, UserId, BusinessId |
-| `Stall` | Gian hàng | Id, BusinessId, Name, Slug, Description, Phone, IsActive |
-| `StallLocation` | Tọa độ GPS | Id, StallId, Latitude, Longitude, Address |
-| `StallGeoFence` | Vùng geofence | Id, StallId, RadiusMeters, IsActive |
-| `StallMedia` | Hình ảnh gian hàng | Id, StallId, BlobUrl, FileName, ContentType, UploadedAt |
+| `Stall` | Gian hàng | Id, BusinessId, Name, Slug, Description, ContactEmail, ContactPhone, IsActive, CreatedAt, UpdatedAt |
+| `StallLocation` | Tọa độ GPS | Id, StallId, Latitude (decimal 9,6), Longitude (decimal 9,6), RadiusMeters, Address, IsActive |
+| `StallGeoFence` | Vùng geofence | Id, StallId, Name, RadiusMeters, IsActive |
+| `StallMedia` | Ảnh gian hàng | Id, StallId, MediaUrl (Azure Blob), BlobId, MediaType, Caption, SortOrder, IsActive |
 
-#### Nhóm Narration & Languages
+#### Nhóm Narration & Languages (4)
 
 | Entity | Mô tả | Trường chính |
 |--------|-------|-------------|
-| `Language` | Ngôn ngữ hỗ trợ | Id, Code (vi, en, zh...), Name, FlagUrl, IsActive |
-| `StallNarrationContent` | Script thuyết minh theo ngôn ngữ | Id, StallId, LanguageId, TextContent, CreatedAt |
-| `NarrationAudio` | File audio | Id, NarrationContentId, TtsVoiceProfileId, BlobUrl, DurationSeconds, Source (Upload/TTS) |
-| `TtsVoiceProfile` | Cấu hình giọng Azure | Id, LanguageId, VoiceName, Gender, DisplayName |
+| `Language` | Ngôn ngữ hỗ trợ | Id, Code (vi, en, zh...), Name, DisplayName, FlagCode, IsActive |
+| `TtsVoiceProfile` | Cấu hình giọng Azure | Id, LanguageId, Provider, VoiceName (Azure voice id), DisplayName, Gender, Description, IsActive |
+| `StallNarrationContent` | Script thuyết minh | Id, StallId, LanguageId, Title, Description, ScriptText, IsActive, TtsStatus (None/Pending/Processing/Completed/Failed), TtsError, CreatedAt, UpdatedAt |
+| `NarrationAudio` | File audio | Id, NarrationContentId, TtsVoiceProfileId?, AudioUrl (Azure Blob), BlobId, DurationSeconds?, IsTts, Voice, Provider (AzureTts / Human), UpdatedAt |
+
+#### Nhóm Device & Visitor (3)
+
+| Entity | Mô tả | Trường chính |
+|--------|-------|-------------|
+| `DevicePreference` | Preference ẩn danh theo DeviceId | Id, DeviceId, LanguageId, VoiceId?, SpeechRate, AutoPlay, Platform, DeviceModel, Manufacturer, OsVersion, FirstSeenAt, LastSeenAt, NeedsReset |
+| `DeviceLocationLog` | Nhật ký GPS của thiết bị | Id, DeviceId, Latitude (decimal 9,6), Longitude (decimal 9,6), AccuracyMeters?, CapturedAtUtc |
+| `ScanLog` | Log quét QR (có migration, chưa controller dùng) | Id, QrCodeId, DeviceId, ScannedAt |
+
+#### Nhóm Subscription & Payment (1)
+
+| Entity | Mô tả | Trường chính |
+|--------|-------|-------------|
+| `SubscriptionOrder` | Đơn đăng ký plan | Id, BusinessId, Plan, Amount, Status (Completed/Failed), CardLastFour, CardHolder, PaidAt, PlanStartAt, PlanEndAt |
+
+#### Nhóm QR Code (2)
+
+| Entity | Mô tả | Trường chính |
+|--------|-------|-------------|
+| `QrCode` | Mã QR vé vào app | Id, Code (unique), ValidDays, IsUsed, UsedAt?, UsedByDeviceId?, Note, CreatedAt |
+| `QrCodeConfiguration` | Cấu hình generate QR | Id, DefaultValidDays, BaseUrl |
+
+#### Nhóm Tour (2)
+
+| Entity | Mô tả | Trường chính |
+|--------|-------|-------------|
+| `Tour` | Tuyến tham quan | Id, Name (unique), Description, EstimatedMinutes, IsActive, CreatedAt, UpdatedAt, CreatedByUserId (FK User, Restrict) |
+| `TourStop` | Điểm dừng trong tour | Id, TourId (FK Tour, Cascade), StallId (FK Stall, Restrict), Order, Note, CreatedAt. Unique `(TourId, StallId)`, Index `(TourId, Order)` |
+
+**Ghi chú:** `TtsJobStatus` là **static class hằng số** (`None/Pending/Processing/Completed/Failed`), không phải entity.
 
 ### 6.2 Quan hệ chính
 
 ```
-User (1) ──────────── (N) UserRole (N) ──────────── (1) Role
-User (1) ──────────── (1) Business
+User (1) ─────────── (N) UserRole (N) ─────────── (1) Role
+User (1) ─────────── (1?) Business.OwnerUserId
+User (1) ─────────── (1?) BusinessOwnerProfile
+User (1) ─────────── (1?) EmployeeProfile
+User (1) ─────────── (N) Tour.CreatedByUserId
+
 Business (1) ─────── (N) Stall
-Stall (1) ─────────── (1) StallLocation
+Business (1) ─────── (N) SubscriptionOrder
+
+Stall (1) ─────────── (N) StallLocation
 Stall (1) ─────────── (N) StallGeoFence
 Stall (1) ─────────── (N) StallMedia
 Stall (1) ─────────── (N) StallNarrationContent
-StallNarrationContent (N) ──── (1) Language
-StallNarrationContent (1) ─── (N) NarrationAudio
-NarrationAudio (N) ──────────── (1) TtsVoiceProfile
-Language (1) ────────────────── (N) TtsVoiceProfile
-DevicePreference (N) ──────── (1) Language
-DevicePreference (N) ──────── (1) TtsVoiceProfile
+Stall (1) ─────────── (N) TourStop
+
+StallNarrationContent (N) ─── (1) Language
+StallNarrationContent (1) ──── (N) NarrationAudio
+NarrationAudio (N) ─────────── (0..1) TtsVoiceProfile
+Language (1) ───────────────── (N) TtsVoiceProfile
+
+DevicePreference (N) ────────── (1) Language
+DevicePreference (N) ────────── (0..1) TtsVoiceProfile
+
+Tour (1) ─────────────────── (N) TourStop
+TourStop (N) ─────────────── (1) Stall
+
+QrCode (0..1 UsedByDeviceId) — không FK cứng (DeviceId là string free-form)
 ```
 
 ---
 
-## 7. Yêu cầu chức năng – Mobile App (Khách tham quan)
+## 7. Model Subscription & Business Rules
 
-> **Nguyên tắc:** App hoàn toàn anonymous. Không đăng nhập, không tạo tài khoản.  
-> **Định danh:** `DeviceId` tự sinh, lưu SecureStorage, gửi kèm mọi request cần preference.
+### 7.1 Các Plan
 
-### 7.1 Module Khởi động (StartPage)
+Định nghĩa trong `Api/Domain/SubscriptionPlan.cs` (static class):
 
-**FR-M-01: Màn hình chào mừng**
-- Hiển thị logo/tên khu phố và giới thiệu ngắn về ứng dụng.
-- Có nút "Bắt đầu" điều hướng đến chọn ngôn ngữ.
-- Kiểm tra DeviceId, nếu đã có preference → bỏ qua bước chọn ngôn ngữ và voice, vào thẳng MapPage.
+| Plan | Giá | Số gian hàng | TTS |
+|------|-----|-------------|-----|
+| **Free** | 0đ | 1 | ❌ Không |
+| **Basic** | 199,000đ/tháng | 3 | ✅ Có |
+| **Pro** | 499,000đ/tháng | Không giới hạn | ✅ Có |
 
-### 7.2 Module Chọn ngôn ngữ (LanguagePage)
+Helper methods:
+- `GetMaxStalls(plan)` — trả Free=1, Basic=3, Pro=`int.MaxValue`
+- `AllowsTts(plan)` — trả `false` chỉ với Free
+- `GetPrice(plan)` — trả `decimal`
 
-**FR-M-02: Lấy danh sách ngôn ngữ**
-- Gọi API `GET /api/languages/active` để lấy danh sách ngôn ngữ đang active.
-- Hiển thị danh sách ngôn ngữ kèm tên và cờ quốc gia.
-- Xử lý lỗi mạng: hiển thị thông báo, không crash app.
+### 7.2 Effective Plan Logic
 
-**FR-M-03: Chọn ngôn ngữ**
-- User tap chọn ngôn ngữ.
-- Lưu lựa chọn tạm thời trong memory, chuyển sang VoicePage.
+Nhiều nơi trong code dùng pattern:
 
-### 7.3 Module Chọn giọng đọc (VoicePage)
-
-**FR-M-04: Lấy danh sách giọng đọc**
-- Gọi API `GET /api/tts-voice-profiles?languageId={id}` để lấy danh sách giọng theo ngôn ngữ đã chọn.
-- Hiển thị giọng đọc kèm tên hiển thị và giới tính (Nam/Nữ).
-
-**FR-M-05: Chọn giọng đọc & lưu preference**
-- User tap chọn giọng.
-- Gọi API `POST /api/device-preference` với `{ deviceId, languageId, ttsVoiceProfileId }`.
-- Điều hướng vào MapPage.
-
-### 7.4 Module Bản đồ (MapPage)
-
-**FR-M-06: Hiển thị bản đồ**
-- Hiển thị bản đồ OpenStreetMap qua Mapsui.
-- Hiển thị các gian hàng dưới dạng pin có label tên gian hàng.
-- Vẽ vùng geofence (hình tròn bán kính `RadiusMeters`) quanh mỗi gian hàng bằng SkiaSharp.
-
-**FR-M-07: Tải dữ liệu gian hàng (Cache-First)**
-- Ưu tiên 1: Đọc từ SQLite local → hiển thị ngay lập tức.
-- Ưu tiên 2: Async gọi `GET /api/geo/stalls?deviceId={deviceId}` → upsert SQLite → refresh UI.
-- Ưu tiên 3 (offline): Nếu API fail → dùng data SQLite đã có, không crash.
-- API trả `GeoStallDto` chứa `List<GeoStallNarrationContentDto>` (mỗi item: LanguageCode, AudioUrl, TextContent).
-
-**FR-M-08: Chọn gian hàng**
-- Tap pin gian hàng trên bản đồ → hiển thị `StallPopup`.
-- StallPopup hiển thị: tên gian hàng, mô tả, hình ảnh (nếu có), text thuyết minh theo ngôn ngữ đã chọn, controls audio.
-
-**FR-M-09: Phát audio thuyết minh**
-- Ưu tiên 1: Phát từ file audio đã cache local (AudioCacheService).
-- Ưu tiên 2: Stream từ `AudioUrl` (Azure Blob Storage URL).
-- Controls: Play / Pause / Resume / Stop.
-- Chỉ 1 audio phát tại một thời điểm; chuyển gian hàng → tự động dừng audio cũ.
-
-**FR-M-10: Background Sync**
-- `SyncBackgroundService` chạy timer mỗi **3 phút**.
-- Khi connectivity thay đổi từ offline → online → trigger sync ngay.
-- `SyncService` orchestrate: gọi API → upsert SQLite → download audio mới về cache.
-
-### 7.5 Module Quét QR (ScanPage)
-
-**FR-M-11: Quét QR/Barcode nhận diện gian hàng**
-- Dùng ZXing.Net.Maui để quét QR Code.
-- Giải mã kết quả QR → tìm gian hàng tương ứng trong danh sách.
-- Focus (zoom + select) gian hàng đó trên MapPage.
-- Hiển thị `StallPopup` tự động sau khi quét thành công.
-
-### 7.6 Yêu cầu chung Mobile
-
-**FR-M-12: Xử lý offline**
-- App phải hoạt động được khi không có internet (với dữ liệu đã sync trước đó).
-- Audio đã cache phát được offline.
-- Hiển thị indicator "Đang offline" trên UI.
-
-**FR-M-13: Quản lý HttpClient**
-- HttpClient timeout: **10 giây**.
-- Retry logic: không retry tự động, hiển thị lỗi cho user.
-
----
-
-## 16. Use Cases – Mobile App
-
-> **Actor chính:** Visitor (Anonymous) – Khách tham quan, không cần đăng nhập, định danh qua `DeviceId`.
-> **Actor phụ:** SyncBackgroundService – tiến trình hệ thống tự động.
-
-### 16.1 Bảng tổng hợp Use Cases Mobile
-
-| Mã UC | Tên Use Case | Actor | Mục tiêu nghiệp vụ |
-|-------|-------------|-------|-------------------|
-| UC-M01 | Khởi động & kiểm tra Session + DeviceId | Visitor | Nhận diện thiết bị, điều hướng đúng màn hình |
-| UC-M02 | Quét QR | Visitor | Truy cập nhanh gian hàng mục tiêu |
-| UC-M03 | Chọn ngôn ngữ & giọng đọc (DevicePreference) | Visitor | Cá nhân hóa trải nghiệm nghe |
-| UC-M04 | Hiển thị bản đồ tương tác & geofence | Visitor | Quan sát gian hàng theo không gian thực |
-| UC-M05 | Tự động thuyết minh khi vào vùng geofence | Visitor | Tự động phát nội dung đúng ngôn ngữ |
-| UC-M06 | Xem danh sách gian hàng nổi bật (lọc & tìm kiếm) | Visitor | Khám phá nhanh nội dung quan tâm |
-| UC-M07 | Xem chi tiết gian hàng (gallery, thông tin, CTA) | Visitor | Nắm thông tin đầy đủ trước khi tương tác |
-| UC-M08 | Phát audio thuyết minh thủ công | Visitor | Chủ động nghe narration |
-| UC-M09 | Tính đường đi & chỉ đường (OSRM) | Visitor | Điều hướng tới stall mục tiêu |
-| UC-M10 | Theo dõi và theo tour có sẵn | Visitor | Khám phá theo hành trình định sẵn |
-| UC-M11 | Khám phá gian hàng gần nhất (Nearest Stall) | Visitor | Đề xuất gian hàng gần người dùng |
-| UC-M12 | Background Sync & chế độ Offline | Hệ thống + Visitor | Đảm bảo dữ liệu luôn khả dụng |
-| UC-M13 | Quản lý Profile / Device Preferences | Visitor | Điều chỉnh thiết lập cá nhân |
-
-### 16.2 Use Case Diagram – Mobile App
-
-```mermaid
-flowchart LR
-    V[Visitor - Anonymous] --> M01[UC-M01: Khởi động + Session + DeviceId]
-    V --> M03[UC-M03: Chọn ngôn ngữ & giọng đọc]
-    V --> M06[UC-M06: Danh sách stall nổi bật + lọc/tìm]
-    V --> M07[UC-M07: Xem chi tiết gian hàng]
-    V --> M02[UC-M02: Quét QR]
-    V --> M04[UC-M04: Bản đồ tương tác + geofence]
-    M04 --> M05[UC-M05: Tự động thuyết minh khi vào geofence]
-    V --> M08[UC-M08: Phát audio thủ công]
-    V --> M09[UC-M09: Chỉ đường OSRM]
-    V --> M10[UC-M10: Theo tour có sẵn]
-    V --> M11[UC-M11: Gian hàng gần nhất]
-    V --> M13[UC-M13: Quản lý Profile/Preferences]
-    SYS[SyncBackgroundService + SQLite] --> M12[UC-M12: Background Sync + Offline]
-    M12 --> M06
-    M12 --> M04
-    M12 --> M08
+```csharp
+var planIsExpired = business.PlanExpiresAt.HasValue && business.PlanExpiresAt.Value <= DateTimeOffset.UtcNow;
+var effectivePlan = (planIsExpired && business.Plan != "Free") ? "Free" : business.Plan;
 ```
 
-### 16.3 Đặc tả chi tiết Use Cases Mobile
+Nghĩa là khi plan hết hạn, business tự động **rơi về Free** ở runtime (không có scheduler thay đổi DB). Nếu muốn tiếp tục, phải mua lại plan mới.
 
-#### UC-M01 – Khởi động & kiểm tra Session + DeviceId
+### 7.3 Business Rules
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor (Anonymous) |
-| **Mô tả** | Ứng dụng kiểm tra session cục bộ, đọc/sinh `DeviceId`, truy vấn `DevicePreference`, sau đó điều hướng luồng phù hợp. |
-| **Tiền điều kiện** | Ứng dụng đã cài đặt; có quyền lưu `SecureStorage`. |
-| **Hậu điều kiện** | Có `DeviceId` hợp lệ; xác định được màn hình đích (`LanguagePage` hoặc `MainPage`). |
-
-**Luồng chính:**
-1. Visitor mở ứng dụng.
-2. Hệ thống kiểm tra session hiện tại.
-3. Đọc `DeviceId` từ `SecureStorage`.
-4. Nếu chưa có → sinh mới và lưu `DeviceId`.
-5. Gọi API lấy `DevicePreference` theo `DeviceId`.
-6. Điều hướng sang `MainPage` khi đã có preference; ngược lại → `LanguagePage`.
-
-**Luồng thay thế:**
-- **5a.** API phản hồi chậm: hiển thị loading và retry ngắn.
-- **5b.** Thiết bị offline: dùng preference cục bộ gần nhất.
-
-**Ngoại lệ:**
-- Không truy cập được `SecureStorage` → hiển thị cảnh báo hệ thống.
+- **Tạo Stall:** `StallController.CreateStall` kiểm tra `CountByBusinessAsync(businessId) < GetMaxStalls(effectivePlan)`. Admin bypass.
+- **Tạo/Cập nhật Narration có TTS:** Nếu `effectivePlan = "Free"` thì API từ chối tạo/cập nhật content có script (không cho TTS). Plan cho phép thì set `TtsStatus = Pending` để `TtsBackgroundService` xử lý.
+- **Đăng ký plan (mua):** `SubscriptionOrderController.CreateOrder` chặn **downgrade** khi plan hiện tại còn hạn — `PlanRank(request.Plan) < PlanRank(business.Plan)` trả 400.
+- **Extend plan:** Nếu business đang có plan active, `planStartAt = PlanExpiresAt hiện tại` (gia hạn từ ngày kết thúc cũ). Nếu không có plan active, `planStartAt = now`. `planEndAt = planStartAt + 1 tháng`.
+- **Mock payment:** Strip spaces/dashes khỏi `cardNumber`. Đúng 16 chữ số → `Completed`. Sai → `Failed`. Chỉ khi `Completed` mới cập nhật `business.Plan` và `business.PlanExpiresAt`. Đơn `Failed` vẫn lưu để Admin xem lịch sử.
+- **Admin cập nhật plan trực tiếp:** `PUT /api/business/{id}/subscription` (AdminOnly) không qua flow payment — Admin có toàn quyền set plan + PlanExpiresAt tuỳ ý (không kiểm downgrade).
 
 ---
 
-#### UC-M02 – Quét QR
+## 8. Yêu cầu chức năng – Mobile App
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Quét mã QR tại khu vực Phố Ẩm Thực để kích hoạt và bắt đầu sử dụng app. |
-| **Tiền điều kiện** | Camera được cấp quyền; QR code hợp lệ được đặt tại khu vực. |
-| **Hậu điều kiện** | App được kích hoạt, người dùng vào `MainPage` và bắt đầu trải nghiệm. |
+> **Nguyên tắc:** Mobile hoàn toàn anonymous. Không có login. Định danh qua `DeviceId` (GUID) sinh tự động và lưu trong `Preferences` (không phải SecureStorage).
 
-**Luồng chính:**
-1. Visitor mở `ScanPage`.
-2. Ứng dụng kích hoạt camera và nhận payload QR.
-3. Xác thực mã QR hợp lệ.
-4. Điều hướng vào `MainPage` để bắt đầu trải nghiệm.
+### 8.1 Khởi động & Routing (LoadingPage)
 
-**Luồng thay thế:**
-- **3a.** Payload QR dạng URL: trích xuất và xác thực tham số.
+**FR-M-01: Routing theo 3 trạng thái**
+- Đọc `Preferences.Get("device_id", null)` raw.
+- Nếu `device_id = null` → `//ScanPage` (app cài lần đầu).
+- Nếu có `device_id` → kiểm tra `QrService.IsAccessValid()`:
+  - QR hết hạn / không hợp lệ → `//ScanPage`.
+  - QR còn hạn → kiểm `LocalPreferenceService.Load()`:
+    - Có local preference → `//MainPage` (không gọi API, tối ưu cold start).
+    - Không có → gọi `GET /api/device-preference/{deviceId}`:
+      - API có → save local → `//MainPage`.
+      - API 404 → `LanguagePage` (relative route, không `//`).
 
-**Ngoại lệ:**
-- QR không hợp lệ → thông báo "Mã QR không hợp lệ".
-- Không có quyền camera → hướng dẫn cấp quyền.
+### 8.2 Quét QR (ScanPage)
 
----
+**FR-M-02: Quét QR qua camera hoặc chọn ảnh**
+- `ScanResultCommand` (ZXing scan camera) hoặc `PickImageFromGalleryCommand` (MediaPicker + ZXing decode).
+- Gọi `DeviceService.GetOrCreateDeviceId()` — đây là nơi sinh `device_id` lần đầu.
+- Gọi `POST /api/qrcodes/verify` với timeout 5 giây (khắt khe hơn HttpClient 10 giây).
 
-#### UC-M03 – Chọn ngôn ngữ & giọng đọc (DevicePreference)
+**FR-M-03: Xử lý kết quả verify**
+- Timeout / lỗi mạng → "Không thể kết nối".
+- API trả `isValid = false` → hiển thị message từ API (QR đã dùng / không tồn tại).
+- Thành công → `QrService.SaveAccess(expiryAt)` lưu `qr_verified` + `qr_expiry` → navigate `LanguagePage`.
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor (Anonymous) |
-| **Mô tả** | Visitor chọn ngôn ngữ và giọng đọc; hệ thống lưu preference theo `DeviceId` không yêu cầu đăng nhập. |
-| **Tiền điều kiện** | Có `DeviceId`; API ngôn ngữ và voice profile sẵn sàng. |
-| **Hậu điều kiện** | `DevicePreference` được lưu ở server và local, có hiệu lực toàn app. |
+### 8.3 Chọn ngôn ngữ & giọng đọc (LanguagePage)
 
-**Luồng chính:**
-1. Tải danh sách `Language` active từ `GET /api/languages/active`.
-2. Visitor chọn ngôn ngữ.
-3. Tải `TtsVoiceProfile` theo ngôn ngữ đã chọn.
-4. Visitor chọn giọng đọc.
-5. Gửi `POST /api/device-preference` lưu preference.
-6. Điều hướng vào `MainPage`.
+**FR-M-04: Load ngôn ngữ và giọng**
+- `GET /api/languages/active` qua `LanguageService` (cache 15 phút memory).
+- Khi chọn ngôn ngữ → `GET /api/tts-voice-profiles/active?languageId=...` qua `VoiceService`.
 
-**Luồng thay thế:**
-- **5a.** Mất mạng tạm thời: lưu local và đánh dấu pending sync.
-- **4a.** Chưa chọn voice: dùng voice mặc định theo ngôn ngữ.
+**FR-M-05: Lưu preference**
+- `POST /api/device-preference` (Upsert) với full payload: `deviceId, languageId, voiceId?, speechRate, autoPlay, platform, deviceModel, manufacturer, osVersion`.
+- **Local save tự động** bên trong overload `UpsertAsync(dto)` — ViewModel không phải gọi `LocalPreferenceService.Save` trực tiếp.
+- Navigate `//MapPage` sau khi lưu.
 
-**Ngoại lệ:**
-- API trả rỗng danh sách voice → fallback voice mặc định hệ thống.
+### 8.4 MainPage
 
----
+**FR-M-06: Bottom nav 3 nút + Đăng xuất**
+- `MapCommand` → `//MapPage`.
+- `ToursCommand` → `//TourListPage`.
+- `LanguageCommand` → `LanguagePage`.
+- `LogoutCommand` → `QrService.ClearAccess()` (chỉ xóa QR, giữ language/voice) → `//ScanPage`.
 
-#### UC-M04 – Hiển thị bản đồ tương tác & geofence
+**FR-M-07: Featured stalls**
+- PageSize = 3, paging client-side trên `_allStalls` lấy qua `StallService.GetAllStallsAsync()` (cache-first).
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Hiển thị bản đồ với vị trí hiện tại, pin gian hàng, vùng geofence, và tương tác chọn stall theo không gian thực. |
-| **Tiền điều kiện** | Đã cấp quyền vị trí; có dữ liệu `StallLocation`, `StallGeoFence`. |
-| **Hậu điều kiện** | Người dùng quan sát và tương tác được với các stall trên bản đồ. |
+### 8.5 Bản đồ (MapPage)
 
-**Luồng chính:**
-1. Mở `MapPage`.
-2. Lấy vị trí người dùng.
-3. Nạp danh sách stall từ cache/API.
-4. Render pin, geofence radius, user marker.
-5. Chạm pin để xem popup và hành động nhanh.
+**FR-M-08: State machine**
+- Enum `MapState { Uninitialized, Syncing, Loading, Ready, Error }`.
+- `EnsureReadyAsync(bool forceReload, CancellationToken ct)` guard bằng `SemaphoreSlim(1, 1)`.
+- `forceReload = false` (mặc định) → gọi `SyncService.EnsureSyncedAsync()` (chỉ sync nếu cache hết hạn).
+- `forceReload = true` (pull-to-refresh) → gọi `SyncService.SyncAsync()` force.
 
-**Luồng thay thế:**
-- **2a.** GPS yếu: sử dụng vị trí gần nhất đã biết.
-- **3a.** Offline: render dữ liệu từ SQLite cache.
+**FR-M-09: Cache-first 3 lớp**
+- Memory (10 phút) → SQLite (`stalls.db3` via `sqlite-net-pcl`) → API (`/api/geo/stalls?deviceId=X`).
+- `LocalStallRepository.UpsertBatchAsync` có diff check `HasChanged` trước khi ghi.
 
-**Ngoại lệ:**
-- Từ chối quyền GPS → hiển thị bản đồ tĩnh và danh sách stall gần khu vực mặc định.
+**FR-M-10: Subscribe 3 event Singleton**
+- `AudioGuideService.PlaybackCompleted` → trigger queue geofence tiếp theo.
+- `GpsPollingService.LocationUpdated` → gọi `GeofenceEngine.CheckAsync`.
+- `SyncService.AudioDownloaded` → refresh UI khi audio mới cache xong.
+- **Dispose** trong `MapPage.Unloaded` để unsubscribe → tránh memory leak (VM Transient, Service Singleton).
 
----
+**FR-M-11: Geofence auto-play**
+- `GeofenceEngine` là class thuần (không DI), owned bởi MapVM.
+- Haversine khoảng cách (bán kính Trái Đất 6,371,000m) so với `radiusMeters` (đơn vị mét).
+- State `_triggeredIds` tránh trigger lại cùng stall trong session.
+- Event `AutoPlayRequested: Func<GeoStallDto, Task>` awaitable (không fire-and-forget).
+- **Tour mode filter:** `SetActiveTour(IEnumerable<Guid>?)` — null = không filter; set = chỉ trigger stall trong tập này.
+- Nếu đang phát → enqueue; `PlaybackCompleted` fire → dequeue tiếp.
 
-#### UC-M05 – Tự động thuyết minh khi vào vùng geofence
+**FR-M-12: Tap pin → Popup → Play**
+- `OnPinClickedAsync` set `SelectedStall = stall`; geofence KHÔNG chạm `SelectedStall` (tách UI selection khỏi audio target — fix bug race).
+- Popup nhấn "Phát" → `await _vm.PlayStallAsync(stall)` (PlayStallAsync là Task thuần, awaitable).
+- `AudioCacheService.GetOrDownloadAsync(url, stallId, langCode)` tải MP3 về `{AppDataDirectory}/audio/{lang}/{stallId}.mp3` dùng HttpClient `"download"` timeout 30s.
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Ứng dụng tự động kích hoạt narration khi phát hiện người dùng đi vào geofence của stall, ưu tiên audio cache, fallback stream/TTS. |
-| **Tiền điều kiện** | Bật định vị; có geofence active; có `DevicePreference`; `AutoPlay = true`. |
-| **Hậu điều kiện** | Audio narration được phát đúng ngôn ngữ/voice hoặc có thông báo fallback phù hợp. |
+### 8.6 Tour Flow
 
-**Luồng chính:**
-1. Hệ thống nhận GPS update liên tục.
-2. Tính khoảng cách Haversine đến các stall.
-3. Phát hiện trạng thái vào geofence mới.
-4. Tìm audio theo `Language` + `Voice` đã chọn.
-5. Ưu tiên phát cache local, nếu thiếu thì stream từ URL.
-6. Lưu cache nền cho lần sử dụng tiếp theo.
+**FR-M-13: Tour list + detail**
+- `TourListPage` → `TourService.GetToursAsync()` — cache memory only 10 phút (không SQLite).
+- `TourDetailPage` qua `[QueryProperty("TourId", "tourId")]`.
 
-**Luồng thay thế:**
-- **4a.** `AutoPlay = false`: hiển thị CTA "Nghe ngay".
-- **4b.** Không có audio đúng voice: fallback audio active cùng ngôn ngữ.
-- **3a.** Trigger lặp liên tiếp: debounce chống phát trùng.
+**FR-M-14: Start tour**
+- `LocalPreferenceService.SetActiveTourId(id)` → `//MapPage?tourId={id}`.
+- `MapPage.OnAppearing` → `ResolveTourAsync()` đọc query hoặc fallback `GetActiveTourId()` — cho phép resume sau kill app.
+- `MapViewModel.SetActiveTourAsync(tourId)` → fetch detail → `GeofenceEngine.SetActiveTour(stallIds)` → raise `TourRouteChanged` event → MapPage vẽ polyline theo sequence stops.
 
-**Ngoại lệ:**
-- Audio URL lỗi/hết hạn → retry nhẹ và thông báo không gián đoạn.
+**FR-M-15: Progress & complete**
+- Mỗi stall trong tour được trigger → `AddCompletedStop(stallId)` (khóa `pref_tour_completed_stops`).
+- Khi đủ stop → `CompleteTourAsync()`: alert hoàn thành + `ClearTourProgress()` + `SetActiveTour(null)`.
 
----
+### 8.7 Background Sync & Offline
 
-#### UC-M06 – Xem danh sách gian hàng nổi bật (lọc & tìm kiếm)
+**FR-M-16: SyncBackgroundService**
+- 2 `PeriodicTimer` song song: `StallSyncInterval = 3 phút`, `FlushInterval = 20 giây`.
+- Piggyback `CheckResetFlagAsync` (GET `/api/device-preference/reset-flag`) ngay sau mỗi stall sync tick.
+- `ConnectivityChanged` → trigger sync ngay, capture local `_cts` trước khi dùng (tránh race với Stop).
+- `Start()` gọi `CleanupInternal()` chứ không `Stop()` (tránh gửi offline notify nhầm lúc restart).
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Hiển thị danh sách featured stalls theo chiến lược cache-first, hỗ trợ tìm kiếm theo từ khóa và lọc theo khoảng cách/trạng thái. |
-| **Tiền điều kiện** | Có dữ liệu cache hoặc API stall hoạt động bình thường. |
-| **Hậu điều kiện** | Danh sách hiển thị đúng tiêu chí người dùng chọn, cập nhật nhanh và ổn định. |
+**FR-M-17: Offline notify**
+- `Stop()` fire-and-forget `POST /api/device-preference/{deviceId}/offline` → API set `LastSeenAt = MinValue` để thiết bị rớt ngay khỏi active-devices list.
+- Trigger từ: `App.OnSleep`, `MapPage.OnDisappearing`, hoặc khi reset flag detected.
+- `App.OnResume` → `Start()` lại → tick đầu tiên khôi phục `LastSeenAt = now`.
 
-**Luồng chính:**
-1. Mở `MainPage`.
-2. Đọc danh sách từ SQLite để hiển thị tức thì.
-3. Đồng bộ nền từ `GET /api/geo/stalls?deviceId=...`.
-4. Visitor nhập từ khóa/chọn filter.
-5. Cập nhật danh sách và khoảng cách tương ứng.
+**FR-M-18: Reset flag**
+- Admin set cờ qua `POST /api/device-preference/{id}/reset`.
+- Mobile poll `GET /api/device-preference/reset-flag?deviceId=X` mỗi 3 phút.
+- API atomic: đọc cờ rồi set về false trong cùng response.
+- Nếu `true` → `Preferences.Clear()` (10 khóa) + xóa folder `audio/` + `GoToAsync("//LoadingPage")` → khách phải quét QR mới.
 
-**Luồng thay thế:**
-- **4a.** Không có kết quả: hiển thị trạng thái rỗng và gợi ý bỏ lọc.
-- **3a.** Chế độ offline: vẫn tìm kiếm trên dữ liệu local.
+### 8.8 GPS Batch Logging
 
-**Ngoại lệ:**
-- API timeout → giữ dữ liệu cache và cho phép thao tác liên tục.
+**FR-M-19: LocationLogService**
+- Buffer các điểm GPS in-memory.
+- Flush mỗi 20 giây: `POST /api/device-location-log/batch` với tối đa 500 điểm mỗi batch.
+- Mỗi point: `{lat, lng, accuracyMeters?, capturedAt}`.
+- API piggyback cập nhật `LastSeenAt` → nguồn heartbeat chính (cao tần hơn stall sync).
 
----
+### 8.9 Stall List Page
 
-#### UC-M07 – Xem chi tiết gian hàng
+**FR-M-20: Search + phân trang**
+- PageSize = 10.
+- `GetAllStallsAsync(forceRefresh: true)` mỗi lần load (known issue: bỏ qua cache).
+- `SearchText` setter trigger LoadStallsAsync mỗi lần gõ (known issue: chưa debounce).
+- Filter client-side trên `_allStalls`.
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Trình bày chi tiết gian hàng gồm thông tin mô tả, hình ảnh, vị trí, khoảng cách, và các nút hành động trọng yếu. |
-| **Tiền điều kiện** | Visitor đã chọn một stall hợp lệ. |
-| **Hậu điều kiện** | Visitor có đủ thông tin để nghe thuyết minh, chỉ đường, hoặc theo tour. |
+### 8.10 Yêu cầu chung Mobile
 
-**Luồng chính:**
-1. Visitor chọn stall từ danh sách/map/QR.
-2. Mở trang chi tiết stall.
-3. Hiển thị gallery, mô tả, địa chỉ, khoảng cách.
-4. Hiển thị nút: Nghe ngay, Chỉ đường, Theo tour.
-5. Visitor chọn hành động tiếp theo.
-
-**Luồng thay thế:**
-- **3a.** Gallery rỗng: hiển thị ảnh mặc định.
-- **3b.** Thiếu dữ liệu online: ghép thông tin từ cache local.
-
-**Ngoại lệ:**
-- Stall ngừng hoạt động sau sync: hiển thị trạng thái "Tạm ngừng".
+- HttpClient factory: `Default` + `"ApiHttp"` (BaseAddress, timeout 10s) cho REST; `"download"` (không BaseAddress, timeout 30s) cho audio.
+- DI: tất cả Service = **Singleton**, tất cả ViewModel/Page = **Transient**.
+- AppShell routes: `LoadingPage`, `ScanPage`, `MainPage`, `MapPage`, `StallListPage`, `TourListPage` là absolute (ShellContent); `LanguagePage`, `TourDetailPage` là relative qua `Routing.RegisterRoute`.
 
 ---
 
-#### UC-M08 – Phát audio thuyết minh thủ công
+## 9. Yêu cầu chức năng – Web Admin
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Visitor chủ động phát audio narration thủ công ngoài cơ chế geofence tự động. |
-| **Tiền điều kiện** | Stall có narration hợp lệ theo ngôn ngữ ưu tiên hoặc fallback. |
-| **Hậu điều kiện** | Audio phát thành công, hỗ trợ play/pause/stop, ghi nhận trạng thái player. |
+### 9.1 Xác thực (AuthController)
 
-**Luồng chính:**
-1. Visitor bấm "Nghe thuyết minh".
-2. Hệ thống xác định audio phù hợp preference.
-3. Kiểm tra cache local và phát nếu có.
-4. Nếu chưa có cache: stream từ URL và lưu cache nền.
-5. Cập nhật UI tiến trình phát.
+**FR-W-01:** Đăng nhập với email **hoặc** username — API so với cả `NormalizedEmail` và `NormalizedUserName`.
+**FR-W-02:** Đăng ký BusinessOwner (UserName, Email, Password, PhoneNumber).
+**FR-W-03:** Đăng xuất — xóa token/session-data (không revoke refresh token server-side).
 
-**Luồng thay thế:**
-- **2a.** Đổi ngôn ngữ/voice khi đang phát: tải nguồn mới và phát lại.
-- **4a.** Mất mạng giữa phiên: fallback đoạn cache sẵn có.
+**Cơ chế session:**
+- Token, refreshToken, userName, userRole, plan, planExpiresAt lưu trong `HttpContext.Session` (IdleTimeout 30 phút, HttpOnly, Secure, SameSite Strict).
+- `AuthTokenHandler` (DelegatingHandler) inject `Authorization: Bearer {token}` + `X-TimeZoneId: SE Asia Standard Time` vào mọi HttpClient outbound.
+- `TokenExpirationFilter` global check token còn hạn trước mỗi action non-public; hết hạn → gọi `RefreshAsync` hoặc redirect Login.
 
-**Ngoại lệ:**
-- Không tìm thấy audio khả dụng → hiển thị thông báo và đề xuất thử lại.
+### 9.2 Dashboard (AdminController)
 
----
+**FR-W-04:** `/Admin/Dashboard` — 9 API calls song song `Task.WhenAll`: business, stall, languages/active, narration content, users, qrcodes (total + used), subscription-orders (completed + recent).
 
-#### UC-M09 – Tính đường đi & chỉ đường (OSRM)
+### 9.3 Quản lý Business
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Tính tuyến đường từ vị trí hiện tại đến stall bằng dịch vụ OSRM, hỗ trợ hiển thị trực quan trên bản đồ. |
-| **Tiền điều kiện** | Có tọa độ hiện tại và tọa độ đích hợp lệ. |
-| **Hậu điều kiện** | Trả tuyến đường, khoảng cách và thời gian ước tính để điều hướng. |
+**FR-W-05..07:** CRUD Business với filter plan/search, Toggle Active.
+- Admin thấy tất cả; BusinessOwner chỉ thấy business của mình (API-side filter bằng `business.OwnerUserId == userId`).
 
-**Luồng chính:**
-1. Visitor chọn nút "Chỉ đường".
-2. Ứng dụng lấy điểm xuất phát và điểm đích.
-3. Gọi dịch vụ OSRM để tính route.
-4. Nhận polyline + metadata tuyến đường.
-5. Vẽ route và hiển thị thông tin hành trình.
+### 9.4 Quản lý Stall
 
-**Luồng thay thế:**
-- **2a.** GPS không ổn định: dùng vị trí gần nhất đã lưu.
-- **3a.** OSRM chậm: hiển thị loading + retry giới hạn.
+**FR-W-08..11:** CRUD Stall với filter business/search, Toggle Active. Tạo stall vượt giới hạn plan → API từ chối (trừ Admin).
 
-**Ngoại lệ:**
-- Không tìm được route phù hợp → chuyển hướng dẫn sang map cơ bản.
+### 9.5 Stall Location & GeoFence
 
----
+**FR-W-12..14:** CRUD StallLocation qua bản đồ Leaflet (CreateMap / EditMap). Admin chọn tọa độ bằng click hoặc drag marker, điều chỉnh `RadiusMeters` và địa chỉ.
 
-#### UC-M10 – Theo dõi và theo tour có sẵn
+**FR-W-15..17:** CRUD StallGeoFence (endpoint dùng `api/stall-geo-fence` chứ không phải `api/stall-geofence`).
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Cho phép visitor chọn và theo lộ trình tham quan đã định nghĩa sẵn, theo dõi tiến độ từng điểm dừng. |
-| **Tiền điều kiện** | Có dữ liệu tour và danh sách điểm dừng đã đồng bộ. |
-| **Hậu điều kiện** | Cập nhật trạng thái các điểm đã đi, hỗ trợ tiếp tục tour ở phiên sau. |
+### 9.6 Stall Media
 
-**Luồng chính:**
-1. Visitor mở danh sách tour.
-2. Chọn tour phù hợp nhu cầu.
-3. Hệ thống hiển thị điểm dừng theo thứ tự.
-4. Visitor di chuyển và check-in theo tuyến.
-5. Hệ thống cập nhật tiến độ hoàn thành tour.
+**FR-W-18..21:** Upload ảnh (multipart) qua `POST /api/stall-media/upload`, Update, Delete. Grid view với lọc stall + isActive.
 
-**Luồng thay thế:**
-- **4a.** Bỏ qua một điểm dừng: cho phép chuyển điểm kế tiếp.
-- **4b.** Rời tour tạm thời: lưu trạng thái để tiếp tục sau.
+### 9.7 Narration Content & Audio
 
-**Ngoại lệ:**
-- Dữ liệu tour lỗi hoặc thiếu điểm dừng: khóa nút bắt đầu tour và yêu cầu sync lại.
+**FR-W-22..26:** CRUD Narration Content với filter stall/language/isActive. Sau khi tạo/cập nhật → API tự set `TtsStatus = Pending` (nếu plan allow TTS).
 
----
+**FR-W-27: Theo dõi TTS real-time**
+- Trang `show.cshtml` polling `GET /Narration/TtsStatus/{id}` → API `GET /api/stall-narration-content/{id}/tts-status` khi `TtsStatus ∈ {Pending, Processing}`.
+- Dừng polling khi `Completed` / `Failed`.
+- Nếu `Failed` → hiện nút **Thử lại TTS** → `POST /api/stall-narration-content/{id}/retry-tts` reset về Pending.
 
-#### UC-M11 – Khám phá gian hàng gần nhất (Nearest Stall)
+**FR-W-28: Upload audio giọng người**
+- `PUT /api/narration-audio/{id}/upload` (multipart) — thay audio TTS bằng audio thật.
+- API cập nhật `AudioUrl`, `BlobId`, set `IsTts = false`, `Provider = "Human"`.
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Đề xuất stall gần người dùng nhất dựa trên dữ liệu vị trí thời gian thực. |
-| **Tiền điều kiện** | Có GPS; có dữ liệu stall với tọa độ hợp lệ. |
-| **Hậu điều kiện** | Hiển thị stall gần nhất kèm CTA: xem chi tiết, nghe ngay, chỉ đường. |
+### 9.8 Subscription & Payment
 
-**Luồng chính:**
-1. Visitor chọn "Khám phá gần tôi".
-2. Lấy vị trí hiện tại.
-3. Gọi `GET /api/geo/nearest-stall` hoặc tính cục bộ fallback.
-4. Trả kết quả stall gần nhất và khoảng cách.
-5. Hiển thị các hành động tương ứng.
+**FR-W-29:** `/Subscription/Plans` public — hiện 3 card Free/Basic/Pro. Pre-select business nếu login.
 
-**Luồng thay thế:**
-- **3a.** Nhiều stall có khoảng cách tương đương: ưu tiên stall active có audio đầy đủ.
+**FR-W-30:** `/Subscription/Checkout?plan=X[&businessId=Y]` — yêu cầu login + BusinessOwner/Admin. Alert đỏ + disable submit nếu business đang dùng plan cao hơn.
 
-**Ngoại lệ:**
-- Không có dữ liệu vị trí hợp lệ → hiển thị danh sách gợi ý theo khu vực mặc định.
+**FR-W-31: Mock payment**
+- POST `/Subscription/ProcessPayment` với `{businessId, plan, cardNumber, cardExpiry, cardCvv, cardHolder}`.
+- API strip spaces khỏi cardNumber, đúng 16 chữ số → `Completed`, sai → `Failed`.
+- Thành công → extend plan + cập nhật session `UserPlan` + `UserPlanExpiresAt` (badge sidebar cập nhật ngay).
 
----
+**FR-W-32: Lịch sử đơn (Admin only)**
+- `/Admin/SubscriptionOrders` với filter plan/status, phân trang.
+- Stats cards: TotalRevenue (chỉ Completed), TotalCompleted, TotalFailed.
 
-#### UC-M12 – Background Sync & chế độ Offline
+### 9.9 QR Code Management (Admin only)
 
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Hệ thống Mobile (tự động) + Visitor |
-| **Mô tả** | Đồng bộ dữ liệu định kỳ nền, duy trì tính sẵn sàng của danh sách stall, map, narration và audio cache khi mạng yếu/mất mạng. |
-| **Tiền điều kiện** | `SyncBackgroundService` hoạt động; local DB SQLite sẵn sàng. |
-| **Hậu điều kiện** | Dữ liệu local được cập nhật nhất quán; app hoạt động liên tục trong trạng thái offline. |
+**FR-W-33:** CRUD QR qua `/Admin/QrCodes` — tạo với `ValidDays` + note, xem ảnh PNG, xóa.
 
-**Luồng chính:**
-1. Ứng dụng mở màn hình và tải dữ liệu từ SQLite.
-2. Kích hoạt đồng bộ nền theo chu kỳ cấu hình (3 phút).
-3. Lấy dữ liệu mới/delta từ API.
-4. Upsert vào local database.
-5. Cập nhật UI và duy trì audio cache cho offline playback.
+**FR-W-34: Kiosk Auto QR**
+- `/Admin/AutoQr` — Admin nhập `ValidDays`, nhấn Bắt đầu.
+- JS gọi `POST /Admin/StartAutoQr` tạo mã đầu.
+- JS poll `GET /Admin/PollAutoQr?id=X&validDays=N` mỗi 2 giây.
+- Khi `IsUsed = true` → controller tự tạo mã mới ngay trong cùng response → JS thay QR trên màn hình.
 
-**Luồng thay thế:**
-- **2a.** Mạng yếu: tăng backoff và retry theo ngưỡng.
-- **5a.** Dung lượng thấp: dọn audio cache theo chính sách ưu tiên.
+### 9.10 Admin Subscription Management
 
-**Ngoại lệ:**
-- Lỗi DB cục bộ: khởi tạo lại kho dữ liệu local có kiểm soát.
-- Sync thất bại nhiều lần: ghi log, giữ nguyên dữ liệu cache trước đó.
+**FR-W-35:** `/Admin/Subscription` — Admin set plan + PlanExpiresAt cho bất kỳ business nào, không qua flow payment (không kiểm downgrade).
+
+### 9.11 Active Devices Tracking (Admin only)
+
+**FR-W-36:** `/Admin/ActiveDevices?withinSeconds=30` (default 30, clamp [10, 300]).
+- Render Razor lần đầu với data preload.
+- JS polling mỗi 5 giây `GET /Admin/ActiveDevicesData?withinSeconds=X`.
+- Dropdown 5 option: 30s / 60s / 120s / 180s / 300s — đổi trigger refresh ngay.
+- Nút Reset mỗi dòng thiết bị → `POST /Admin/ResetDevice` (AntiForgeryToken) → `POST /api/device-preference/{id}/reset`.
+
+### 9.12 Heatmap (Admin only)
+
+**FR-W-37:** `/Admin/Heatmap?from=&to=&deviceId=` — default `from = now - 7 days`, `to = now` (UTC).
+- `Task.WhenAll` load song song `GET /api/device-location-log/heatmap` + `GET /api/geo/stalls`.
+- Preload JSON (camelCase) vào biến `rawPoints` / `rawStalls` → render Leaflet + `leaflet.heat` plugin, gradient blue→cyan→lime→yellow→red.
+- Normalize weight về [0, 1] tránh outlier.
+- Stall overlay với circleMarker + vòng tròn `radiusMeters`.
+- Filter form dùng `method=get` reload toàn trang (không AJAX).
+- Server-side cap khoảng thời gian **tối đa 90 ngày**.
+
+### 9.13 Tour Management (Admin only)
+
+**FR-W-38:** `/Tour` — List tour với search/phân trang, Toggle Active, Delete.
+
+**FR-W-39: TourDesigner**
+- `/Tour/Designer` (tạo mới) hoặc `/Tour/Designer?id=X` (sửa).
+- Leaflet map với stall markers: xám = chưa thuộc tour, xanh = stop trong tour.
+- SortableJS drag-drop để đổi thứ tự stops trong sidebar.
+- Click marker xám thêm stop / click marker xanh bỏ stop.
+- `POST /Tour/Save?id={optional}` JSON body với `[ValidateAntiForgeryToken]`.
+
+### 9.14 User & Role Management (Admin only)
+
+**FR-W-40..43:** `/Admin/UserRoleManagement` — List users với phân trang/filter, Admin tạo user mới, đổi role, toggle active.
+- Admin không thể tự toggle hoặc đổi role chính mình (API check).
 
 ---
 
-#### UC-M13 – Quản lý Profile / Device Preferences
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Visitor |
-| **Mô tả** | Visitor quản lý cấu hình cá nhân gồm ngôn ngữ, giọng đọc, tốc độ nói (`SpeechRate`) và tự động phát (`AutoPlay`). |
-| **Tiền điều kiện** | Có `DeviceId` hợp lệ; tải được profile hiện tại. |
-| **Hậu điều kiện** | Thay đổi preference được lưu và áp dụng cho các luồng nghe thuyết minh kế tiếp. |
+## 10. Yêu cầu chức năng – API Backend
 
-**Luồng chính:**
-1. Visitor mở `ProfilePage`.
-2. Hệ thống tải `DevicePreference` hiện tại.
-3. Visitor cập nhật thông số mong muốn.
-4. Lưu preference lên API và local cache.
-5. Áp dụng ngay cho audio thủ công và geofence trigger.
+### 10.1 Authentication
 
-**Luồng thay thế:**
-- **4a.** Offline: lưu local và đợi đồng bộ nền.
-- **3a.** Đổi ngôn ngữ: tự động nạp lại danh sách voice tương thích.
+**FR-A-01..04:**
+- `POST /api/auth/register/business-owner` — hash BCrypt, tạo User + UserRole(BusinessOwner) + BusinessOwnerProfile.
+- `POST /api/auth/login` — chấp nhận email hoặc username; JWT 30 phút + RefreshToken 30 ngày (raw → client, SHA256 hash → DB).
+- `POST /api/auth/refresh` — hash raw token, validate, revoke token cũ, sinh cặp mới.
+- `POST /api/auth/logout` — revoke refresh token.
 
-**Ngoại lệ:**
-- Giá trị `SpeechRate` ngoài ngưỡng → từ chối lưu, yêu cầu chỉnh lại.
+### 10.2 Geo & Device (AllowAnonymous cho Mobile)
 
----
+**FR-A-05: GET /api/geo/stalls?deviceId=X**
+- Resolve ngôn ngữ qua `DevicePreference` → fallback `vi` → fallback ngôn ngữ active đầu tiên.
+- Filtered Include: chỉ kéo `StallNarrationContents` đúng ngôn ngữ + active.
+- `PickAudioUrl`: ưu tiên voice của device → audio TTS → bất kỳ audio có URL.
+- Output: `List<GeoStallDto>` mỗi stall 1 AudioUrl phù hợp nhất.
+- **Piggyback:** Cập nhật `LastSeenAt = now` cho DevicePreference tương ứng (ExecuteUpdateAsync không load entity).
 
-## 8. Yêu cầu chức năng – Web Admin (Admin & BusinessOwner)
+**FR-A-06: Active Devices (AdminOnly)**
+- `GET /api/geo/active-devices?withinSeconds=30` — clamp [10, 300].
+- Trả `ActiveDevicesSummaryDto {activeCount, withinSeconds, asOf, devices[]}`.
 
-### 8.1 Module Xác thực (AuthController)
+**FR-A-07: Device Preference CRUD (AllowAnonymous)**
+- `GET /{deviceId}` — detail với include Language + VoiceProfile.
+- `POST /` — upsert preference (insert hoặc update).
+- `GET /reset-flag?deviceId=X` — đọc `NeedsReset`, atomic clear nếu true.
+- `POST /{deviceId}/offline` — set `LastSeenAt = MinValue`.
+- `POST /{deviceId}/reset` — (AdminOnly) set `NeedsReset = true`.
 
-**FR-W-01: Đăng nhập**
-- Form đăng nhập với Email + Password.
-- Gọi `POST /api/auth/login` → nhận JWT token + refresh token.
-- Lưu token vào Session.
-- `AuthTokenHandler` tự động inject Bearer token vào mọi request API.
-- `TokenExpirationFilter` kiểm tra token còn hạn trước mỗi action → redirect login nếu hết hạn.
+**FR-A-08: Device Location Log**
+- `POST /api/device-location-log/batch` (AllowAnonymous) — max 500 điểm mỗi batch; piggyback cập nhật `LastSeenAt`.
+- `GET /api/device-location-log/heatmap?from=&to=&deviceId=` (AdminOnly) — group by `(Lat, Lng)` + count. Giới hạn 90 ngày. Default 7 ngày gần nhất.
 
-**FR-W-02: Đăng ký BusinessOwner**
-- Form đăng ký: UserName, Email, Password, PhoneNumber.
-- Gọi `POST /api/auth/register/business-owner`.
+### 10.3 QR Code
 
-**FR-W-03: Đăng xuất**
-- Gọi `POST /api/auth/logout` (revoke refresh token).
-- Xóa token khỏi Session, redirect về Login.
+**FR-A-09:** `POST /api/qrcodes/verify` (AllowAnonymous) — one-time use. Set `IsUsed=true`, `UsedAt=now`, `UsedByDeviceId`. Trả `{isValid, expiryAt}` với `expiryAt = UsedAt + ValidDays`.
 
-### 8.2 Module Quản lý Doanh nghiệp (BusinessController)
-
-**FR-W-04: CRUD Doanh nghiệp**
-- Xem danh sách doanh nghiệp (có phân trang).
-- Tạo mới / chỉnh sửa doanh nghiệp: Name, Description, liên hệ.
-- Xem chi tiết doanh nghiệp và danh sách gian hàng thuộc doanh nghiệp.
-
-### 8.3 Module Quản lý Gian hàng (StallController)
-
-**FR-W-05: CRUD Gian hàng**
-- Danh sách gian hàng có lọc theo Business, tìm kiếm theo tên.
-- Tạo mới / chỉnh sửa: Name, Slug (URL-friendly), Description, Phone, IsActive.
-- Xóa / vô hiệu hóa gian hàng.
-
-### 8.4 Module Quản lý Địa điểm & Geofence
-
-**FR-W-06: Quản lý tọa độ GPS (StallLocationController)**
-- Đặt tọa độ (Latitude, Longitude) cho từng gian hàng.
-- Hiển thị trực quan trên bản đồ (StallLocationMap view).
-
-**FR-W-07: Quản lý Geofence (StallGeoFenceController)**
-- Tạo / chỉnh sửa vùng geofence bán kính tròn (RadiusMeters) cho từng gian hàng.
-- Kích hoạt / vô hiệu hóa geofence (IsActive).
-- Xóa geofence.
+**FR-A-10:** CRUD QR (AdminOnly) — Create (auto generate code), List (filter used/unused), GetImage (PNG bytes via QRCoder), Delete.
 
-### 8.5 Module Quản lý Media (StallMediaController)
-
-**FR-W-08: Upload hình ảnh gian hàng**
-- Upload file ảnh (multipart/form-data) → lưu Azure Blob Storage.
-- Xem danh sách ảnh của gian hàng.
-- Xóa ảnh.
-
-### 8.6 Module Quản lý Nội dung Thuyết minh (NarrationController)
-
-**FR-W-09: CRUD Nội dung thuyết minh (StallNarrationContent)**
-- Xem danh sách nội dung thuyết minh theo gian hàng.
-- Tạo mới nội dung thuyết minh: chọn Gian hàng + Ngôn ngữ + TextContent (script).
-- Chỉnh sửa script thuyết minh.
-
-**FR-W-10: Dịch tự động nội dung**
-- Từ nội dung gốc (ví dụ tiếng Việt) → chọn ngôn ngữ đích → gọi Azure Translator → tạo bản dịch mới.
-- Nếu source = target language → bỏ qua dịch.
-
-**FR-W-11: Quản lý Audio (NarrationAudioController)**
-- **Upload audio thủ công:** Upload file audio (mp3/wav) → lưu Azure Blob.
-- **Sinh TTS tự động:** Từ TextContent + chọn giọng TTS → gọi Azure Speech → lưu Blob.
-- Xem danh sách audio của nội dung thuyết minh.
-- Chọn audio "active" làm audio mặc định cho nội dung (`StallAudioSelection`).
-- Xóa audio.
+### 10.4 Narration & Audio
 
-### 8.7 Module Quản lý Ngôn ngữ (Admin only)
+**FR-A-11..13: CRUD Narration Content**
+- Create/Update: validate plan allow TTS → set `TtsStatus = Pending` → `TtsBackgroundService` xử lý async.
+- Toggle status (`IsActive`).
+- `GET {id}/tts-status` trả `{TtsStatus, TtsError, Audios[]}` cho polling.
+- `POST {id}/retry-tts` reset `Pending` + clear error.
 
-**FR-W-12: CRUD Ngôn ngữ (LanguageController)**
-- Danh sách ngôn ngữ hỗ trợ.
-- Thêm ngôn ngữ mới: Code (vi, en, zh...), Name, FlagUrl.
-- Kích hoạt / vô hiệu hóa ngôn ngữ (IsActive).
-- Xóa ngôn ngữ (nếu không có dữ liệu liên quan).
-- **Chỉ role Admin** mới có quyền thực hiện.
-
-### 8.8 Module Quản trị hệ thống (Admin only)
-
-**FR-W-13: Quản lý người dùng (AdminController + UserController)**
-- Xem danh sách user.
-- Xem thông tin user và vai trò.
-- Gán / thu hồi vai trò (Admin only).
-
----
-
-## 9. Yêu cầu chức năng – API Backend
-
-### 9.1 Authentication & Authorization
-
-**FR-A-01: Đăng ký BusinessOwner**
-- `POST /api/auth/register/business-owner`
-- Input: `RegisterBusinessOwnerDto` (userName, email, password, phoneNumber)
-- Validate email chưa tồn tại, hash password BCrypt, tạo User + UserRole(BusinessOwner) + BusinessOwnerProfile.
-- Output: `ApiResult<RegisterResponseDto>`
-
-**FR-A-02: Đăng nhập**
-- `POST /api/auth/login`
-- Input: `LoginRequestDto` (email, password)
-- Validate credentials (BCrypt.Verify), sinh JWT (30 phút) + Refresh Token (30 ngày, hash SHA256, lưu DB).
-- Output: `ApiResult<LoginResponseDto>` (token, refreshToken, expiresAt, userId, userName, roles)
-
-**FR-A-03: Refresh Token**
-- `POST /api/auth/refresh`
-- Input: `RefreshTokenRequestDto` (refreshToken)
-- Validate hash, kiểm tra IsRevoked và ExpiresAt → sinh token mới.
-
-**FR-A-04: Logout**
-- `POST /api/auth/logout`
-- Input: `LogoutRequestDto` (refreshToken)
-- Revoke refresh token (IsRevoked = true).
-
-### 9.2 Geo Service (AllowAnonymous)
-
-**FR-A-05: Lấy tất cả gian hàng**
-- `GET /api/geo/stalls?deviceId={deviceId}`
-- Lấy tất cả stall có `IsActive = true`, kèm tọa độ, geofence, narration content.
-- Nếu có `deviceId` → tìm `DevicePreference` → lọc/ưu tiên audio theo ngôn ngữ của device.
-- Nếu không có `deviceId` hoặc không tìm thấy preference → fallback ngôn ngữ `vi`.
-- Output: `ApiResult<List<GeoStallDto>>`
-
-**FR-A-06: Tìm gian hàng gần nhất**
-- `GET /api/geo/nearest-stall?lat={lat}&lng={lng}&langCode={code}&radius={meters}`
-- Tính khoảng cách Haversine từ tọa độ input đến tất cả stall.
-- Lọc stall trong bán kính radius (nếu truyền), trả về gian hàng gần nhất.
-- Output: `ApiResult<GeoNearestStallDto>`
-
-### 9.3 Device Preference (AllowAnonymous)
-
-**FR-A-07: Lưu preference thiết bị**
-- `POST /api/device-preference` (Upsert)
-- Input: `DevicePreferenceUpsertDto` (deviceId, languageId, ttsVoiceProfileId)
-- Tạo mới hoặc cập nhật DevicePreference theo DeviceId.
-
-**FR-A-08: Lấy preference thiết bị**
-- `GET /api/device-preference/{deviceId}`
-- Trả về `DevicePreferenceDetailDto` hoặc 404 nếu chưa có.
-
-### 9.4 Narration Audio Service
-
-**FR-A-09: Sinh TTS tự động**
-- Input: `NarrationAudioCreateDto` với Source = "TTS", NarrationContentId, TtsVoiceProfileId.
-- Lấy TextContent từ NarrationContent.
-- Gọi Azure Cognitive Services Speech API với VoiceName từ TtsVoiceProfile.
-- Upload audio stream → Azure Blob Storage (container: `narration-audio`).
-- Lưu NarrationAudio với BlobUrl.
-
-**FR-A-10: Upload audio thủ công**
-- Input: multipart/form-data với file audio + NarrationContentId.
-- Upload file → Azure Blob Storage.
-- Lưu NarrationAudio với Source = "Upload".
-
-### 9.5 Pagination
-
-**FR-A-11: Phân trang**
-- Tất cả list endpoints hỗ trợ phân trang.
-- Query params: `page` (default 1), `pageSize` (default 10, max 100).
-- Output wrapper: `PagedResult<T>` (items, page, pageSize, totalCount).
-
----
-
-## 10. Luồng người dùng (User Flows)
-
-### 10.1 Flow chính – Khách tham quan (lần đầu)
-
-```
-[Mở App]
-    │
-    ▼
-[StartPage] ──── Đã có DevicePreference? ──── CÓ ──→ [MapPage]
-    │                                          
-   KHÔNG
-    │
-    ▼
-[LanguagePage]
-  Gọi GET /api/languages/active
-  Hiển thị danh sách ngôn ngữ
-  User chọn ngôn ngữ
-    │
-    ▼
-[VoicePage]
-  Gọi GET /api/tts-voice-profiles?languageId=X
-  Hiển thị danh sách giọng đọc
-  User chọn giọng
-  Gọi POST /api/device-preference (upsert)
-    │
-    ▼
-[MapPage]
-  Đọc SQLite (cache) → hiển thị ngay
-  Async: GET /api/geo/stalls?deviceId=X → upsert SQLite
-  Hiển thị bản đồ + pins + geofence circles
-    │
-    ▼
-[User tap gian hàng] → [StallPopup]
-  Hiển thị thông tin + text thuyết minh + audio controls
-    │
-    ▼
-[Play Audio]
-  Ưu tiên: local cache → stream URL
-  Controls: Play / Pause / Stop
-```
-
-### 10.2 Flow Quét QR
-
-```
-[ScanPage]
-  Camera → ZXing quét QR
-  Decode → StallId hoặc Slug
-    │
-    ▼
-[Tìm trong danh sách stall]
-  Nếu tìm thấy → Focus trên MapPage + mở StallPopup
-  Nếu không tìm thấy → Thông báo lỗi
-```
-
-### 10.3 Flow Background Sync
-
-```
-[SyncBackgroundService]
-  Timer 3 phút HOẶC Connectivity thay đổi (offline→online)
-    │
-    ▼
-[SyncService.SyncAsync()]
-  GET /api/geo/stalls?deviceId=X
-    │
-    ▼
-  LocalStallRepository.UpsertBatchAsync(stalls) → SQLite
-    │
-    ▼
-  AudioCacheService.DownloadAsync(audioUrls) → Local files
-    │
-    ▼
-  Notify MapViewModel → Refresh UI (nếu app đang foreground)
-```
-
-### 10.4 Flow Admin – Tạo nội dung thuyết minh có audio TTS
-
-```
-[Web Admin – NarrationController]
-  1. Chọn Gian hàng
-  2. Nhập TextContent (script tiếng Việt)
-  3. POST /api/stall-narration-content → tạo NarrationContent (vi)
-     │
-     ▼
-  4. (Tùy chọn) Dịch tự động: chọn ngôn ngữ đích
-     POST /api/stall-narration-content (với dịch từ Azure Translator)
-     → tạo NarrationContent (en/zh/...)
-     │
-     ▼
-  5. Sinh TTS: chọn NarrationContent + TtsVoiceProfile
-     POST /api/narration-audio (source=TTS)
-     → Azure Speech API → Azure Blob Storage
-     → lưu NarrationAudio với BlobUrl
-     │
-     ▼
-  6. Chọn audio active (StallAudioSelection)
-     → audio này được trả về trong GeoStallDto.AudioUrl
-```
-
----
-
-## 11. API Endpoints chính
-
-### 11.1 Authentication
-
-| Method | Endpoint | Auth | Mô tả |
-|--------|----------|------|-------|
-| POST | `/api/auth/register/business-owner` | Anonymous | Đăng ký BusinessOwner |
-| POST | `/api/auth/login` | Anonymous | Đăng nhập → JWT + RefreshToken |
-| POST | `/api/auth/refresh` | Anonymous | Refresh JWT |
-| POST | `/api/auth/logout` | [Authorize] | Logout, revoke RefreshToken |
-
-### 11.2 Geo (AllowAnonymous)
-
-| Method | Endpoint | Auth | Mô tả |
-|--------|----------|------|-------|
-| GET | `/api/geo/stalls?deviceId=` | Anonymous | Tất cả stall + narration content |
-| GET | `/api/geo/nearest-stall?lat=&lng=&langCode=&radius=` | Anonymous | Gian hàng gần nhất |
-
-### 11.3 Device Preference (AllowAnonymous)
-
-| Method | Endpoint | Auth | Mô tả |
-|--------|----------|------|-------|
-| POST | `/api/device-preference` | Anonymous | Upsert preference theo DeviceId |
-| GET | `/api/device-preference/{deviceId}` | Anonymous | Lấy preference của device |
-
-### 11.4 Business & Stalls
-
-| Method | Endpoint | Auth | Mô tả |
-|--------|----------|------|-------|
-| GET | `/api/business` | [Authorize] | Danh sách doanh nghiệp |
-| POST | `/api/business` | [Authorize] | Tạo doanh nghiệp |
-| PUT | `/api/business/{id}` | [Authorize] | Cập nhật doanh nghiệp |
-| GET | `/api/stall` | [Authorize] | Danh sách gian hàng |
-| POST | `/api/stall` | [Authorize] | Tạo gian hàng |
-| PUT | `/api/stall/{id}` | [Authorize] | Cập nhật gian hàng |
-| GET | `/api/stall-location` | [Authorize] | Tọa độ GPS |
-| POST | `/api/stall-location` | [Authorize] | Tạo/cập nhật tọa độ |
-| GET | `/api/stall-geofence` | [Authorize] | Danh sách geofence |
-| POST | `/api/stall-geofence` | [Authorize] | Tạo geofence |
-| PUT | `/api/stall-geofence/{id}` | [Authorize] | Cập nhật geofence |
-| DELETE | `/api/stall-geofence/{id}` | [Authorize] | Xóa geofence |
-| POST | `/api/stall-media` | [Authorize] | Upload ảnh gian hàng |
-| GET | `/api/stall-media?stallId=` | [Authorize] | Danh sách ảnh |
-
-### 11.5 Narration & Audio
-
-| Method | Endpoint | Auth | Mô tả |
-|--------|----------|------|-------|
-| GET | `/api/stall-narration-content` | [Authorize] | Danh sách nội dung thuyết minh |
-| POST | `/api/stall-narration-content` | [Authorize] | Tạo nội dung (+ tùy chọn dịch tự động) |
-| PUT | `/api/stall-narration-content/{id}` | [Authorize] | Cập nhật nội dung |
-| GET | `/api/narration-audio` | [Authorize] | Danh sách audio |
-| POST | `/api/narration-audio` | [Authorize] | Upload hoặc sinh TTS |
-| PUT | `/api/narration-audio/{id}` | [Authorize] | Cập nhật audio |
-
-### 11.6 Languages & Voices (Admin)
-
-| Method | Endpoint | Auth | Mô tả |
-|--------|----------|------|-------|
-| GET | `/api/languages` | [Authorize] | Danh sách ngôn ngữ |
-| GET | `/api/languages/active` | Anonymous | Ngôn ngữ đang active |
-| POST | `/api/languages` | [Authorize(Admin)] | Tạo ngôn ngữ |
-| PUT | `/api/languages/{id}` | [Authorize(Admin)] | Cập nhật ngôn ngữ |
-| DELETE | `/api/languages/{id}` | [Authorize(Admin)] | Xóa ngôn ngữ |
-| GET | `/api/tts-voice-profiles?languageId=` | [Authorize] | Giọng đọc theo ngôn ngữ |
-
-### 11.7 Response Wrapper chuẩn
+**FR-A-14: TTS Background Service**
+- `PeriodicTimer(5s)` poll DB.
+- Reset stale jobs: `TtsStatus = Processing` AND `UpdatedAt < now - 10min` → về Pending.
+- Claim batch 5 job Pending cũ nhất → set Processing (commit trước khi gọi Azure).
+- Gọi `NarrationAudioService.CreateOrUpdateFromTtsAsync`: dịch (nếu cần) → Azure Speech → Azure Blob → upsert `NarrationAudio`.
+- Kết quả: `Completed` hoặc `Failed` (max 500 ký tự TtsError).
+
+**FR-A-15: Upload audio giọng người**
+- `PUT /api/narration-audio/{id}/upload` (multipart) — validate content type audio; upload Azure Blob; set `IsTts = false`, `Provider = "Human"`.
+
+### 10.5 Subscription Order
+
+**FR-A-16:** `POST /api/subscription-orders` (AdminOrBusinessOwner) — validate plan Basic/Pro, check downgrade, mock payment 16-digit, extend plan logic, save order + update business.
+
+**FR-A-17:** `GET /api/subscription-orders` (AdminOnly) — list với filter plan/status/businessId.
+
+### 10.6 Tour
+
+**FR-A-18: Public endpoints (AllowAnonymous)**
+- `GET /api/tours` — non-Admin force `IsActive=true`.
+- `GET /api/tours/{id}` — tour inactive trả 404 cho non-Admin.
+
+**FR-A-19: Admin CRUD**
+- `POST /api/tours` (AdminOnly) — validate Stops không rỗng, không trùng StallId, StallId tồn tại, Name unique. Re-index `Order` 1..N.
+- `PUT /api/tours/{id}` — full replace stops (DELETE + re-insert).
+- `DELETE /api/tours/{id}` — cascade xóa stops.
+- `PATCH /api/tours/{id}/toggle-active`.
+- `POST /api/tours/{id}/stops/reorder` — validate `Count` match + `SetEquals` StallIds + re-index 1..N.
+
+### 10.7 Business, Stall, Media, Location, GeoFence
+
+**FR-A-20..24:** CRUD chuẩn với phân quyền `[Authorize]` policy-based + check ownership cho BusinessOwner trong service layer.
+
+### 10.8 Language, Voice, User (Admin)
+
+**FR-A-25:** Language CRUD (AdminOnly) — seed cứng ở migration, chưa có CRUD admin UI.
+
+**FR-A-26:** `GET /api/tts-voice-profiles/active?languageId=X` (AllowAnonymous) — hiện chỉ có 1 action này.
+
+**FR-A-27:** User Management (AdminOnly / self) — list, detail, create, toggle-active, update role.
+
+### 10.9 Response Format chuẩn
 
 ```json
 // Thành công
-{
-  "success": true,
-  "data": { ... },
-  "error": null
-}
+{ "success": true, "data": { ... }, "error": null }
 
 // Lỗi
 {
   "success": false,
   "data": null,
-  "error": {
-    "code": "STALL_NOT_FOUND",
-    "message": "Gian hàng không tồn tại",
-    "field": null
-  }
+  "error": { "code": "Validation", "message": "...", "field": "Name" }
 }
 
-// Danh sách có phân trang
+// List có phân trang
 {
   "success": true,
   "data": {
     "items": [ ... ],
     "page": 1,
-    "pageSize": 10,
+    "pageSize": 20,
     "totalCount": 45
   }
 }
 ```
+
+---
+
+## 11. API Endpoints
+
+### 11.1 Authentication (`api/auth`)
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `register/business-owner` | Anonymous |
+| POST | `login` | Anonymous |
+| POST | `refresh` | Anonymous |
+| POST | `logout` | [Authorize] |
+
+### 11.2 Geo & Device (`api/geo`, `api/device-preference`, `api/device-location-log`)
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `api/geo/stalls?deviceId=` | Anonymous |
+| GET | `api/geo/active-devices?withinSeconds=` | AdminOnly |
+| GET | `api/device-preference/{deviceId}` | Anonymous |
+| POST | `api/device-preference` | Anonymous |
+| GET | `api/device-preference/reset-flag?deviceId=` | Anonymous |
+| POST | `api/device-preference/{deviceId}/offline` | Anonymous |
+| POST | `api/device-preference/{deviceId}/reset` | AdminOnly |
+| POST | `api/device-location-log/batch` | Anonymous |
+| GET | `api/device-location-log/heatmap?from=&to=&deviceId=` | AdminOnly |
+
+### 11.3 QR Code (`api/qrcodes`)
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `api/qrcodes` | AdminOnly |
+| POST | `api/qrcodes` | AdminOnly |
+| GET | `api/qrcodes/{id}` | AdminOnly |
+| GET | `api/qrcodes/{id}/image` | AdminOnly |
+| DELETE | `api/qrcodes/{id}` | AdminOnly |
+| POST | `api/qrcodes/verify` | Anonymous |
+
+### 11.4 Business & Stall (`api/business`, `api/stall`, `api/stall-location`, `api/stall-geo-fence`, `api/stall-media`)
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET / POST / GET{id} / PUT{id} / PATCH{id}/toggle-active | `api/business` | [Authorize] |
+| PUT | `api/business/{id}/subscription` | AdminOnly |
+| GET / POST / GET{id} / PUT{id} / PATCH{id}/toggle-active | `api/stall` | [Authorize] |
+| GET / POST / GET{id} / PUT{id} / PATCH{id}/toggle-active | `api/stall-location` | [Authorize] |
+| GET / POST / GET{id} / PUT{id} | `api/stall-geo-fence` | [Authorize] |
+| GET / POST upload / GET{id} / PUT{id} / PUT{id}/upload / DELETE{id} | `api/stall-media` | [Authorize] |
+
+### 11.5 Narration & Audio
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET / POST / GET{id} / PUT{id} / PATCH{id}/status | `api/stall-narration-content` | [Authorize] |
+| GET | `api/stall-narration-content/{id}/tts-status` | [Authorize] |
+| POST | `api/stall-narration-content/{id}/retry-tts` | [Authorize] |
+| PUT | `api/narration-audio/{id}/upload` | AdminOrBusinessOwner |
+
+### 11.6 Subscription & Tours
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `api/subscription-orders` | AdminOrBusinessOwner |
+| GET | `api/subscription-orders` | AdminOnly |
+| GET | `api/tours` | Anonymous |
+| GET | `api/tours/{id}` | Anonymous |
+| POST / PUT{id} / DELETE{id} / PATCH{id}/toggle-active / POST{id}/stops/reorder | `api/tours` | AdminOnly |
+
+### 11.7 Languages, Voice, Users
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `api/languages` | AdminOnly |
+| GET | `api/languages/active` | Anonymous |
+| POST / PUT{id} / DELETE{id} | `api/languages` | AdminOnly |
+| GET | `api/tts-voice-profiles/active?languageId=` | Anonymous |
+| GET / POST / GET{id} / PATCH{id}/toggle-active / PUT{id}/role | `api/user` | [Authorize] (check IsAdmin trong action) |
+| GET | `api/user/roles` | [Authorize] |
 
 ---
 
@@ -1152,139 +896,218 @@ flowchart LR
 
 | Thuộc tính | Giá trị |
 |-----------|---------|
-| **Mục đích** | Tự động sinh file audio từ text script |
-| **Endpoint** | `https://eastasia.api.cognitive.microsoft.com/` |
-| **Giọng mặc định** | `vi-VN-HoaiMyNeural` |
-| **SDK** | `Microsoft.CognitiveServices.Speech 1.48.2` |
-| **Output** | Audio stream → upload Azure Blob |
+| Mục đích | Tự sinh audio từ script text |
+| Endpoint | `https://eastasia.api.cognitive.microsoft.com/` |
+| Giọng mặc định | `vi-VN-HoaiMyNeural` |
+| SDK | `Microsoft.CognitiveServices.Speech 1.48.2` |
+| Output | `.wav` → upload Azure Blob |
+| Gọi từ | `TtsBackgroundService` (không gọi trong HTTP request) |
 
 ### 12.2 Azure Blob Storage
 
 | Thuộc tính | Giá trị |
 |-----------|---------|
-| **Mục đích** | Lưu trữ file audio thuyết minh và hình ảnh gian hàng |
-| **Container audio** | `narration-audio` |
-| **SDK** | `Azure.Storage.Blobs 12.25.0` |
-| **Access** | URL công khai (Azure Blob URL trả cho Mobile) |
+| Mục đích | Lưu audio và ảnh gian hàng |
+| Container audio | `narration-audio` |
+| Access | **`PublicAccessType.Blob`** — URL public, ai có URL đều download được (⚠️ xem §16) |
+| SDK | `Azure.Storage.Blobs 12.25.0` |
 
 ### 12.3 Azure Translator
 
 | Thuộc tính | Giá trị |
 |-----------|---------|
-| **Mục đích** | Dịch nội dung thuyết minh sang ngôn ngữ khác |
-| **Endpoint** | `https://api.cognitive.microsofttranslator.com` |
-| **Version** | v3.0 |
-| **Logic** | Bỏ qua nếu source language = target language |
+| Mục đích | Dịch nội dung thuyết minh |
+| Endpoint | `https://api.cognitive.microsofttranslator.com` |
+| Version | v3.0 |
+| Logic | Bỏ qua nếu source = target language code |
+| Gọi từ | `NarrationAudioService.CreateOrUpdateFromTtsAsync` trước khi tổng hợp giọng |
 
-### 12.4 Mapsui / OpenStreetMap (Mobile)
+### 12.4 Mapsui + OpenStreetMap (Mobile)
 
 | Thuộc tính | Giá trị |
 |-----------|---------|
-| **Mục đích** | Hiển thị bản đồ tương tác |
-| **NuGet** | `Mapsui.Maui 5.0.2` |
-| **Tile source** | OpenStreetMap (không cần API key) |
-| **Đặc điểm** | Vẽ geofence circle bằng SkiaSharp + NTS geometry |
+| NuGet | `Mapsui.Maui 5.0.2` |
+| Tile | OpenStreetMap (không cần API key) |
+| Vẽ geofence | SkiaSharp circles + NTS geometry |
+
+### 12.5 Leaflet + leaflet.heat (Web)
+
+- CDN: `cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/` + `cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/`
+- OSM tiles, dùng cho TourDesigner, StallLocationMap, Heatmap, ActiveDevices.
 
 ---
 
-## 13. Yêu cầu phi chức năng
+## 13. Phân quyền & Bảo mật
 
-### 13.1 Hiệu năng
+### 13.1 Policies
+
+Định nghĩa trong `Program.cs`, hằng số trong `Api/Authorization/AppPolicies.cs`:
+
+| Policy | Hằng số | Roles |
+|--------|---------|-------|
+| `AdminOnly` | `AppPolicies.AdminOnly` | `Admin` |
+| `AdminOrBusinessOwner` | `AppPolicies.AdminOrBusinessOwner` | `Admin`, `BusinessOwner` |
+
+### 13.2 AppControllerBase Helpers
+
+- `TryGetUserId(out Guid)` — lấy `NameIdentifier` từ JWT.
+- `IsAdmin()`, `IsBusinessOwner()`.
+- `GetTimeZone()` — đọc header `X-TimeZoneId`, fallback `SE Asia Standard Time`.
+- `ConvertFromUtc(...)` — convert UTC → timezone client.
+
+### 13.3 Ownership check
+
+BusinessOwner chỉ thao tác dữ liệu của business mình — service/controller `.Include(s => s.Business)` rồi check `business.OwnerUserId == userId`.
+
+### 13.4 Anonymous endpoints (Mobile)
+
+`GeoController.GetAllStalls`, `DevicePreferenceController` (hầu hết), `DeviceLocationLogController.BatchCreate`, `QrCodeController.VerifyQrCode`, `TourController.GetTours` / `GetTourDetail`, `TtsVoiceProfileController.GetActive`, `LanguageController.GetActive` — Mobile gọi không có JWT.
+
+### 13.5 Security settings
+
+- Password: `BCrypt.Net-Next 4.1.0` adaptive hashing.
+- JWT: HS256, `ClockSkew = Zero`, key từ `appsettings.Jwt.Key`.
+- Refresh Token: 64 byte random base64 → SHA256 hash → lưu DB. Raw gửi cho client.
+- Web session: `HttpOnly`, `Secure`, `SameSite = Strict`, `IdleTimeout = 30 min`.
+- CSRF: `[ValidateAntiForgeryToken]` trên mọi form POST (`ResetDevice`, `ToggleActive`, `Delete`, `StartAutoQr`, `Tour/Save`, ...).
+- HTTPS bắt buộc trên production.
+- Azure keys trong `appsettings.json` (không commit key vào Git — dùng User Secrets / Azure Key Vault cho production).
+
+---
+
+## 14. Yêu cầu phi chức năng
+
+### 14.1 Hiệu năng
 
 | Yêu cầu | Mục tiêu |
 |---------|---------|
-| API response time | < 500ms cho Geo endpoints, < 1s cho CRUD |
-| Mobile app startup | < 3 giây đến màn hình bản đồ |
-| Audio playback | Bắt đầu phát trong < 2 giây |
-| SQLite read | < 100ms (instant UX) |
-| Pagination | Tối đa 100 items/trang |
+| API response (Geo endpoints) | < 500ms |
+| API response (CRUD) | < 1s |
+| Mobile cold start đến MapPage | < 3s (khi có local cache) |
+| Audio playback start | < 2s (từ cache local); < 5s (stream Blob) |
+| SQLite read | < 100ms |
+| Pagination max | 100 items/trang |
+| Heatmap max range | 90 ngày |
+| GPS batch max | 500 điểm |
 
-### 13.2 Độ tin cậy (Reliability)
+### 14.2 Độ tin cậy
 
-- App Mobile không crash khi mất kết nối mạng (offline mode với SQLite).
-- API trả structured error response (`ApiResult<T>`) thay vì unhandled exceptions.
-- Refresh token 30 ngày đảm bảo Web Admin không bị logout đột ngột.
-- EF Core InMemory fallback cho dev/test khi không có SQL Server.
+- Mobile không crash khi mất mạng (cache SQLite + xử lý null API).
+- API trả `ApiResult<T>` structured error, không expose stack trace.
+- Refresh token 30 ngày giữ Web Admin không logout bất ngờ.
+- TTS job stale (`Processing > 10 phút`) tự động reset về `Pending` khi API restart.
+- `SyncService.IsSyncing` atomic qua `Interlocked.CompareExchange` — tránh race khi nhiều tick trùng nhau.
 
-### 13.3 Bảo mật
+### 14.3 Khả năng mở rộng
 
-| Yêu cầu | Cách thực hiện |
-|---------|---------------|
-| Password hashing | BCrypt.Net-Next (adaptive hashing) |
-| JWT signing | HS256, secret key từ config |
-| Refresh token | Hash SHA256 lưu DB, không lưu plain text |
-| Authorization | [Authorize] mặc định, explicit [AllowAnonymous] cho public endpoints |
-| HTTPS | Bắt buộc trên production |
-| Azure keys | Lưu trong appsettings (không commit key vào Git) |
-
-### 13.4 Khả năng mở rộng (Scalability)
-
-- API stateless (JWT-based) → scale horizontal dễ dàng.
-- Audio và media lưu Azure Blob → không phụ thuộc local disk.
-- SQLite cache trên Mobile → giảm tải API.
+- API stateless (JWT) → scale horizontal dễ.
+- Audio/media ở Azure Blob → không phụ thuộc local disk.
+- SQLite cache Mobile giảm tải API.
 - Pagination trên tất cả list endpoints.
+- TTS queue trong DB — thêm instance API là thêm worker (⚠️ race condition với multi-instance hiện chưa fix — xem §16).
 
-### 13.5 Khả năng bảo trì (Maintainability)
+### 14.4 Maintainability
 
-- Không dùng AutoMapper → mapping rõ ràng trong Service layer.
-- Shared DTOs tránh trùng lặp code giữa API/Web/Mobile.
-- EF Core Fluent API configuration tách riêng trong `Configurations/`.
-- Structured logging với `ILogger<T>` trên tất cả services.
-- Swagger/OpenAPI documentation tự động (Development only): `http://localhost:5299/swagger`.
+- Không dùng AutoMapper — mapping rõ ràng trong Service layer.
+- Shared DTOs dùng chung cho 3 project.
+- EF Core Fluent API tách riêng trong `Configurations/`.
+- Query Extensions cho các query lặp lại trong `Infrastructure/Persistence/Extensions/`.
+- `ILogger<T>` structured logging.
+- Swagger Development only: `http://localhost:5299/swagger`.
 
-### 13.6 Nền tảng hỗ trợ (Mobile)
+### 14.5 Nền tảng Mobile
 
-| Nền tảng | Version tối thiểu |
-|---------|-----------------|
-| Android | API 21 (Android 5.0+) |
+| Nền tảng | Version |
+|---------|---------|
+| Android | API 21+ (Android 5.0+) |
 | iOS | 15.0+ |
 | Windows | 10.0.17763.0+ |
 | macOS Catalyst | 15.0+ |
 
 ---
 
-## 14. Quyết định kỹ thuật quan trọng
-
-> Những quyết định này đã được xác nhận và **không thay đổi** trong phạm vi hiện tại.
+## 15. Quyết định kỹ thuật chính
 
 | Quyết định | Lý do |
 |-----------|-------|
-| **Không dùng AutoMapper** | Mapping thủ công trong Service layer – kiểm soát rõ ràng, tránh magic |
-| **Không dùng Google Maps** | Dùng Mapsui (OpenStreetMap) – miễn phí, không cần API key |
-| **Không dùng Google TTS / AWS S3** | Toàn bộ Azure ecosystem (Speech + Blob + Translator) – nhất quán, 1 nhà cung cấp |
-| **Không dùng SQL Server GEOGRAPHY type** | Tính khoảng cách bằng Haversine thuần C# – đơn giản, portable |
-| **Target .NET 10.0** | Phiên bản mới nhất, LTS; không dùng net8.0/net9.0 |
-| **Timezone SE Asia Standard Time** | Múi giờ Việt Nam (UTC+7) |
-| **Mobile không cần đăng nhập** | Visitor là anonymous hoàn toàn; DeviceId thay thế user account |
-| **Cache-First + SQLite** | Đảm bảo UX mượt mà và offline support |
-| **DeviceId qua SecureStorage** | Định danh ẩn danh bền vững giữa các phiên, không cần tài khoản |
-| **Haversine formula** | Tính khoảng cách 2 điểm GPS trên trái đất (đủ chính xác cho scale khu phố) |
+| **Không AutoMapper** | Mapping thủ công trong Service, kiểm soát rõ ràng |
+| **Mapsui + OSM** (không Google Maps) | Miễn phí, không cần API key |
+| **Azure Stack** (Speech + Blob + Translator) | Một nhà cung cấp, nhất quán |
+| **Không SQL GEOGRAPHY** | Haversine C# đủ chính xác cho scale khu phố |
+| **.NET 10.0** | Phiên bản mới nhất |
+| **Timezone SE Asia Standard Time** | UTC+7, client truyền qua header `X-TimeZoneId` |
+| **Mobile anonymous** | Visitor không có tài khoản; QR + DeviceId thay user |
+| **Preferences thay vì SecureStorage** (Mobile) | Đủ bảo mật cho deviceId anonymous; đơn giản hơn |
+| **Cache-First + SQLite** (Mobile) | UX mượt + offline support |
+| **Background TTS** | Tránh HTTP timeout; cho phép dùng nhiều Azure voice cùng lúc |
+| **Pull-based reset flag** | Không push trực tiếp xuống Mobile (không kết nối liên tục) |
+| **Piggyback heartbeat** | Không tạo endpoint ping riêng; tái sử dụng các endpoint đã có |
+| **Effective plan runtime** (không scheduler) | Đơn giản hoá; không cần hosted service để đảo plan |
+| **Mock payment** | POC stage; 16-digit validation đủ demo |
+| **QR vé vào app** | Kiểm soát truy cập tại sự kiện thực tế; chống abuse |
+| **Tour memory cache only** (Mobile, không SQLite) | Data nhỏ, cold start API nhanh |
 
 ---
 
-## 15. Backlog – Tính năng chưa triển khai
+## 16. Vấn đề đã biết & Nợ kỹ thuật
+
+### 16.1 Bảo mật
+
+- **Azure Blob container `narration-audio` đang `PublicAccessType.Blob`** — ai có URL đều download được. Cân nhắc SAS URL hoặc proxy stream qua API.
+- **`AdminController` chưa có `[Authorize]` attribute** — chỉ dựa vào `TokenExpirationFilter`. Nên bổ sung policy-level defense-in-depth.
+- **`/Subscription/Success`** không yêu cầu login — có thể xem URL thành công mà không cần thanh toán.
+
+### 16.2 Race condition
+
+- **`TtsBackgroundService` claim job không atomic** — `SELECT` rồi `UPDATE` riêng. Multi-instance API có thể xử lý trùng job, upload Blob trùng. Fix: `ExecuteUpdateAsync` với `WHERE Status='Pending'`.
+- **`QrCodeController.VerifyQrCode` set `IsUsed = true` không atomic** — 2 thiết bị scan cùng lúc đều nhận `isValid = true`. Fix: `ExecuteUpdateAsync` với `WHERE IsUsed = 0`.
+- **`SyncService.LastUpdated` luôn = `DateTimeOffset.UtcNow` cho stall mới** → `LocalStallRepository.HasChanged` luôn trả true → ghi lại toàn bộ SQLite mỗi 3 phút. Fix: dùng timestamp thật từ API.
+
+### 16.3 UX / Flow
+
+- **`Web/Views/StallLocation/StallLocationMap.cshtml`** gọi API trực tiếp từ JS và cố đọc JWT từ `localStorage` — mà Web lưu trong Session server-side. Flow create/update không chạy được. Fix: submit qua Controller Action hoặc proxy endpoint.
+
+### 16.4 Mobile known issues
+
+- **`StallListViewModel` dùng `forceRefresh: true` mỗi lần load** — bỏ qua cache, luôn gọi API.
+- **`SearchText` setter trigger load mỗi lần gõ** — chưa debounce (dễ spam API).
+- **`CurrentFilter = "All"` placeholder** — chưa implement filter category.
+
+### 16.5 Dead / Duplicate code
+
+- `Api/Domain/Entities/ScanLog.cs` — có migration, chưa controller nào dùng.
+- `QrCode.cs` và `QrCodeConfiguration.cs` — namespace `LocateAndMultilingualNarration.Domain.Entities` trong khi entity khác là `Api.Domain.Entities` (inconsistency, không lỗi runtime).
+- `ScanViewModel` và `LanguageViewModel` — không dùng `[RelayCommand]` / `[ObservableProperty]` (dùng `ICommand` + `INotifyPropertyChanged` thủ công). Nợ refactor.
+
+---
+
+## 17. Backlog
 
 | # | Tính năng | Mô tả | Phụ thuộc |
 |---|-----------|-------|-----------|
-| B-01 | Geofence auto-trigger liên tục | Background GPS polling tự động phát audio khi vào vùng geofence | Permission OS, battery optimization |
-| B-02 | Bookmark gian hàng | Khách lưu gian hàng yêu thích | Thêm entity `FavoriteStall` |
-| B-03 | Xem menu / thực đơn | Danh sách món ăn của gian hàng | Thêm entity `Menu`, `MenuItem` |
-| B-04 | Chọn giọng đọc trên Mobile UI | Giao diện cho khách chọn giọng nam/nữ, tốc độ | `TtsVoiceProfile` đã có, cần UI |
-| B-05 | Dashboard thống kê | Lượt nghe, ngôn ngữ phổ biến, heatmap vị trí | `VisitorLocationLog` đã có, cần aggregate queries |
-| B-06 | Audit log | Lịch sử chỉnh sửa dữ liệu | Thêm entity `AuditLog`, middleware |
-| B-07 | Role Collaborator | Cộng tác viên hỗ trợ BusinessOwner | Thêm Role + phân quyền |
-| B-08 | Social login | Google/Apple/Facebook login cho Web Admin | OAuth 2.0 integration |
-| B-09 | Push notification | Thông báo sự kiện đặc biệt tại gian hàng | Firebase FCM |
-| B-10 | Multi-branch stall | 1 gian hàng có nhiều địa điểm chi nhánh | `StallLocation` đã hỗ trợ 1:N |
+| B-01 | Background GPS polling | App inactive vẫn trigger geofence | Permission OS, battery optimization |
+| B-02 | Bookmark gian hàng yêu thích | Khách lưu stall ưa thích | Entity `FavoriteStall` |
+| B-03 | Xem menu / thực đơn | Danh sách món ăn | Entity `Menu`, `MenuItem` |
+| B-04 | Push notification | Thông báo sự kiện đặc biệt | Firebase FCM |
+| B-05 | Audit log | Lịch sử chỉnh sửa | Entity `AuditLog`, middleware |
+| B-06 | Role Collaborator | Cộng tác viên hỗ trợ BusinessOwner | Thêm Role + policy |
+| B-07 | Dashboard lượt nghe audio | Thống kê lượt phát, ngôn ngữ phổ biến | Cần entity log playback trên Mobile |
+| B-08 | Scheduler đảo plan hết hạn | Hosted service tự set Plan=Free khi hết hạn | `IHostedService` |
+| B-09 | CRUD admin TTS voice profiles | Giao diện thêm/sửa voice Azure | Hiện chỉ seed cứng |
+| B-10 | CRUD admin Language | Giao diện thêm/sửa ngôn ngữ | Hiện seed qua migration |
+| B-11 | Gateway thanh toán thật | VNPay / MoMo / Stripe | OAuth2 + callback URL |
+| B-12 | Atomic TTS claim + QR verify | Fix race với `ExecuteUpdateAsync` | §16.2 |
+| B-13 | SAS URL / Proxy stream audio | Bảo mật Blob không public | §16.1 |
+| B-14 | Debounce search Mobile | Stall list page | §16.4 |
+| B-15 | Multi-branch stall | 1 stall nhiều chi nhánh | `StallLocation` đã hỗ trợ 1:N |
 
 ---
 
 ## Phụ lục A – Cấu hình môi trường
 
-### Development
+### Api/appsettings.json
 
 ```json
-// Api/appsettings.Development.json
 {
   "ConnectionStrings": {
     "DefaultConnection": "Server=...;Database=...;..."
@@ -1310,1711 +1133,90 @@ flowchart LR
     "Key": "",
     "Region": "",
     "Provider": "AzureTranslator"
+  },
+  "QrCode": {
+    "DefaultValidDays": 1,
+    "BaseUrl": "https://..."
   }
 }
 ```
 
-### Mobile – API Base URL
+**Lưu ý:** `Program.cs` CHỈ đăng ký SQL Server nếu có connection string — không fallback InMemory. Thiếu connection string → runtime lỗi.
+
+### Mobile/DevConfig.cs
+
+```csharp
+// Hiện tại: Android emulator
+public const string ApiBaseUrl = "http://10.0.2.2:5299";
+```
 
 | Môi trường | Base URL |
 |-----------|---------|
 | Android Emulator | `http://10.0.2.2:5299/` |
 | iOS Simulator | `http://localhost:5299/` |
-| Production | `https://{api-domain}/` |
+| Thiết bị thật (cùng LAN) | `http://<laptop-ip>:5299/` |
+| Production | `https://locateandmultilingualnarration-amgrfua6fbd7gnce.eastasia-01.azurewebsites.net/` |
 
-### Swagger
+### Web/appsettings.json
 
-URL: `http://localhost:5299/swagger/index.html` (chỉ Development)
+```json
+{
+  "ApiBaseUrl": "http://localhost:5299/"
+}
+```
 
 ---
 
-## Phụ lục B – NuGet Packages tham chiếu
+## Phụ lục B – NuGet Packages
 
-### API Project
+### API (`Api.csproj`, .NET 10.0)
 
 ```
 BCrypt.Net-Next 4.1.0
 Azure.Storage.Blobs 12.25.0
 Microsoft.AspNetCore.Authentication.JwtBearer 10.0.2
+Microsoft.AspNetCore.OpenApi 10.0.2
 Microsoft.CognitiveServices.Speech 1.48.2
 Microsoft.EntityFrameworkCore 10.0.5
-Microsoft.EntityFrameworkCore.SqlServer 10.0.5
-Microsoft.EntityFrameworkCore.InMemory 10.0.5
 Microsoft.EntityFrameworkCore.Design 10.0.5
+Microsoft.EntityFrameworkCore.InMemory 10.0.5
+Microsoft.EntityFrameworkCore.SqlServer 10.0.5
+QRCoder 1.6.0
 Swashbuckle.AspNetCore.SwaggerUI 10.1.5
 System.IdentityModel.Tokens.Jwt 8.15.0
 ```
 
-### Mobile Project
+### Mobile (`Mobile.csproj`)
 
 ```
 CommunityToolkit.Maui 14.0.1
+Microsoft.Maui.Controls 10.0.51
 Mapsui.Maui 5.0.2
-Plugin.Maui.Audio 4.0.0
 SkiaSharp.Views.Maui.Controls 3.119.2
+Plugin.Maui.Audio 4.0.0
 ZXing.Net.Maui 0.7.4
 ZXing.Net.Maui.Controls 0.7.4
 sqlite-net-pcl 1.9.172
 SQLitePCLRaw.bundle_green 2.1.10
 Microsoft.Extensions.Http 10.0.5
-Microsoft.Maui.Controls 10.0.51
+Microsoft.Extensions.Logging.Debug 10.0.5
 ```
 
-### Web Project
+### Web (`Web.csproj`)
 
 ```
-Microsoft.Extensions.Http (HttpClientFactory)
+Microsoft.VisualStudio.Web.CodeGeneration.Design 10.0.2
+NuGet.Packaging 7.3.1
+NuGet.Protocol 7.3.1
+(IHttpClientFactory từ Microsoft.NET.Sdk.Web meta-package)
 ```
 
----
-
-## 17. Sequence Diagrams – Mobile App
-
-> Các sequence diagram mô tả luồng tương tác chính của Mobile App. Ký hiệu: **KTV** = Khách tham quan, **APP** = MAUI App, **SEC** = SecureStorage, **API** = Web API, **DB** = SQLite Cache.
-
-| Mã | Tên |
-|----|-----|
-| [SD-M01](#sd-m01-khởi-động-ứng-dụng--kiểm-tra-session--deviceid) | Khởi động ứng dụng & kiểm tra Session + DeviceId |
-| [SD-M02](#sd-m02-chọn-ngôn-ngữ--giọng-đọc--lưu-devicepreference) | Chọn ngôn ngữ & giọng đọc + lưu DevicePreference |
-| [SD-M03](#sd-m03-quét-qr-code-để-dùng-app) | Quét QR Code để dùng app |
-| [SD-M04](#sd-m04-tự-động-phát-thuyết-minh-khi-vào-vùng-geofence) | Tự động phát thuyết minh khi vào vùng Geofence |
-| [SD-M05](#sd-m05-tải-danh-sách-gian-hàng--cache-first--background-sync) | Tải danh sách gian hàng – Cache-First + Background Sync |
-| [SD-M06](#sd-m06-tính-đường-đi--chỉ-đường-osrm) | Tính đường đi & chỉ đường (OSRM) |
-
----
-
-### SD-M01: Khởi động ứng dụng & kiểm tra Session + DeviceId
-
-```mermaid
-sequenceDiagram
-    actor KTV as Khách tham quan
-    participant SP as StartPage
-    participant SS as SessionService
-    participant DS as DeviceService
-    participant SEC as SecureStorage
-    participant DP as DevicePreferenceApiService
-
-    KTV->>SP: Mở ứng dụng
-    SP->>SS: Kiểm tra session
-    SS-->>SP: Trạng thái session
-    SP->>DS: Lấy DeviceId
-    DS->>SEC: Đọc DeviceId
-    alt DeviceId chưa tồn tại
-        DS->>SEC: Sinh và lưu DeviceId mới
-    end
-    SEC-->>DS: DeviceId hợp lệ
-    DS-->>SP: Trả DeviceId
-    SP->>DP: GET /api/device-preference/{deviceId}
-    alt Có preference
-        SP-->>KTV: Điều hướng MainPage
-    else Chưa có preference
-        SP-->>KTV: Điều hướng LanguagePage
-    end
-```
-
----
-
-### SD-M02: Chọn ngôn ngữ & giọng đọc + lưu DevicePreference
-
-```mermaid
-sequenceDiagram
-    actor KTV as Khách tham quan
-    participant LP as LanguagePage
-    participant LVM as LanguageViewModel
-    participant LS as LanguageService
-    participant VP as VoicePage
-    participant VS as VoiceService
-    participant DPS as DevicePreferenceApiService
-
-    KTV->>LP: Mở chọn ngôn ngữ
-    LP->>LVM: LoadLanguagesAsync()
-    LVM->>LS: GET /api/languages/active
-    LS-->>LVM: Danh sách ngôn ngữ
-    LVM-->>LP: Hiển thị danh sách
-    KTV->>LP: Chọn ngôn ngữ
-    LP-->>VP: Điều hướng VoicePage
-    VP->>VS: GET voices theo languageId
-    VS-->>VP: Danh sách giọng đọc
-    KTV->>VP: Chọn giọng đọc
-    VP->>DPS: POST /api/device-preference
-    alt Thành công
-        DPS-->>VP: Lưu thành công
-        VP-->>KTV: Điều hướng MainPage
-    else Lỗi mạng/API
-        DPS-->>VP: Thất bại
-        VP-->>KTV: Thông báo & thử lại
-    end
-```
-
----
-
-### SD-M03: Quét QR Code để dùng app
-
-```mermaid
-sequenceDiagram
-    actor KTV as Khách tham quan
-    participant SC as ScanPage
-    participant SVM as ScanViewModel
-    participant APP as App / MainPage
-
-    KTV->>SC: Quét QR tại khu vực Phố Ẩm Thực
-    SC->>SVM: Nhận payload QR
-    SVM->>SVM: Xác thực mã QR hợp lệ
-    alt QR hợp lệ
-        SVM-->>APP: Kích hoạt app / điều hướng MainPage
-        APP-->>KTV: Vào app và bắt đầu trải nghiệm
-    else QR không hợp lệ
-        SVM-->>KTV: Thông báo mã QR không hợp lệ
-    end
-```
-
----
-
-### SD-M04: Tự động phát thuyết minh khi vào vùng Geofence
-
-```mermaid
-sequenceDiagram
-    actor KTV as Khách tham quan
-    participant GPS as Geolocation
-    participant MAP as MapViewModel
-    participant GE as GeofenceEngine
-    participant NS as NarrationService
-    participant AC as AudioCacheService
-    participant AP as AudioPlayer
-
-    loop Mỗi lần GPS update
-        GPS-->>MAP: Vị trí hiện tại
-        MAP->>GE: Check geofence
-        GE->>GE: Tính khoảng cách Haversine
-        alt Vào vùng geofence mới
-            GE->>NS: Trigger narration(stallId)
-            NS->>AC: Kiểm tra audio cache
-            alt Có cache local
-                NS->>AP: Play local audio
-            else Chưa có cache
-                NS->>AP: Stream audio từ URL
-                NS->>AC: Lưu cache nền
-            end
-            AP-->>KTV: Phát thuyết minh tự động
-        else Không vào vùng
-            GE-->>MAP: Không hành động
-        end
-    end
-```
-
----
-
-### SD-M05: Tải danh sách gian hàng – Cache-First + Background Sync
-
-```mermaid
-sequenceDiagram
-    actor KTV as Khách tham quan
-    participant MP as MainPage
-    participant MVM as MainViewModel
-    participant ST as StallService
-    participant DB as LocalStallRepository
-    participant API as GeoController
-    participant SYNC as SyncBackgroundService
-
-    KTV->>MP: Mở MainPage
-    MP->>MVM: LoadFeaturedStallsAsync()
-    MVM->>ST: GetFeaturedStallsAsync()
-    ST->>DB: Đọc cache SQLite
-    DB-->>ST: Dữ liệu local
-    ST-->>MVM: Trả nhanh từ cache
-    MVM-->>MP: Render danh sách ban đầu
-
-    par Đồng bộ nền
-        ST->>API: GET /api/geo/stalls?deviceId=...
-        API-->>ST: Dữ liệu mới
-        ST->>DB: Upsert local DB
-        ST-->>MVM: Trả dữ liệu đã làm mới
-        MVM-->>MP: Refresh UI
-    and Timer nền mỗi 3 phút
-        SYNC->>ST: Trigger SyncAsync()
-        ST->>API: Đồng bộ chênh lệch
-        API-->>ST: Delta data
-        ST->>DB: Upsert delta
-    end
-```
-
----
-
-### SD-M06: Tính đường đi & chỉ đường (OSRM)
-
-```mermaid
-sequenceDiagram
-    actor KTV as Khách tham quan
-    participant SP as StallPopup/DetailPage
-    participant MVM as MapViewModel
-    participant GPS as Geolocation
-    participant OSRM as OSRM Service
-    participant MAP as MapPage
-
-    KTV->>SP: Nhấn "Chỉ đường"
-    SP->>GPS: Lấy vị trí hiện tại
-    GPS-->>SP: Tọa độ hiện tại
-    SP->>OSRM: GET route(origin, destination)
-    OSRM-->>SP: Polyline + khoảng cách + thời gian
-    alt Route tìm được
-        SP->>MVM: Vẽ polyline trên map
-        MVM->>MAP: Render tuyến đường
-        MAP-->>KTV: Hiển thị hành trình + thông tin
-    else Không tìm được route
-        SP-->>KTV: Hiển thị bản đồ cơ bản + hướng đi đơn giản
-    end
-```
-
----
-
-## 18. Use Cases – Web Admin
-
-> **Actors:**
-> - **Admin** – Quản trị viên hệ thống, có toàn quyền.
-> - **BusinessOwner** – Chủ doanh nghiệp, chỉ quản lý dữ liệu thuộc business của mình.
-> - **Anonymous** – Người dùng chưa đăng nhập.
-
----
-
-### UC-W01: Đăng nhập hệ thống
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Người dùng nhập email và mật khẩu để xác thực và nhận JWT. |
-| **Tiền điều kiện** | Người dùng chưa đăng nhập, tài khoản đã tồn tại trong hệ thống. |
-| **Hậu điều kiện** | JWT và RefreshToken được lưu vào session, người dùng được chuyển về Dashboard. |
-
-**Luồng chính:**
-1. Người dùng truy cập `/Auth/Login`.
-2. Nhập email và password, nhấn **Đăng nhập**.
-3. Web gửi `POST /api/auth/login`.
-4. API xác thực BCrypt, tạo JWT (30 phút) + RefreshToken (30 ngày).
-5. Web lưu token vào session, redirect về `/Home/Index`.
-
-**Luồng thay thế:**
-- **3a.** ModelState không hợp lệ → hiển thị lỗi validation, không gọi API.
-- **4a.** Sai email hoặc password → API trả lỗi → hiển thị "Đăng nhập thất bại".
-
----
-
-### UC-W02: Đăng ký tài khoản BusinessOwner
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Anonymous |
-| **Mô tả** | Người dùng mới tạo tài khoản BusinessOwner. |
-| **Tiền điều kiện** | Người dùng chưa có tài khoản, email chưa được đăng ký. |
-| **Hậu điều kiện** | Tài khoản mới được tạo với Role `BusinessOwner`, người dùng được redirect về trang Login. |
-
-**Luồng chính:**
-1. Người dùng truy cập `/Auth/Register`.
-2. Điền username, email, password, số điện thoại.
-3. Web gửi `POST /api/auth/register-business-owner`.
-4. API hash password bằng BCrypt, tạo User, gán Role `BusinessOwner`.
-5. Web redirect về `/Auth/Login`.
-
-**Luồng thay thế:**
-- **3a.** ModelState không hợp lệ → hiển thị lỗi validation.
-- **4a.** Email hoặc username đã tồn tại → API trả lỗi → hiển thị thông báo trùng.
-
----
-
-### UC-W03: Đăng xuất
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Người dùng kết thúc phiên làm việc, xóa token khỏi session. |
-| **Tiền điều kiện** | Người dùng đang đăng nhập. |
-| **Hậu điều kiện** | Token bị xóa khỏi session, người dùng bị redirect về trang Login. |
-
-**Luồng chính:**
-1. Người dùng nhấn **Đăng xuất**.
-2. Web gửi `POST /Auth/Logout`.
-3. Web gọi `ClearToken()` xóa token khỏi session.
-4. Redirect về `/Auth/Login`.
-
----
-
-### UC-W04: Xem & tìm kiếm danh sách Business
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Admin xem danh sách Business với phân trang và tìm kiếm theo tên. |
-| **Tiền điều kiện** | Đã đăng nhập với Role `Admin`. |
-| **Hậu điều kiện** | Hiển thị danh sách Business theo điều kiện lọc. |
-
-**Luồng chính:**
-1. Admin vào `/Business/Index`.
-2. Web gọi `GET /api/business?page=1&pageSize=10&search=...`.
-3. API truy vấn DB, trả về `PagedResult<BusinessDetailDto>`.
-4. Hiển thị bảng danh sách với phân trang.
-
-**Luồng thay thế:**
-- **2a.** Admin nhập từ khóa tìm kiếm → Web gọi lại API với `search={keyword}`.
-- **3a.** Không có kết quả → hiển thị bảng rỗng, không báo lỗi.
-
----
-
-### UC-W05: Tạo Business mới
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Admin tạo một Business mới trong hệ thống. |
-| **Tiền điều kiện** | Đã đăng nhập với Role `Admin`. |
-| **Hậu điều kiện** | Business mới được lưu vào DB, danh sách được làm mới. |
-
-**Luồng chính:**
-1. Admin nhấn **Tạo mới**, modal hiện ra.
-2. Điền tên, mã số thuế, email liên hệ, số điện thoại.
-3. Nhấn **Lưu** → Web gửi `POST /api/business`.
-4. API insert vào DB, trả về Business mới.
-5. Web redirect với TempData `"Tạo business thành công."`.
-
-**Luồng thay thế:**
-- **3a.** Validation lỗi → giữ modal mở, hiển thị lỗi từng trường.
-- **4a.** API trả lỗi (trùng mã thuế...) → hiển thị lỗi trong modal.
-
----
-
-### UC-W06: Cập nhật thông tin Business
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Admin chỉnh sửa thông tin của một Business đã tồn tại. |
-| **Tiền điều kiện** | Business tồn tại, Admin đã đăng nhập. |
-| **Hậu điều kiện** | Thông tin Business được cập nhật trong DB. |
-
-**Luồng chính:**
-1. Admin nhấn **Sửa** trên dòng Business, modal Edit hiện ra với dữ liệu hiện tại.
-2. Chỉnh sửa thông tin, nhấn **Lưu**.
-3. Web gửi `POST /Business/Update` → API `PUT /api/business/{id}`.
-4. DB cập nhật, Web redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** Validation lỗi → giữ modal Edit mở, hiển thị lỗi.
-- **3a.** API lỗi → hiển thị thông báo lỗi trong modal.
-
----
-
-### UC-W07: Vô hiệu hóa Business
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Admin tắt hoạt động của một Business (set `IsActive = false`). Không xóa dữ liệu. |
-| **Tiền điều kiện** | Business đang Active, Admin đã đăng nhập. |
-| **Hậu điều kiện** | `IsActive = false`, Business không còn hiển thị với khách tham quan. |
-
-**Luồng chính:**
-1. Admin nhấn **Vô hiệu hóa** trên dòng Business.
-2. Web gửi `POST /Business/Deactivate?id={guid}`.
-3. Web gọi `GET /api/business/{id}` để lấy dữ liệu hiện tại.
-4. Web gọi `PUT /api/business/{id}` với `IsActive = false`.
-5. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **3a.** Business không tồn tại → hiển thị lỗi, redirect về danh sách.
-- **4a.** API lỗi → TempData error, redirect về danh sách.
-
----
-
-### UC-W08: Xem & lọc danh sách Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Xem danh sách Stall với phân trang, tìm kiếm theo tên và lọc theo Business. |
-| **Tiền điều kiện** | Đã đăng nhập. |
-| **Hậu điều kiện** | Hiển thị danh sách Stall theo điều kiện lọc. |
-
-**Luồng chính:**
-1. Người dùng vào `/Stall/Index`.
-2. Web gọi song song `GET /api/business` (load dropdown) và `GET /api/stall?...` (load danh sách).
-3. Hiển thị bảng Stall + dropdown lọc theo Business.
-
-**Luồng thay thế:**
-- **2a.** Chọn Business từ dropdown → Web gọi lại API với `businessId={guid}`.
-- **2b.** Nhập từ khóa → gọi lại API với `search={keyword}`.
-
----
-
-### UC-W09: Tạo Stall mới
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Tạo Stall mới và gán vào một Business. |
-| **Tiền điều kiện** | Đã đăng nhập, có ít nhất một Business tồn tại. |
-| **Hậu điều kiện** | Stall mới được lưu vào DB và gán đúng Business. |
-
-**Luồng chính:**
-1. Nhấn **Tạo mới**, modal hiện ra với dropdown Business.
-2. Chọn Business, điền tên, mô tả, slug, email, số điện thoại.
-3. Nhấn **Lưu** → Web gửi `POST /api/stall`.
-4. API insert, trả về Stall mới.
-5. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **3a.** Validation lỗi → giữ modal mở, hiển thị lỗi.
-- **4a.** Slug trùng → API trả lỗi → hiển thị trong modal.
-
----
-
-### UC-W10: Cập nhật thông tin Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Chỉnh sửa thông tin của một Stall đã tồn tại. |
-| **Tiền điều kiện** | Stall tồn tại, người dùng đã đăng nhập. |
-| **Hậu điều kiện** | Thông tin Stall được cập nhật trong DB. |
-
-**Luồng chính:**
-1. Nhấn **Sửa** trên dòng Stall, modal Edit hiện ra.
-2. Chỉnh sửa thông tin, nhấn **Lưu**.
-3. Web gửi `POST /Stall/Update` → API `PUT /api/stall/{id}`.
-4. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** Validation lỗi → giữ modal Edit mở.
-- **3a.** API lỗi → hiển thị lỗi trong modal.
-
----
-
-### UC-W11: Vô hiệu hóa Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Tắt hoạt động của một Stall (`IsActive = false`). Không xóa dữ liệu. |
-| **Tiền điều kiện** | Stall đang Active. |
-| **Hậu điều kiện** | `IsActive = false`, Stall ẩn khỏi danh sách hiển thị với khách. |
-
-**Luồng chính:**
-1. Nhấn **Vô hiệu hóa** trên dòng Stall.
-2. Web `GET /api/stall/{id}` → lấy dữ liệu hiện tại.
-3. Web `PUT /api/stall/{id}` với `IsActive = false`.
-4. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** Stall không tồn tại → TempData error, redirect.
-- **3a.** API lỗi → TempData error, redirect.
-
----
-
-### UC-W12: Xem danh sách vị trí Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Xem danh sách tất cả `StallLocation` với phân trang, lọc theo tên stall và trạng thái. |
-| **Tiền điều kiện** | Đã đăng nhập với Role `Admin`. |
-| **Hậu điều kiện** | Hiển thị danh sách vị trí Stall. |
-
-**Luồng chính:**
-1. Admin vào `/StallLocation/Index`.
-2. Web gọi `GET /api/stall-location?page=1&pageSize=10&stallName=...&isActive=...`.
-3. Hiển thị bảng danh sách với thông tin tọa độ, địa chỉ, bán kính.
-
-**Luồng thay thế:**
-- **2a.** Lọc theo tên stall hoặc trạng thái → gọi lại API với params tương ứng.
-
----
-
-### UC-W13: Tạo vị trí Stall trên bản đồ
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Admin chọn tọa độ trên bản đồ tương tác (OpenStreetMap) để đặt vị trí cho Stall. |
-| **Tiền điều kiện** | Stall chưa có vị trí, Admin đã đăng nhập. |
-| **Hậu điều kiện** | `StallLocation` mới được lưu với tọa độ lat/lng, địa chỉ, bán kính. |
-
-**Luồng chính:**
-1. Admin vào `/StallLocation/CreateMap`.
-2. Web load danh sách Stall (dropdown) và tất cả locations hiện tại (markers trên map).
-3. Admin chọn Stall từ dropdown, click vị trí trên bản đồ.
-4. Nhập địa chỉ, bán kính (meters), nhấn **Lưu**.
-5. Web gửi `POST /StallLocation/Create` → API `POST /api/stall-location`.
-6. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **4a.** Validation lỗi → hiển thị lỗi ngay trên trang map.
-- **5a.** API lỗi → hiển thị lỗi trên trang map.
-
----
-
-### UC-W14: Cập nhật vị trí Stall trên bản đồ
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Admin kéo marker hoặc chọn lại tọa độ để cập nhật vị trí đã tồn tại. |
-| **Tiền điều kiện** | `StallLocation` đã tồn tại. |
-| **Hậu điều kiện** | `StallLocation` được cập nhật tọa độ mới trong DB. |
-
-**Luồng chính:**
-1. Admin nhấn **Sửa** trên dòng Location → vào `/StallLocation/EditMap/{id}`.
-2. Web load location hiện tại, hiển thị marker tại tọa độ cũ.
-3. Admin kéo marker / click vị trí mới, điều chỉnh bán kính.
-4. Nhấn **Lưu** → Web gửi `POST /StallLocation/Update/{id}` → API `PUT /api/stall-location/{id}`.
-5. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **4a.** Validation lỗi → hiển thị lỗi trên trang map.
-
----
-
-### UC-W15: Xem danh sách GeoFence
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Xem danh sách `StallGeoFence` với phân trang, lọc theo Stall. |
-| **Tiền điều kiện** | Đã đăng nhập với Role `Admin`. |
-| **Hậu điều kiện** | Hiển thị danh sách GeoFence. |
-
-**Luồng chính:**
-1. Admin vào `/StallGeoFence/Index`.
-2. Web gọi song song `GET /api/stall` (dropdown) và `GET /api/stall-geofence?...`.
-3. Hiển thị bảng danh sách GeoFence kèm dropdown lọc theo Stall.
-
----
-
-### UC-W16: Tạo GeoFence cho Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Tạo vùng GeoFence (polygon hoặc circle) cho một Stall để trigger audio khi khách vào vùng. |
-| **Tiền điều kiện** | Stall tồn tại và đã có `StallLocation`. |
-| **Hậu điều kiện** | `StallGeoFence` mới được lưu vào DB. |
-
-**Luồng chính:**
-1. Nhấn **Tạo GeoFence** → form hiện ra với dropdown Stall.
-2. Điền thông tin (chọn Stall, nhập tọa độ / bán kính).
-3. Nhấn **Lưu** → Web gửi `POST /api/stall-geofence`.
-4. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **3a.** Validation lỗi → TempData error, redirect.
-- **3b.** API lỗi → TempData error, redirect.
-
----
-
-### UC-W17: Cập nhật GeoFence
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Chỉnh sửa thông số GeoFence đã tồn tại. |
-| **Tiền điều kiện** | `StallGeoFence` tồn tại. |
-| **Hậu điều kiện** | GeoFence được cập nhật trong DB. |
-
-**Luồng chính:**
-1. Nhấn **Sửa** → form điền sẵn dữ liệu cũ.
-2. Chỉnh sửa, nhấn **Lưu** → Web gửi `POST /StallGeoFence/Update/{id}` → API `PUT /api/stall-geofence/{id}`.
-3. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** Validation lỗi → TempData error, redirect.
-
----
-
-### UC-W18: Xem danh sách ảnh Stall (Media)
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Xem danh sách ảnh của Stall với phân trang, lọc theo Stall và trạng thái. |
-| **Tiền điều kiện** | Đã đăng nhập. |
-| **Hậu điều kiện** | Hiển thị gallery ảnh các Stall. |
-
-**Luồng chính:**
-1. Vào `/StallMedia/Index`.
-2. Web gọi song song `GET /api/stall` (dropdown) và `GET /api/stall-media?...`.
-3. Hiển thị dạng grid ảnh (pageSize=12) với tên stall, caption.
-
-**Luồng thay thế:**
-- **2a.** Lọc theo stallId hoặc isActive → gọi lại API với params tương ứng.
-
----
-
-### UC-W19: Upload ảnh mới cho Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Upload file ảnh mới lên Azure Blob thông qua API, gán cho một Stall. |
-| **Tiền điều kiện** | Đã đăng nhập, Stall tồn tại. |
-| **Hậu điều kiện** | Ảnh được lưu trên Azure Blob, `StallMedia` record được tạo với URL ảnh. |
-
-**Luồng chính:**
-1. Nhấn **Upload ảnh**, modal Create hiện ra.
-2. Chọn Stall, chọn file ảnh từ máy, điền caption (tuỳ chọn), sắp xếp thứ tự.
-3. Nhấn **Lưu** → Web gửi `POST /StallMedia/UploadCreate` (multipart/form-data).
-4. Web gọi `POST /api/stall-media/upload` qua `StallMediaApiClient`.
-5. API upload file lên Azure Blob, lưu URL vào DB.
-6. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** Không chọn file ảnh → lỗi validation "Vui lòng chọn ảnh", giữ modal mở.
-- **5a.** Upload Azure thất bại → API trả lỗi → hiển thị lỗi trong modal.
-
----
-
-### UC-W20: Cập nhật ảnh Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Thay thế ảnh hiện tại bằng ảnh mới, có thể cập nhật caption và thứ tự. |
-| **Tiền điều kiện** | `StallMedia` tồn tại. |
-| **Hậu điều kiện** | File ảnh mới được upload lên Azure Blob, record được cập nhật URL mới. |
-
-**Luồng chính:**
-1. Nhấn **Sửa** trên ảnh, modal Edit hiện ra với dữ liệu cũ.
-2. Chọn file ảnh mới, chỉnh caption/thứ tự, nhấn **Lưu**.
-3. Web gửi `POST /StallMedia/UploadUpdate` → API `PUT /api/stall-media/{id}/upload`.
-4. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** Không chọn file mới → lỗi "Vui lòng chọn ảnh mới", giữ modal mở.
-
----
-
-### UC-W21: Xóa ảnh Stall
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Xóa vĩnh viễn một ảnh Stall khỏi hệ thống. |
-| **Tiền điều kiện** | `StallMedia` tồn tại. |
-| **Hậu điều kiện** | Record bị xóa khỏi DB (và Azure Blob nếu API xử lý). |
-
-**Luồng chính:**
-1. Nhấn **Xóa** trên ảnh.
-2. Web gửi `POST /StallMedia/Delete?id={guid}`.
-3. Web gọi `DELETE /api/stall-media/{id}`.
-4. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **3a.** API lỗi → TempData error, redirect.
-
----
-
-### UC-W22: Xem & lọc danh sách Narration Content
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Xem danh sách `StallNarrationContent` với phân trang, lọc theo stall, ngôn ngữ và trạng thái. |
-| **Tiền điều kiện** | Đã đăng nhập. |
-| **Hậu điều kiện** | Hiển thị danh sách narration content theo bộ lọc. |
-
-**Luồng chính:**
-1. Vào `/Narration/StallNarrationContents`.
-2. Web gọi song song 3 API: `GET /api/stall`, `GET /api/languages`, `GET /api/stall-narration-content?...`.
-3. Hiển thị bảng danh sách + dropdown lọc theo stall, ngôn ngữ, trạng thái.
-
----
-
-### UC-W23: Tạo Narration Content mới
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Tạo nội dung thuyết minh mới cho một Stall ở một ngôn ngữ cụ thể. |
-| **Tiền điều kiện** | Stall và Language tồn tại, chưa có content cho cặp (stall, language) này. |
-| **Hậu điều kiện** | `StallNarrationContent` mới được lưu vào DB với trạng thái chờ generate audio. |
-
-**Luồng chính:**
-1. Nhấn **Tạo mới**, form hiện ra với dropdown Stall và Language.
-2. Chọn Stall, chọn Language, nhập tiêu đề, mô tả, script text.
-3. Nhấn **Lưu** → Web gửi `POST /Narration/Create` → API `POST /api/stall-narration-content`.
-4. Redirect với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** ModelState lỗi → TempData error, redirect về danh sách.
-- **3a.** API lỗi (trùng cặp stall-language...) → TempData error, redirect.
-
----
-
-### UC-W24: Xem chi tiết Narration Content và danh sách Audio
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Xem toàn bộ thông tin một `StallNarrationContent` kèm danh sách file audio đã được generate. |
-| **Tiền điều kiện** | `StallNarrationContent` tồn tại. |
-| **Hậu điều kiện** | Trang detail hiển thị script text, thông tin stall/ngôn ngữ, và toàn bộ `NarrationAudio`. |
-
-**Luồng chính:**
-1. Nhấn vào một content → vào `/Narration/Show/{id}`.
-2. Web gọi `GET /api/stall-narration-content/{id}` (trả về content + danh sách audios).
-3. Web gọi song song `GET /api/stall/{stallId}` và `GET /api/languages` để lấy tên hiển thị.
-4. Render trang detail với đầy đủ thông tin và danh sách audio kèm nút phát thử.
-
-**Luồng thay thế:**
-- **2a.** Content không tồn tại → hiển thị trang lỗi.
-
----
-
-### UC-W25: Cập nhật nội dung script Narration
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Chỉnh sửa tiêu đề, mô tả, script text của một `StallNarrationContent`. |
-| **Tiền điều kiện** | `StallNarrationContent` tồn tại. |
-| **Hậu điều kiện** | Nội dung được cập nhật trong DB. Audio cũ vẫn còn cho đến khi generate lại. |
-
-**Luồng chính:**
-1. Từ trang detail (`/Narration/Show/{id}`), chỉnh sửa các trường.
-2. Nhấn **Lưu** → Web gửi `POST /Narration/Update/{id}` → API `PUT /api/stall-narration-content/{id}`.
-3. Redirect về trang detail với thông báo thành công.
-
-**Luồng thay thế:**
-- **2a.** ModelState lỗi → trang detail hiển thị lại form với dữ liệu đã nhập và thông báo lỗi.
-- **2b.** API lỗi → trang detail hiển thị thông báo lỗi.
-
----
-
-### UC-W26: Bật / tắt trạng thái Narration Content
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin, BusinessOwner |
-| **Mô tả** | Toggle `IsActive` của một `StallNarrationContent` để bật hoặc tắt thuyết minh cho khách tham quan. |
-| **Tiền điều kiện** | `StallNarrationContent` tồn tại. |
-| **Hậu điều kiện** | Trạng thái `IsActive` được cập nhật, ảnh hưởng ngay đến việc Mobile có nhận audio này không. |
-
-**Luồng chính:**
-1. Từ danh sách, nhấn nút toggle trạng thái trên dòng content.
-2. Web gửi `POST /Narration/ToggleStatus?id={guid}&isActive={bool}`.
-3. Web gọi API tương ứng để cập nhật trạng thái.
-4. Redirect về danh sách với thông báo thành công.
-
-**Luồng thay thế:**
-- **3a.** API lỗi → TempData error, redirect về danh sách.
-
----
-
-### UC-W27: Xem Dashboard tổng quan hệ thống
-
-| Trường | Nội dung |
-|--------|---------|
-| **Actor** | Admin |
-| **Mô tả** | Admin xem các chỉ số tổng quan: tổng số Business, Stall, ngôn ngữ active, narration content, cùng danh sách gần đây. |
-| **Tiền điều kiện** | Đã đăng nhập với Role `Admin`. |
-| **Hậu điều kiện** | Dashboard hiển thị số liệu thời gian thực từ DB. |
-
-**Luồng chính:**
-1. Admin vào `/Admin/Dashboard`.
-2. Web gọi đồng thời 4 API (`Task.WhenAll`):
-   - `GET /api/business?page=1&pageSize=5`
-   - `GET /api/stall?page=1&pageSize=5`
-   - `GET /api/languages?isActive=true`
-   - `GET /api/stall-narration-content?page=1&pageSize=1`
-3. Tổng hợp `AdminDashboardViewModel` với các chỉ số và danh sách recent.
-4. Render Dashboard với thẻ thống kê + bảng recent businesses + recent stalls.
-
-**Luồng thay thế:**
-- **2a.** Một API bị lỗi → giá trị tương ứng hiển thị 0 hoặc danh sách rỗng, không crash toàn trang.
-
----
-
-## 19. Sequence Diagrams – Web Admin
-
-> Ký hiệu dùng Mermaid `sequenceDiagram`. Participant viết tắt:
-> - **User** – Người dùng (Admin hoặc BusinessOwner) thao tác trên trình duyệt
-> - **Browser** – Trang web MVC (Razor View + form submit)
-> - **WebCtrl** – Web MVC Controller tương ứng
-> - **ApiClient** – Service `*ApiClient.cs` trong `Web/Services/`
-> - **API** – ASP.NET Core Web API (endpoint cụ thể ghi chú trong từng diagram)
-> - **DB** – SQL Server qua EF Core
-
-| Mã | Tên |
-|----|-----|
-| [SD-W01](#sd-w01-đăng-nhập-login) | Đăng nhập (Login) |
-| [SD-W02](#sd-w02-đăng-ký-businessowner-register) | Đăng ký BusinessOwner (Register) |
-| [SD-W03](#sd-w03-xem--tìm-kiếm-danh-sách-business) | Xem & tìm kiếm danh sách Business |
-| [SD-W04](#sd-w04-tạo-business) | Tạo Business |
-| [SD-W05](#sd-w05-vô-hiệu-hóa-business-deactivate) | Vô hiệu hóa Business (Deactivate) |
-| [SD-W06](#sd-w06-tạo--cập-nhật-stall) | Tạo / Cập nhật Stall |
-| [SD-W07](#sd-w07-đặt-vị-trí-stall-trên-bản-đồ-stalllocation--stallgeofence) | Đặt vị trí Stall trên bản đồ (StallLocation + StallGeoFence) |
-| [SD-W08](#sd-w08-tạo--cập-nhật-stallnarrationcontent) | Tạo & cập nhật StallNarrationContent |
-| [SD-W09](#sd-w09-xem-chi-tiết-narration-content-show--audio-list) | Xem chi tiết Narration Content (Show + Audio list) |
-| [SD-W10](#sd-w10-load-admin-dashboard) | Load Admin Dashboard |
-
----
-
-### SD-W01: Đăng nhập (Login)
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant Browser
-    participant WebCtrl as AuthController
-    participant ApiClient as ApiClient
-    participant API as API /api/auth/login
-    participant DB
-
-    User->>Browser: Nhập email + password, nhấn Đăng nhập
-    Browser->>WebCtrl: POST /Auth/Login (LoginViewModel)
-    WebCtrl->>WebCtrl: Kiểm tra ModelState
-    alt ModelState không hợp lệ
-        WebCtrl-->>Browser: Trả về View với lỗi validation
-        Browser-->>User: Hiển thị lỗi form
-    else ModelState hợp lệ
-        WebCtrl->>ApiClient: LoginAsync(LoginRequestDto)
-        ApiClient->>API: POST /api/auth/login { email, password }
-        API->>DB: Tìm User theo email
-        DB-->>API: User record
-        API->>API: BCrypt.Verify(password, hash)
-        alt Sai thông tin đăng nhập
-            API-->>ApiClient: ApiResult { success: false, error: "..." }
-            ApiClient-->>WebCtrl: ApiResult thất bại
-            WebCtrl-->>Browser: View với ModelState error
-            Browser-->>User: Hiển thị "Đăng nhập thất bại"
-        else Đăng nhập thành công
-            API->>DB: Tạo RefreshToken (hash SHA256, 30 ngày)
-            DB-->>API: Lưu thành công
-            API-->>ApiClient: ApiResult { success: true, data: { accessToken, refreshToken } }
-            ApiClient-->>WebCtrl: ApiResult thành công
-            WebCtrl->>WebCtrl: StoreToken(accessToken, refreshToken) vào session
-            WebCtrl-->>Browser: Redirect /Home/Index
-            Browser-->>User: Vào trang Dashboard
-        end
-    end
-```
-
----
-
-### SD-W02: Đăng ký BusinessOwner (Register)
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant Browser
-    participant WebCtrl as AuthController
-    participant ApiClient as ApiClient
-    participant API as API /api/auth/register-business-owner
-    participant DB
-
-    User->>Browser: Điền form đăng ký (username, email, password, phone)
-    Browser->>WebCtrl: POST /Auth/Register (RegisterViewModel)
-    WebCtrl->>WebCtrl: Kiểm tra ModelState
-    alt ModelState không hợp lệ
-        WebCtrl-->>Browser: Trả về View với lỗi validation
-        Browser-->>User: Hiển thị lỗi form
-    else ModelState hợp lệ
-        WebCtrl->>ApiClient: RegisterBusinessOwnerAsync(RegisterBusinessOwnerDto)
-        ApiClient->>API: POST /api/auth/register-business-owner
-        API->>DB: Kiểm tra email/username đã tồn tại chưa
-        DB-->>API: Kết quả kiểm tra
-        alt Email/username đã tồn tại
-            API-->>ApiClient: ApiResult { success: false, error: "Email đã tồn tại" }
-            ApiClient-->>WebCtrl: ApiResult thất bại
-            WebCtrl-->>Browser: View với ModelState error
-            Browser-->>User: Hiển thị lỗi trùng email
-        else Đăng ký thành công
-            API->>API: BCrypt.HashPassword(password)
-            API->>DB: Tạo User + gán Role "BusinessOwner"
-            DB-->>API: Lưu thành công
-            API-->>ApiClient: ApiResult { success: true }
-            ApiClient-->>WebCtrl: ApiResult thành công
-            WebCtrl-->>Browser: Redirect /Auth/Login
-            Browser-->>User: Chuyển về trang đăng nhập
-        end
-    end
-```
-
----
-
-### SD-W03: Xem & tìm kiếm danh sách Business
-
-```mermaid
-sequenceDiagram
-    actor User as Admin
-    participant Browser
-    participant WebCtrl as BusinessController
-    participant ApiClient as BusinessApiClient
-    participant API as API /api/business
-    participant DB
-
-    User->>Browser: Vào trang Quản lý Business (hoặc nhập từ khóa tìm kiếm)
-    Browser->>WebCtrl: GET /Business/Index?page=1&pageSize=10&search=...
-    WebCtrl->>ApiClient: GetBusinessesAsync(page, pageSize, search)
-    ApiClient->>API: GET /api/business?page=1&pageSize=10&search=...
-    Note over ApiClient,API: AuthTokenHandler tự động inject JWT Bearer vào header
-    API->>DB: SELECT * FROM Businesses WHERE Name LIKE '%search%' + LIMIT/OFFSET
-    DB-->>API: PagedResult<Business>
-    API-->>ApiClient: ApiResult { success: true, data: PagedResult }
-    ApiClient-->>WebCtrl: PagedResult<BusinessDetailDto>
-    WebCtrl->>WebCtrl: Build BusinessManagementViewModel
-    WebCtrl-->>Browser: View "BusinessManagement" (table + pagination)
-    Browser-->>User: Hiển thị danh sách business
-```
-
----
-
-### SD-W04: Tạo Business
-
-```mermaid
-sequenceDiagram
-    actor User as Admin
-    participant Browser
-    participant WebCtrl as BusinessController
-    participant ApiClient as BusinessApiClient
-    participant API as API /api/business
-    participant DB
-
-    User->>Browser: Điền form tạo Business trong modal, nhấn Lưu
-    Browser->>WebCtrl: POST /Business/Create (BusinessFormViewModel)
-    WebCtrl->>WebCtrl: Kiểm tra ModelState
-    alt ModelState không hợp lệ
-        WebCtrl->>ApiClient: GetBusinessesAsync() [load lại danh sách]
-        ApiClient->>API: GET /api/business
-        API-->>ApiClient: PagedResult
-        ApiClient-->>WebCtrl: Danh sách businesses
-        WebCtrl-->>Browser: View với modal mở + lỗi validation
-        Browser-->>User: Hiển thị lỗi trong modal
-    else ModelState hợp lệ
-        WebCtrl->>ApiClient: CreateBusinessAsync(BusinessCreateDto)
-        ApiClient->>API: POST /api/business { name, taxCode, contactEmail, contactPhone }
-        API->>DB: INSERT INTO Businesses
-        DB-->>API: Business record mới
-        API-->>ApiClient: ApiResult { success: true, data: BusinessDetailDto }
-        ApiClient-->>WebCtrl: ApiResult thành công
-        WebCtrl->>WebCtrl: TempData["SuccessMessage"] = "Tạo business thành công."
-        WebCtrl-->>Browser: Redirect /Business/Index
-        Browser-->>User: Hiển thị thông báo thành công + danh sách cập nhật
-    end
-```
-
----
-
-### SD-W05: Vô hiệu hóa Business (Deactivate)
-
-```mermaid
-sequenceDiagram
-    actor User as Admin
-    participant Browser
-    participant WebCtrl as BusinessController
-    participant ApiClient as BusinessApiClient
-    participant API as API /api/business
-    participant DB
-
-    User->>Browser: Nhấn nút "Vô hiệu hóa" trên dòng Business
-    Browser->>WebCtrl: POST /Business/Deactivate?id={guid}
-    WebCtrl->>ApiClient: GetBusinessAsync(id) [lấy thông tin hiện tại]
-    ApiClient->>API: GET /api/business/{id}
-    API->>DB: SELECT Business WHERE Id = {id}
-    DB-->>API: Business record
-    API-->>ApiClient: ApiResult { success: true, data: BusinessDetailDto }
-    ApiClient-->>WebCtrl: BusinessDetailDto
-    alt Không tìm thấy business
-        WebCtrl->>WebCtrl: TempData["ErrorMessage"] = "Không lấy được thông tin."
-        WebCtrl-->>Browser: Redirect /Business/Index
-        Browser-->>User: Hiển thị thông báo lỗi
-    else Tìm thấy
-        WebCtrl->>ApiClient: UpdateBusinessAsync(id, BusinessUpdateDto { isActive: false })
-        ApiClient->>API: PUT /api/business/{id} { ...existingData, isActive: false }
-        API->>DB: UPDATE Businesses SET IsActive = false WHERE Id = {id}
-        DB-->>API: Cập nhật thành công
-        API-->>ApiClient: ApiResult { success: true }
-        ApiClient-->>WebCtrl: ApiResult thành công
-        WebCtrl->>WebCtrl: TempData["SuccessMessage"] = "Business đã được vô hiệu hóa."
-        WebCtrl-->>Browser: Redirect /Business/Index
-        Browser-->>User: Hiển thị thông báo + danh sách cập nhật
-    end
-```
-
----
-
-### SD-W06: Tạo / Cập nhật Stall
-
-```mermaid
-sequenceDiagram
-    actor User as BusinessOwner/Admin
-    participant Browser
-    participant WebCtrl as StallController
-    participant StallApi as StallApiClient
-    participant BizApi as BusinessApiClient
-    participant API as API /api/stall
-    participant DB
-
-    User->>Browser: Mở trang Stall Management
-    Browser->>WebCtrl: GET /Stall/Index
-    par Load businesses và stalls song song
-        WebCtrl->>BizApi: GetBusinessesAsync(1, 100)
-        BizApi->>API: GET /api/business?page=1&pageSize=100
-        API->>DB: SELECT Businesses
-        DB-->>API: Danh sách businesses
-        API-->>BizApi: PagedResult<Business>
-    and
-        WebCtrl->>StallApi: GetStallsAsync(page, pageSize, search, businessId)
-        StallApi->>API: GET /api/stall?...
-        API->>DB: SELECT Stalls
-        DB-->>API: PagedResult<Stall>
-        API-->>StallApi: PagedResult<Stall>
-    end
-    WebCtrl-->>Browser: View "StallManagement" với dropdown Business + bảng Stall
-
-    User->>Browser: Điền form tạo Stall (chọn Business, nhập tên...), nhấn Lưu
-    Browser->>WebCtrl: POST /Stall/Create (StallFormViewModel)
-    WebCtrl->>WebCtrl: Kiểm tra ModelState
-    alt ModelState không hợp lệ
-        WebCtrl-->>Browser: View với modal mở + lỗi validation
-        Browser-->>User: Hiển thị lỗi trong modal
-    else Tạo mới
-        WebCtrl->>StallApi: CreateStallAsync(StallCreateDto)
-        StallApi->>API: POST /api/stall { businessId, name, description, slug, ... }
-        API->>DB: INSERT INTO Stalls
-        DB-->>API: Stall record mới
-        API-->>StallApi: ApiResult { success: true }
-        StallApi-->>WebCtrl: ApiResult thành công
-        WebCtrl-->>Browser: Redirect /Stall/Index với TempData success
-        Browser-->>User: Thông báo "Tạo stall thành công"
-    end
-
-    Note over User,DB: Luồng Cập nhật tương tự, dùng POST /Stall/Update → PUT /api/stall/{id}
-```
-
----
-
-### SD-W07: Đặt vị trí Stall trên bản đồ (StallLocation + StallGeoFence)
-
-```mermaid
-sequenceDiagram
-    actor User as Admin
-    participant Browser
-    participant WebCtrl as StallLocationController
-    participant LocApi as StallLocationApiClient
-    participant GeoCtrl as StallGeoFenceController
-    participant GeoApi as StallGeoFenceApiClient
-    participant API as API
-    participant DB
-
-    User->>Browser: Vào trang "Đặt vị trí" cho Stall
-    Browser->>WebCtrl: GET /StallLocation/CreateMap?stallId={guid}
-    par Load dữ liệu trang bản đồ
-        WebCtrl->>LocApi: GetStallsAsync(1, 500)
-        LocApi->>API: GET /api/stall?pageSize=500
-        API-->>LocApi: Danh sách stalls
-    and
-        WebCtrl->>LocApi: GetLocationsAsync(1, 500) [load tất cả để hiển thị trên map]
-        LocApi->>API: GET /api/stall-location?pageSize=500
-        API->>DB: SELECT StallLocations
-        DB-->>API: Danh sách locations
-        API-->>LocApi: Danh sách locations
-    end
-    WebCtrl->>WebCtrl: Serialize locations thành JSON cho map
-    WebCtrl-->>Browser: View "StallLocationMap" (Leaflet/OpenStreetMap + markers)
-    Browser-->>User: Hiển thị bản đồ với các gian hàng đã có vị trí
-
-    User->>Browser: Click chọn tọa độ trên bản đồ, điền địa chỉ + bán kính, nhấn Lưu
-    Browser->>WebCtrl: POST /StallLocation/Create (StallLocationCreateDto)
-    WebCtrl->>WebCtrl: Kiểm tra ModelState
-    alt ModelState không hợp lệ
-        WebCtrl-->>Browser: View với lỗi
-        Browser-->>User: Hiển thị lỗi validation
-    else Hợp lệ
-        WebCtrl->>LocApi: CreateLocationAsync(StallLocationCreateDto)
-        LocApi->>API: POST /api/stall-location { stallId, latitude, longitude, radiusMeters, address }
-        API->>DB: INSERT INTO StallLocations
-        DB-->>API: StallLocation record mới
-        API-->>LocApi: ApiResult { success: true }
-        LocApi-->>WebCtrl: ApiResult thành công
-        WebCtrl-->>Browser: Redirect /StallLocation/Index với TempData success
-        Browser-->>User: Thông báo "Tạo vị trí thành công"
-    end
-
-    Note over User,DB: Luồng GeoFence tương tự qua StallGeoFenceController → POST /api/stall-geofence
-```
-
----
-
-### SD-W08: Tạo & cập nhật StallNarrationContent
-
-```mermaid
-sequenceDiagram
-    actor User as BusinessOwner/Admin
-    participant Browser
-    participant WebCtrl as NarrationController
-    participant ContentApi as StallNarrationContentApiClient
-    participant StallApi as StallApiClient
-    participant LangApi as LanguageApiClient
-    participant API as API
-    participant DB
-
-    User->>Browser: Vào trang Quản lý Narration Content
-    Browser->>WebCtrl: GET /Narration/StallNarrationContents
-    par Load 3 nguồn dữ liệu song song
-        WebCtrl->>StallApi: GetStallsAsync(1, 200)
-        StallApi->>API: GET /api/stall?pageSize=200
-        API-->>StallApi: Danh sách stalls
-    and
-        WebCtrl->>LangApi: GetActiveLanguagesAsync()
-        LangApi->>API: GET /api/languages?isActive=true
-        API->>DB: SELECT Languages WHERE IsActive = true
-        DB-->>API: Danh sách languages
-        API-->>LangApi: Danh sách languages
-    and
-        WebCtrl->>ContentApi: GetContentsAsync(page, pageSize, ...)
-        ContentApi->>API: GET /api/stall-narration-content?...
-        API->>DB: SELECT StallNarrationContents (có filter)
-        DB-->>API: PagedResult<StallNarrationContent>
-        API-->>ContentApi: PagedResult
-    end
-    WebCtrl-->>Browser: View "StallNarrationContentManagement"
-    Browser-->>User: Hiển thị danh sách content + dropdown stall/language
-
-    User->>Browser: Điền form tạo content (chọn stall, ngôn ngữ, nhập script), nhấn Lưu
-    Browser->>WebCtrl: POST /Narration/Create (StallNarrationContentCreateDto)
-    WebCtrl->>WebCtrl: Kiểm tra ModelState
-    alt ModelState không hợp lệ
-        WebCtrl-->>Browser: Redirect /Narration/StallNarrationContents với TempData error
-        Browser-->>User: Hiển thị "Dữ liệu không hợp lệ"
-    else Hợp lệ
-        WebCtrl->>ContentApi: CreateContentAsync(StallNarrationContentCreateDto)
-        ContentApi->>API: POST /api/stall-narration-content { stallId, languageId, title, scriptText, ... }
-        API->>DB: INSERT INTO StallNarrationContents
-        DB-->>API: StallNarrationContent record mới
-        API-->>ContentApi: ApiResult { success: true }
-        ContentApi-->>WebCtrl: ApiResult thành công
-        WebCtrl-->>Browser: Redirect /Narration/StallNarrationContents với TempData success
-        Browser-->>User: Thông báo "Tạo narration content thành công"
-    end
-
-    Note over User,DB: Luồng Cập nhật: POST /Narration/Update/{id} → PUT /api/stall-narration-content/{id}
-```
-
----
-
-### SD-W09: Xem chi tiết Narration Content (Show + Audio list)
-
-```mermaid
-sequenceDiagram
-    actor User as BusinessOwner/Admin
-    participant Browser
-    participant WebCtrl as NarrationController
-    participant ContentApi as StallNarrationContentApiClient
-    participant StallApi as StallApiClient
-    participant LangApi as LanguageApiClient
-    participant API as API
-    participant DB
-
-    User->>Browser: Click vào một Narration Content để xem chi tiết
-    Browser->>WebCtrl: GET /Narration/Show/{id}
-    WebCtrl->>ContentApi: GetContentAsync(id)
-    ContentApi->>API: GET /api/stall-narration-content/{id}
-    API->>DB: SELECT StallNarrationContent + NarrationAudios WHERE ContentId = {id}
-    DB-->>API: Content + danh sách Audio
-    API-->>ContentApi: ApiResult { data: { content, audios[] } }
-    ContentApi-->>WebCtrl: StallNarrationContentWithAudiosDto
-
-    alt Không tìm thấy content
-        WebCtrl-->>Browser: View "show" với ErrorMessage
-        Browser-->>User: Hiển thị thông báo lỗi
-    else Tìm thấy
-        par Lấy thêm thông tin hiển thị
-            WebCtrl->>StallApi: GetStallAsync(content.StallId)
-            StallApi->>API: GET /api/stall/{stallId}
-            API->>DB: SELECT Stall WHERE Id = {stallId}
-            DB-->>API: Stall record
-            API-->>StallApi: StallDetailDto
-        and
-            WebCtrl->>LangApi: GetActiveLanguagesAsync()
-            LangApi->>API: GET /api/languages?isActive=true
-            API-->>LangApi: Danh sách languages
-        end
-        WebCtrl->>WebCtrl: Build StallNarrationContentShowViewModel\n(ghép tên stall, tên ngôn ngữ, danh sách audio)
-        WebCtrl-->>Browser: View "show" với đầy đủ thông tin
-        Browser-->>User: Hiển thị chi tiết content + danh sách file audio đã generate
-    end
-```
-
----
-
-### SD-W10: Load Admin Dashboard
-
-```mermaid
-sequenceDiagram
-    actor User as Admin
-    participant Browser
-    participant WebCtrl as AdminController
-    participant BizApi as BusinessApiClient
-    participant StallApi as StallApiClient
-    participant LangApi as LanguageApiClient
-    participant ContentApi as StallNarrationContentApiClient
-    participant API as API
-    participant DB
-
-    User->>Browser: Vào trang Dashboard
-    Browser->>WebCtrl: GET /Admin/Dashboard
-    Note over WebCtrl: Gọi 4 API song song (Task.WhenAll) để giảm latency
-
-    par Gọi đồng thời 4 API
-        WebCtrl->>BizApi: GetBusinessesAsync(1, 5)
-        BizApi->>API: GET /api/business?page=1&pageSize=5
-        API->>DB: SELECT TOP 5 Businesses + COUNT(*)
-        DB-->>API: PagedResult<Business>
-        API-->>BizApi: Kết quả
-    and
-        WebCtrl->>StallApi: GetStallsAsync(1, 5)
-        StallApi->>API: GET /api/stall?page=1&pageSize=5
-        API->>DB: SELECT TOP 5 Stalls + COUNT(*)
-        DB-->>API: PagedResult<Stall>
-        API-->>StallApi: Kết quả
-    and
-        WebCtrl->>LangApi: GetActiveLanguagesAsync()
-        LangApi->>API: GET /api/languages?isActive=true
-        API->>DB: SELECT Languages WHERE IsActive = true
-        DB-->>API: Danh sách languages
-        API-->>LangApi: Kết quả
-    and
-        WebCtrl->>ContentApi: GetContentsAsync(1, 1)
-        ContentApi->>API: GET /api/stall-narration-content?page=1&pageSize=1
-        API->>DB: SELECT COUNT(*) FROM StallNarrationContents
-        DB-->>API: PagedResult (chỉ lấy TotalCount)
-        API-->>ContentApi: Kết quả
-    end
-
-    WebCtrl->>WebCtrl: Tổng hợp AdminDashboardViewModel:\n- TotalBusinesses, TotalStalls\n- ActiveLanguages, TotalNarrationContents\n- RecentBusinesses[], RecentStalls[], Languages[]
-    WebCtrl-->>Browser: View "Dashboard"
-    Browser-->>User: Hiển thị các thẻ thống kê + danh sách recent
-```
-
----
-
-## 20. Activity Diagrams – Web Admin
-
-> Dùng Mermaid `flowchart TD`. Ký hiệu: hình thoi `{}` = decision, hình chữ nhật bo góc `([])` = start/end, hình chữ nhật `[]` = activity, hình thoi kép `{{}}` = fork/join.
-
-| Mã | Tên |
-|----|-----|
-| [AD-W01](#ad-w01-đăng-nhập) | Đăng nhập |
-| [AD-W02](#ad-w02-đăng-ký-businessowner) | Đăng ký BusinessOwner |
-| [AD-W03](#ad-w03-tạo--cập-nhật-business) | Tạo / Cập nhật Business |
-| [AD-W04](#ad-w04-vô-hiệu-hóa-business) | Vô hiệu hóa Business |
-| [AD-W05](#ad-w05-tạo--cập-nhật--vô-hiệu-hóa-stall) | Tạo / Cập nhật / Vô hiệu hóa Stall |
-| [AD-W06](#ad-w06-đặt-vị-trí-stall-trên-bản-đồ) | Đặt vị trí Stall trên bản đồ |
-| [AD-W07](#ad-w07-upload--cập-nhật--xóa-media-stall) | Upload / Cập nhật / Xóa Media Stall |
-| [AD-W08](#ad-w08-tạo--cập-nhật-geofence) | Tạo / Cập nhật GeoFence |
-| [AD-W09](#ad-w09-tạo--cập-nhật--toggle-narration-content) | Tạo / Cập nhật / Toggle Narration Content |
-| [AD-W10](#ad-w10-xem-chi-tiết-narration-content--cập-nhật-script) | Xem chi tiết Narration Content + Cập nhật script |
-
----
-
-### AD-W01: Đăng nhập
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Người dùng truy cập /Auth/Login]
-    B --> C[Hiển thị form đăng nhập]
-    C --> D[Nhập email + password]
-    D --> E[Nhấn Đăng nhập\nPOST /Auth/Login]
-    E --> F{ModelState\nhợp lệ?}
-    F -- Không --> G[Hiển thị lỗi validation trên form]
-    G --> D
-    F -- Có --> H[Gọi POST /api/auth/login]
-    H --> I{API trả về\nsuccess?}
-    I -- Không --> J[Hiển thị lỗi:\nSai email hoặc mật khẩu]
-    J --> D
-    I -- Có --> K[Nhận accessToken + refreshToken]
-    K --> L[Lưu token vào session\nStoreToken]
-    L --> M[Redirect /Home/Index]
-    M --> N([Kết thúc])
-```
-
----
-
-### AD-W02: Đăng ký BusinessOwner
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Người dùng truy cập /Auth/Register]
-    B --> C[Hiển thị form đăng ký]
-    C --> D[Nhập username, email, password, phone]
-    D --> E[Nhấn Đăng ký\nPOST /Auth/Register]
-    E --> F{ModelState\nhợp lệ?}
-    F -- Không --> G[Hiển thị lỗi validation trên form]
-    G --> D
-    F -- Có --> H[Gọi POST /api/auth/register-business-owner]
-    H --> I{API trả về\nsuccess?}
-    I -- Không --> J{Loại lỗi?}
-    J -- Email đã tồn tại --> K[Hiển thị:\nEmail đã được đăng ký]
-    J -- Lỗi khác --> L[Hiển thị thông báo lỗi chung]
-    K --> D
-    L --> D
-    I -- Có --> M[Tài khoản tạo thành công\nRole = BusinessOwner]
-    M --> N[Redirect /Auth/Login]
-    N --> O([Kết thúc])
-```
-
----
-
-### AD-W03: Tạo / Cập nhật Business
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Admin vào /Business/Index]
-    B --> C[Gọi GET /api/business\nvới page, pageSize, search]
-    C --> D[Hiển thị danh sách Business\n+ phân trang]
-    D --> E{Admin chọn\nhành động?}
-
-    E -- Tìm kiếm --> F[Nhập từ khóa search]
-    F --> C
-
-    E -- Tạo mới --> G[Mở modal Create]
-    G --> H[Điền Name, TaxCode,\nContactEmail, ContactPhone]
-    H --> I[Nhấn Lưu\nPOST /Business/Create]
-    I --> J{ModelState\nhợp lệ?}
-    J -- Không --> K[Giữ modal mở\nHiển thị lỗi từng trường]
-    K --> H
-    J -- Có --> L[Gọi POST /api/business]
-    L --> M{API success?}
-    M -- Không --> N[Giữ modal mở\nHiển thị lỗi API]
-    N --> H
-    M -- Có --> O[TempData: Tạo business thành công]
-    O --> P[Redirect /Business/Index]
-    P --> C
-
-    E -- Cập nhật --> Q[Mở modal Edit\nvới dữ liệu hiện tại]
-    Q --> R[Chỉnh sửa thông tin]
-    R --> S[Nhấn Lưu\nPOST /Business/Update]
-    S --> T{ModelState\nhợp lệ?}
-    T -- Không --> U[Giữ modal Edit mở\nHiển thị lỗi]
-    U --> R
-    T -- Có --> V[Gọi PUT /api/business/id]
-    V --> W{API success?}
-    W -- Không --> X[Giữ modal Edit mở\nHiển thị lỗi API]
-    X --> R
-    W -- Có --> Y[TempData: Cập nhật thành công]
-    Y --> P
-
-    E -- Thoát --> Z([Kết thúc])
-```
-
----
-
-### AD-W04: Vô hiệu hóa Business
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Admin nhấn Vô hiệu hóa\ntrên dòng Business]
-    B --> C[POST /Business/Deactivate?id=guid]
-    C --> D[Gọi GET /api/business/id\nlấy thông tin hiện tại]
-    D --> E{Tìm thấy\nBusiness?}
-    E -- Không --> F[TempData: Không lấy được thông tin]
-    F --> G[Redirect /Business/Index]
-    G --> H([Kết thúc])
-    E -- Có --> I[Giữ nguyên Name, TaxCode,\nContactEmail, ContactPhone\nĐổi IsActive = false]
-    I --> J[Gọi PUT /api/business/id\nvới IsActive = false]
-    J --> K{API success?}
-    K -- Không --> L[TempData: Không thể vô hiệu hóa]
-    L --> G
-    K -- Có --> M[TempData: Business đã được vô hiệu hóa]
-    M --> G
-```
-
----
-
-### AD-W05: Tạo / Cập nhật / Vô hiệu hóa Stall
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Người dùng vào /Stall/Index]
-
-    B --> C1[Gọi GET /api/business\npageSize=100]
-    B --> C2[Gọi GET /api/stall\npage, pageSize, search, businessId]
-    C1 --> D[Chờ cả hai hoàn thành]
-    C2 --> D
-    D --> E[Hiển thị bảng Stall\n+ dropdown Business]
-
-    E --> F{Chọn hành động?}
-
-    F -- Lọc/Tìm kiếm --> G[Chọn Business hoặc nhập search]
-    G --> C2
-
-    F -- Tạo mới --> H[Mở modal Create\ncó dropdown Business]
-    H --> I[Điền BusinessId, Name,\nDescription, Slug, Contact]
-    I --> J[POST /Stall/Create]
-    J --> K{ModelState OK?}
-    K -- Không --> L[Giữ modal mở + lỗi]
-    L --> I
-    K -- Có --> M[POST /api/stall]
-    M --> N{API success?}
-    N -- Không --> O[Giữ modal mở + lỗi API]
-    O --> I
-    N -- Có --> P[Redirect + thông báo thành công]
-    P --> B
-
-    F -- Cập nhật --> Q[Mở modal Edit]
-    Q --> R[Chỉnh sửa thông tin]
-    R --> S[POST /Stall/Update]
-    S --> T{ModelState OK?}
-    T -- Không --> U[Giữ modal Edit + lỗi]
-    U --> R
-    T -- Có --> V[PUT /api/stall/id]
-    V --> W{API success?}
-    W -- Không --> X[Giữ modal Edit + lỗi API]
-    X --> R
-    W -- Có --> P
-
-    F -- Vô hiệu hóa --> Y[POST /Stall/Deactivate]
-    Y --> Z[GET /api/stall/id]
-    Z --> AA{Tìm thấy?}
-    AA -- Không --> AB[TempData error → Redirect]
-    AB --> B
-    AA -- Có --> AC[PUT /api/stall/id\nIsActive = false]
-    AC --> AD{API success?}
-    AD -- Không --> AE[TempData error → Redirect]
-    AE --> B
-    AD -- Có --> AF[TempData success → Redirect]
-    AF --> B
-
-    F -- Thoát --> AG([Kết thúc])
-```
-
----
-
-### AD-W06: Đặt vị trí Stall trên bản đồ
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B{Tạo mới hay\nchỉnh sửa?}
-
-    B -- Tạo mới --> C[GET /StallLocation/CreateMap]
-    B -- Chỉnh sửa --> D[GET /StallLocation/EditMap/id]
-
-    C --> E1[Gọi GET /api/stall\npageSize=500]
-    C --> E2[Gọi GET /api/stall-location\npageSize=500 để load markers]
-    D --> F[Gọi GET /api/stall-location/id\nlấy dữ liệu vị trí hiện tại]
-    F --> E1
-    F --> E2
-
-    E1 --> G[Chờ cả hai hoàn thành]
-    E2 --> G
-    G --> H[Hiển thị bản đồ OpenStreetMap\nvới tất cả markers hiện có]
-
-    H --> I{Đang ở\nmode nào?}
-    I -- Create --> J[Admin chọn Stall từ dropdown]
-    I -- Edit --> K[Hiển thị marker tại tọa độ cũ]
-
-    J --> L[Click vị trí trên bản đồ\nlấy lat/lng]
-    K --> L
-
-    L --> M[Nhập địa chỉ + bán kính]
-    M --> N[Nhấn Lưu]
-    N --> O{ModelState OK?}
-    O -- Không --> P[Hiển thị lỗi trên trang map]
-    P --> L
-
-    O -- Có --> Q{Tạo mới hay\nCập nhật?}
-    Q -- Tạo --> R[POST /api/stall-location]
-    Q -- Cập nhật --> S[PUT /api/stall-location/id]
-
-    R --> T{API success?}
-    S --> T
-
-    T -- Không --> U[Hiển thị lỗi API trên trang map]
-    U --> L
-    T -- Có --> V[TempData success]
-    V --> W[Redirect /StallLocation/Index]
-    W --> X([Kết thúc])
-```
-
----
-
-### AD-W07: Upload / Cập nhật / Xóa Media Stall
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Người dùng vào /StallMedia/Index]
-    B --> C1[Gọi GET /api/stall\npageSize=500]
-    B --> C2[Gọi GET /api/stall-media\npage, pageSize, stallId, isActive]
-    C1 --> D[Chờ cả hai hoàn thành]
-    C2 --> D
-    D --> E[Hiển thị gallery ảnh\n+ dropdown Stall]
-
-    E --> F{Chọn hành động?}
-
-    F -- Upload mới --> G[Mở modal Create]
-    G --> H[Chọn Stall, chọn file ảnh,\nnhập caption, sort order]
-    H --> I{File ảnh\nđã chọn?}
-    I -- Không --> J[Lỗi: Vui lòng chọn ảnh\nGiữ modal mở]
-    J --> H
-    I -- Có --> K{ModelState OK?}
-    K -- Không --> L[Giữ modal mở + lỗi]
-    L --> H
-    K -- Có --> M[POST /api/stall-media/upload\nmultipart/form-data]
-    M --> N[API upload file\nlên Azure Blob]
-    N --> O{Upload\nthành công?}
-    O -- Không --> P[Giữ modal mở + lỗi upload]
-    P --> H
-    O -- Có --> Q[Lưu URL vào DB\nTạo StallMedia record]
-    Q --> R[Redirect + thông báo thành công]
-    R --> B
-
-    F -- Cập nhật ảnh --> S[Mở modal Edit\nvới caption/order hiện tại]
-    S --> T[Chọn file ảnh mới]
-    T --> U{File mới\nđã chọn?}
-    U -- Không --> V[Lỗi: Vui lòng chọn ảnh mới]
-    V --> T
-    U -- Có --> W[PUT /api/stall-media/id/upload]
-    W --> X{API success?}
-    X -- Không --> Y[Giữ modal Edit + lỗi]
-    Y --> T
-    X -- Có --> R
-
-    F -- Xóa --> Z[POST /StallMedia/Delete?id=guid]
-    Z --> AA[DELETE /api/stall-media/id]
-    AA --> AB{API success?}
-    AB -- Không --> AC[TempData error → Redirect]
-    AC --> B
-    AB -- Có --> AD[TempData success → Redirect]
-    AD --> B
-
-    F -- Lọc --> AE[Chọn Stall hoặc trạng thái]
-    AE --> C2
-
-    F -- Thoát --> AF([Kết thúc])
-```
-
----
-
-### AD-W08: Tạo / Cập nhật GeoFence
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Admin vào /StallGeoFence/Index]
-    B --> C1[Gọi GET /api/stall\npageSize=500]
-    B --> C2[Gọi GET /api/stall-geofence\npage, pageSize, stallId]
-    C1 --> D[Chờ cả hai hoàn thành]
-    C2 --> D
-    D --> E[Hiển thị danh sách GeoFence\n+ dropdown Stall]
-
-    E --> F{Chọn hành động?}
-
-    F -- Lọc theo Stall --> G[Chọn Stall từ dropdown]
-    G --> C2
-
-    F -- Tạo mới --> H[Mở form tạo GeoFence]
-    H --> I[Chọn Stall,\nnhập tọa độ / bán kính]
-    I --> J[POST /StallGeoFence/Create]
-    J --> K{ModelState OK?}
-    K -- Không --> L[TempData error\nRedirect /StallGeoFence/Index]
-    L --> B
-    K -- Có --> M[POST /api/stall-geofence]
-    M --> N{API success?}
-    N -- Không --> O[TempData error\nRedirect /StallGeoFence/Index]
-    O --> B
-    N -- Có --> P[TempData: Tạo geofence thành công\nRedirect /StallGeoFence/Index]
-    P --> B
-
-    F -- Cập nhật --> Q[Mở form Edit\nvới dữ liệu hiện tại]
-    Q --> R[Chỉnh sửa tọa độ / bán kính]
-    R --> S[POST /StallGeoFence/Update/id]
-    S --> T{ModelState OK?}
-    T -- Không --> U[TempData error\nRedirect]
-    U --> B
-    T -- Có --> V[PUT /api/stall-geofence/id]
-    V --> W{API success?}
-    W -- Không --> X[TempData error\nRedirect]
-    X --> B
-    W -- Có --> Y[TempData: Cập nhật thành công\nRedirect]
-    Y --> B
-
-    F -- Thoát --> Z([Kết thúc])
-```
-
----
-
-### AD-W09: Tạo / Cập nhật / Toggle Narration Content
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Vào /Narration/StallNarrationContents]
-    B --> C1[Gọi GET /api/stall\npageSize=200]
-    B --> C2[Gọi GET /api/languages\nisActive=true]
-    B --> C3[Gọi GET /api/stall-narration-content\nvới bộ lọc hiện tại]
-    C1 --> D[Chờ cả ba hoàn thành]
-    C2 --> D
-    C3 --> D
-    D --> E[Hiển thị danh sách Content\n+ dropdown lọc Stall/Language/Status]
-
-    E --> F{Chọn hành động?}
-
-    F -- Lọc --> G[Chọn stall / language / isActive]
-    G --> C3
-
-    F -- Tạo mới --> H[Mở form tạo]
-    H --> I[Chọn Stall, Language\nNhập Title, Description, ScriptText]
-    I --> J[POST /Narration/Create]
-    J --> K{ModelState OK?}
-    K -- Không --> L[TempData error\nRedirect về danh sách]
-    L --> B
-    K -- Có --> M[POST /api/stall-narration-content]
-    M --> N{API success?}
-    N -- Không --> O[TempData error\nRedirect về danh sách]
-    O --> B
-    N -- Có --> P[TempData: Tạo thành công\nRedirect về danh sách]
-    P --> B
-
-    F -- Toggle trạng thái --> Q[POST /Narration/ToggleStatus\n?id=guid&isActive=bool]
-    Q --> R[Gọi API toggle status]
-    R --> S{API success?}
-    S -- Không --> T[TempData error\nRedirect về danh sách]
-    T --> B
-    S -- Có --> U[TempData: Đổi trạng thái thành công\nRedirect về danh sách]
-    U --> B
-
-    F -- Xem chi tiết --> V[Chuyển sang AD-W10]
-
-    F -- Thoát --> W([Kết thúc])
-```
-
----
-
-### AD-W10: Xem chi tiết Narration Content + Cập nhật script
-
-```mermaid
-flowchart TD
-    A([Bắt đầu]) --> B[Vào /Narration/Show/id]
-    B --> C[Gọi GET /api/stall-narration-content/id\nlấy content + danh sách audios]
-    C --> D{Tìm thấy\ncontent?}
-    D -- Không --> E[Hiển thị trang lỗi:\nKhông tìm thấy nội dung]
-    E --> F([Kết thúc])
-
-    D -- Có --> G1[Gọi GET /api/stall/stallId\nlấy tên Stall]
-    D -- Có --> G2[Gọi GET /api/languages\nlấy tên Language]
-    G1 --> H[Chờ cả hai hoàn thành]
-    G2 --> H
-    H --> I[Hiển thị trang detail:\nScript text, tên Stall/Language\nDanh sách NarrationAudio với nút phát thử]
-
-    I --> J{Người dùng\nchọn hành động?}
-
-    J -- Chỉnh sửa script --> K[Sửa Title, Description,\nScriptText, IsActive trên form]
-    K --> L[POST /Narration/Update/id]
-    L --> M{ModelState OK?}
-    M -- Không --> N[Hiển thị lại trang detail\nvới dữ liệu đã nhập + lỗi validation]
-    N --> K
-    M -- Có --> O[PUT /api/stall-narration-content/id]
-    O --> P{API success?}
-    P -- Không --> Q[Hiển thị lại trang detail\nvới thông báo lỗi API]
-    Q --> K
-    P -- Có --> R[TempData: Cập nhật thành công]
-    R --> S[Redirect /Narration/Show/id]
-    S --> B
-
-    J -- Quay lại danh sách --> T[Redirect /Narration/StallNarrationContents]
-    T --> U([Kết thúc])
-```
+**Web Frontend Stack (CDN):**
+- Tabler 1.0.0-beta20 (admin UI)
+- Bootstrap 5 (bundled trong Tabler)
+- Tabler Icons 3.19.0 (`ti ti-*`)
+- Bootstrap Icons 1.11.1 (`bi bi-*`)
+- AOS 2.3.4 (Animate On Scroll)
+- jQuery + Validation + Unobtrusive (LibMan)
+- Leaflet 1.9.4 + leaflet.heat 0.2.0
+- SortableJS

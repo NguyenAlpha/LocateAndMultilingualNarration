@@ -19,6 +19,9 @@ namespace Web.Controllers
         private readonly UserApiClient _userApiClient;
         private readonly QrCodeApiClient _qrCodeApiClient;
         private readonly DeviceApiClient _deviceApiClient;
+        private readonly DeviceLocationLogApiClient _deviceLocationLogApiClient;
+        private readonly GeoApiClient _geoApiClient;
+        private readonly IConfiguration _configuration;
 
         public AdminController(
             BusinessApiClient businessApiClient,
@@ -29,7 +32,10 @@ namespace Web.Controllers
             SubscriptionOrderApiClient subscriptionOrderApiClient,
             UserApiClient userApiClient,
             QrCodeApiClient qrCodeApiClient,
-            DeviceApiClient deviceApiClient)
+            DeviceApiClient deviceApiClient,
+            DeviceLocationLogApiClient deviceLocationLogApiClient,
+            GeoApiClient geoApiClient,
+            IConfiguration configuration)
         {
             _businessApiClient = businessApiClient;
             _stallApiClient = stallApiClient;
@@ -40,7 +46,12 @@ namespace Web.Controllers
             _userApiClient = userApiClient;
             _qrCodeApiClient = qrCodeApiClient;
             _deviceApiClient = deviceApiClient;
+            _deviceLocationLogApiClient = deviceLocationLogApiClient;
+            _geoApiClient = geoApiClient;
+            _configuration = configuration;
         }
+
+        public IActionResult Index() => RedirectToAction("Dashboard");
 
         public async Task<IActionResult> Dashboard(CancellationToken cancellationToken)
         {
@@ -286,6 +297,7 @@ namespace Web.Controllers
         public IActionResult AutoQr() => View();
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> StartAutoQr(
             [FromBody] Shared.DTOs.QrCodes.QrCodeCreateDto request,
             CancellationToken cancellationToken = default)
@@ -331,22 +343,76 @@ namespace Web.Controllers
             });
         }
 
+        // Render trang lần đầu — truyền model vào View để Razor hiển thị dữ liệu ngay khi trang load,
+        // không cần chờ JS fetch. Nếu API lỗi, trả về model rỗng thay vì crash trang.
+        // ViewBag.WithinSeconds dùng để render đúng option selected trong dropdown.
         [HttpGet]
-        public async Task<IActionResult> ActiveDevices(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> ActiveDevices(int withinSeconds = 30, CancellationToken cancellationToken = default)
         {
-            if (withinMinutes < 1) withinMinutes = 1;
-            if (withinMinutes > 60) withinMinutes = 60;
-            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
-            ViewBag.WithinMinutes = withinMinutes;
-            return View(result?.Data ?? new ActiveDevicesSummaryDto { WithinMinutes = withinMinutes, AsOf = DateTimeOffset.UtcNow });
+            if (withinSeconds < 10)  withinSeconds = 10;
+            if (withinSeconds > 300) withinSeconds = 300;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinSeconds, cancellationToken);
+            ViewBag.WithinSeconds = withinSeconds;
+            return View(result?.Data ?? new ActiveDevicesSummaryDto { WithinSeconds = withinSeconds, AsOf = DateTimeOffset.UtcNow });
+        }
+
+        // Endpoint riêng chỉ trả JSON, dành cho JS auto-refresh mỗi 5 giây mà không reload trang.
+        // Tách khỏi ActiveDevices thay vì dùng chung để giữ action trả View và action trả JSON độc lập.
+        [HttpGet]
+        public async Task<IActionResult> ActiveDevicesData(int withinSeconds = 30, CancellationToken cancellationToken = default)
+        {
+            if (withinSeconds < 10)  withinSeconds = 10;
+            if (withinSeconds > 300) withinSeconds = 300;
+            var result = await _deviceApiClient.GetActiveDevicesAsync(withinSeconds, cancellationToken);
+            return Json(result);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetDevice([FromForm] string deviceId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(deviceId))
+                return Json(new { success = false, message = "deviceId không hợp lệ" });
+
+            var ok = await _deviceApiClient.ResetDeviceAsync(deviceId, cancellationToken);
+            return Json(new { success = ok, message = ok ? "Đã gửi lệnh reset" : "Reset thất bại" });
         }
 
         [HttpGet]
-        public async Task<IActionResult> ActiveDevicesData(int withinMinutes = 5, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Heatmap(
+            DateTimeOffset? from = null, DateTimeOffset? to = null, string? deviceId = null,
+            CancellationToken cancellationToken = default)
         {
-            if (withinMinutes < 1) withinMinutes = 1;
-            if (withinMinutes > 60) withinMinutes = 60;
-            var result = await _deviceApiClient.GetActiveDevicesAsync(withinMinutes, cancellationToken);
+            var toUtc = (to ?? DateTimeOffset.UtcNow).ToUniversalTime();
+            var fromUtc = (from ?? toUtc.AddDays(-7)).ToUniversalTime();
+
+            // Load song song: heatmap points + danh sách stalls
+            var heatmapTask = _deviceLocationLogApiClient.GetHeatmapAsync(fromUtc, toUtc, deviceId, cancellationToken);
+            var stallsTask = _geoApiClient.GetStallsForMapAsync(cancellationToken);
+            await Task.WhenAll(heatmapTask, stallsTask);
+
+            var result = await heatmapTask;
+            var stalls = await stallsTask;
+
+            var vm = new HeatmapViewModel
+            {
+                Points = result?.Data ?? [],
+                Stalls = stalls?.Data ?? [],
+                From = fromUtc,
+                To = toUtc,
+                DeviceId = deviceId,
+                ErrorMessage = result?.Success == false ? result.Error?.Message : null
+            };
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> HeatmapData(
+            DateTimeOffset? from = null, DateTimeOffset? to = null, string? deviceId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _deviceLocationLogApiClient.GetHeatmapAsync(from, to, deviceId, cancellationToken);
             return Json(result);
         }
 

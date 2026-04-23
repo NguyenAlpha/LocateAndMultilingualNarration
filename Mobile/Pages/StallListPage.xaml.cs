@@ -1,13 +1,12 @@
-﻿using Mobile.Helpers;
-using Mobile.ViewModels;
+﻿using Mobile.ViewModels;
 
 namespace Mobile.Pages;
 
 public partial class StallListPage : ContentPage
 {
-    public StallListPage()
+    public StallListPage(StallListViewModel viewModel)
     {
         InitializeComponent();
-        BindingContext = ServiceHelper.GetService<StallListViewModel>();
+        BindingContext = viewModel;
     }
 }

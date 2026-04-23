@@ -369,3 +369,4 @@ Api/appsettings.Development.json
 /.claude/agents
 /ANIMATIONS.md
 /CLAUDE_md_prompt_template.md
+/.github/copilot-instructions.md

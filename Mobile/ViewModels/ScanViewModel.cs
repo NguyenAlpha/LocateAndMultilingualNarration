@@ -1,12 +1,12 @@
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.ApplicationModel;
 using Mobile.Pages;
 using Mobile.Services;
 using SkiaSharp;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Windows.Input;
 using ZXing;
 using ZXing.Common;
 
@@ -77,11 +77,11 @@ public class ScanViewModel : INotifyPropertyChanged
 
     public ScanViewModel(IQrService qrService, IDeviceService deviceService, ILogger<ScanViewModel> logger)
     {
-        _qrService     = qrService;
+        _qrService = qrService;
         _deviceService = deviceService;
-        _logger        = logger;
+        _logger = logger;
 
-        ScanResultCommand           = new Command<string>(async text => await HandleQrResultAsync(text));
+        ScanResultCommand = new Command<string>(async text => await HandleQrResultAsync(text));
         PickImageFromGalleryCommand = new Command(async () => await PickAndDecodeQrAsync());
     }
 
@@ -91,7 +91,7 @@ public class ScanViewModel : INotifyPropertyChanged
     /// </summary>
     public void ResetScanner()
     {
-        IsDetecting  = false; // camera tắt trong lúc EnsureCameraPermissionAsync chạy
+        IsDetecting = false; // camera tắt trong lúc EnsureCameraPermissionAsync chạy
         ErrorMessage = string.Empty;
     }
 
@@ -105,8 +105,8 @@ public class ScanViewModel : INotifyPropertyChanged
 
         try
         {
-            IsBusy        = true;
-            ErrorMessage  = string.Empty;
+            IsBusy = true;
+            ErrorMessage = string.Empty;
 
             var fileResult = await MediaPicker.Default.PickPhotoAsync(new MediaPickerOptions
             {
@@ -133,7 +133,9 @@ public class ScanViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi khi giải mã QR từ thư viện");
+            // OLD CODE (kept for reference): _logger.LogError(ex, "Lỗi khi giải mã QR từ thư viện");
+            // Tạm comment log debug theo yêu cầu để giảm nhiễu Output khi test luồng chính.
+            // _logger.LogError(ex, "Lỗi khi giải mã QR từ thư viện");
             ErrorMessage = "Không thể xử lý ảnh QR từ thư viện.";
             await MainThread.InvokeOnMainThreadAsync(async () =>
                 await Shell.Current.DisplayAlertAsync("Lỗi", "Ảnh không hợp lệ hoặc không thể giải mã QR.", "OK"));
@@ -169,22 +171,22 @@ public class ScanViewModel : INotifyPropertyChanged
 
             // Chuyển pixel SKColor → mảng byte RGBA thô mà ZXing RGBLuminanceSource cần.
             var rawBytes = new byte[bitmap.Width * bitmap.Height * 4];
-            var colors   = bitmap.Pixels;
+            var colors = bitmap.Pixels;
             for (var i = 0; i < colors.Length; i++)
             {
                 var offset = i * 4;
-                rawBytes[offset]     = colors[i].Red;
+                rawBytes[offset] = colors[i].Red;
                 rawBytes[offset + 1] = colors[i].Green;
                 rawBytes[offset + 2] = colors[i].Blue;
                 rawBytes[offset + 3] = colors[i].Alpha;
             }
 
             // ZXing pipeline: raw bytes → luminance → binary → decode
-            var luminance    = new RGBLuminanceSource(rawBytes, bitmap.Width, bitmap.Height, RGBLuminanceSource.BitmapFormat.RGBA32);
+            var luminance = new RGBLuminanceSource(rawBytes, bitmap.Width, bitmap.Height, RGBLuminanceSource.BitmapFormat.RGBA32);
             var binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminance));
 
             var reader = new MultiFormatReader();
-            var hints  = new Dictionary<DecodeHintType, object>
+            var hints = new Dictionary<DecodeHintType, object>
             {
                 { DecodeHintType.TRY_HARDER, true }, // thử nhiều góc xoay, scale hơn — chậm hơn nhưng chính xác hơn
                 { DecodeHintType.POSSIBLE_FORMATS, new List<BarcodeFormat> { BarcodeFormat.QR_CODE } }
@@ -215,18 +217,18 @@ public class ScanViewModel : INotifyPropertyChanged
             // ngược lại (đã là 1) nghĩa là luồng khác đang xử lý → thoát ngay.
             if (Interlocked.CompareExchange(ref _navigationGuard, 1, 0) == 1) return;
 
-            IsBusy       = true;
+            IsBusy = true;
             ErrorMessage = string.Empty;
-            IsDetecting  = false; // dừng camera ngay để không fire thêm sự kiện trong lúc đang xử lý
+            IsDetecting = false; // dừng camera ngay để không fire thêm sự kiện trong lúc đang xử lý
 
-            var deviceId     = _deviceService.GetOrCreateDeviceId();
+            var deviceId = _deviceService.GetOrCreateDeviceId();
             var verifyResult = await _qrService.VerifyAsync(result, deviceId);
 
             // null = không kết nối được server (timeout, network lỗi…)
             if (verifyResult is null)
             {
                 ErrorMessage = "Không thể kết nối máy chủ. Vui lòng thử lại.";
-                IsDetecting  = true;
+                IsDetecting = true;
                 return;
             }
 
@@ -234,7 +236,7 @@ public class ScanViewModel : INotifyPropertyChanged
             if (!verifyResult.IsValid)
             {
                 ErrorMessage = verifyResult.Message;
-                IsDetecting  = true;
+                IsDetecting = true;
                 return;
             }
 
@@ -242,17 +244,16 @@ public class ScanViewModel : INotifyPropertyChanged
             // miễn là QR chưa hết hạn (kiểm tra bằng expiryAt > UtcNow).
             _qrService.SaveAccess(verifyResult.ExpiryAt);
 
-            // OLD CODE (kept for reference):
-            // await MainThread.InvokeOnMainThreadAsync(async () =>
-            //     await Shell.Current.GoToAsync(nameof(LanguagePage)));
             await MainThread.InvokeOnMainThreadAsync(async () =>
-                await Shell.Current.GoToAsync("LanguagePage"));
+                await Shell.Current.GoToAsync(nameof(LanguagePage)));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Xử lý kết quả QR thất bại");
+            // OLD CODE (kept for reference): _logger.LogError(ex, "Xử lý kết quả QR thất bại");
+            // Tạm comment log debug theo yêu cầu để test behavior UI/flow scan.
+            // _logger.LogError(ex, "Xử lý kết quả QR thất bại");
             ErrorMessage = "Không thể xử lý mã QR. Vui lòng thử lại.";
-            IsDetecting  = true;
+            IsDetecting = true;
         }
         finally
         {

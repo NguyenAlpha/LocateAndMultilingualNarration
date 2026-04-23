@@ -13,6 +13,9 @@ Tài liệu giải thích luồng hoạt động và các quyết định kỹ t
 - [SD-A05: Thanh toán & Kích hoạt Plan](#sd-a05-thanh-toán--kích-hoạt-plan)
 - [SD-A06: Lấy danh sách Gian hàng (Geo)](#sd-a06-lấy-danh-sách-gian-hàng-geo)
 - [SD-A07: Heartbeat Thiết bị & Lấy Thiết bị Đang Hoạt Động](#sd-a07-heartbeat-thiết-bị--lấy-thiết-bị-đang-hoạt-động)
+- [SD-A08: Quản lý Tour](#sd-a08-quản-lý-tour)
+- [SD-A09: Upload GPS Batch & Bản đồ nhiệt](#sd-a09-upload-gps-batch--bản-đồ-nhiệt)
+- [SD-A10: Cờ Reset Thiết bị & Offline Notification](#sd-a10-cờ-reset-thiết-bị--offline-notification)
 
 ---
 
@@ -88,10 +91,52 @@ Mobile nhận danh sách, upsert vào SQLite local để dùng offline, rồi hi
 
 Tính năng này gồm hai phần ghép lại — một phần chạy ngầm mỗi khi Mobile gọi API (heartbeat), một phần là endpoint Admin dùng để thống kê.
 
-**Heartbeat (Phần A):** `GeoController.GetAllStalls` được Mobile gọi định kỳ mỗi 3 phút qua `SyncBackgroundService`. Thay vì tạo endpoint ping riêng, heartbeat được tích hợp ngay vào luồng này: sau khi `GeoService` trả về kết quả, controller gọi `ExecuteUpdateAsync` để set `LastSeenAt = now` cho `DevicePreference` có `DeviceId` tương ứng. Đây là một câu `UPDATE` trực tiếp không load entity — nếu thiết bị chưa có bản ghi `DevicePreference` thì lệnh update không làm gì (không tạo mới). Overhead gần như không đáng kể so với query stalls đã có.
+**Heartbeat (Phần A):** `GeoController.GetAllStalls` được Mobile gọi định kỳ mỗi ~3 phút qua `SyncBackgroundService` (chu kỳ sync stall). Thay vì tạo endpoint ping riêng, heartbeat được tích hợp ngay vào luồng này: sau khi `GeoService` trả về kết quả, controller gọi `ExecuteUpdateAsync` để set `LastSeenAt = now` cho `DevicePreference` có `DeviceId` tương ứng. Đây là một câu `UPDATE` trực tiếp không load entity — nếu thiết bị chưa có bản ghi `DevicePreference` thì lệnh update không làm gì (không tạo mới). Overhead gần như không đáng kể so với query stalls đã có.
+
+**Nguồn heartbeat thứ hai:** `DeviceLocationLogController.BatchCreate` (xem SD-A09) cũng piggyback cập nhật `LastSeenAt` mỗi lần Mobile flush batch GPS — tần suất cao hơn nhiều (~20 giây). Đây mới là nguồn heartbeat chính khi Mobile đang mở `MapPage` và bật GPS polling; sync 3 phút ở Phần A chỉ là fallback khi không có dữ liệu GPS.
 
 **Tại sao dùng `LastSeenAt` trong `DevicePreference` thay vì bảng riêng?** `DevicePreference` đã tồn tại với trường `LastSeenAt` có nghĩa là "lần cuối thiết bị này liên hệ hệ thống". Tái sử dụng trường này tránh tạo bảng mới chỉ để lưu timestamp — đơn giản, không tốn thêm storage, không cần migration.
 
-**Lấy thiết bị active (Phần B):** Endpoint `GET /api/geo/active-devices?withinMinutes=N` chỉ dành cho Admin (`[Authorize(Policy = AdminOnly)]`). Controller tính `threshold = now − N phút` rồi query `DevicePreferences` theo `LastSeenAt >= threshold`. Kết quả trả về `ActiveDevicesSummaryDto` gồm `ActiveCount`, `WithinMinutes`, `AsOf` (thời điểm truy vấn), và mảng `Devices` với thông tin cơ bản của từng thiết bị. Tham số `withinMinutes` được clamp trong `[1, 60]` phía API.
+**Lấy thiết bị active (Phần B):** Endpoint `GET /api/geo/active-devices?withinSeconds=N` chỉ dành cho Admin (`[Authorize(Policy = AdminOnly)]`). Controller clamp `withinSeconds` vào `[10, 300]` (tối thiểu 10 giây, tối đa 5 phút), tính `threshold = now − N giây` rồi query `DevicePreferences` theo `LastSeenAt >= threshold`, sắp xếp theo `LastSeenAt` giảm dần. Kết quả trả về `ActiveDevicesSummaryDto` gồm `ActiveCount`, `WithinSeconds` (echo giá trị đã clamp), `AsOf` (thời điểm server tạo response), và mảng `Devices` với thông tin cơ bản của từng thiết bị.
 
-**Cửa sổ thời gian nên chọn bao nhiêu?** Vì `SyncBackgroundService` chạy mỗi 3 phút, cửa sổ mặc định 5 phút đủ để bắt thiết bị đang online ngay cả khi một chu kỳ sync bị trễ nhẹ. Cửa sổ ngắn hơn (1–2 phút) chỉ thích hợp để xem thiết bị "vừa mới" hoạt động.
+**Cửa sổ thời gian nên chọn bao nhiêu?** Do batch GPS chạy mỗi ~20 giây, cửa sổ mặc định 30 giây đủ để bắt thiết bị đang mở app mà vẫn loại được những thiết bị đã tắt. Cửa sổ 60–120 giây phù hợp khi muốn nhìn "thiết bị gần đây", còn 300 giây (5 phút) là giới hạn trên — vừa đủ bắt cả trường hợp chỉ có sync stall 3 phút (không có GPS polling). Web Admin dùng dropdown cố định với 5 lựa chọn: 30s, 60s, 120s, 180s, 300s.
+
+---
+
+## SD-A08: Quản lý Tour
+
+Tour là tuyến tham quan có thứ tự các gian hàng do Admin dựng. Mobile gọi endpoint anonymous để liệt kê tour active và đọc chi tiết khi khách bắt đầu tour.
+
+**Anonymous vs Admin view:** `GET /api/tours` và `GET /api/tours/{id}` đều `[AllowAnonymous]`. Tuy nhiên controller kiểm tra `IsAdmin()` trong JWT (nếu có) để quyết định filter: non-Admin bị force `IsActive = true`; Admin thì có thể truyền tham số `isActive` để xem tất cả hoặc chỉ inactive. Ở endpoint detail, tour `IsActive = false` trả 404 cho non-Admin — giống như tour không tồn tại — để tránh lộ metadata tour nháp.
+
+**Validate khi tạo (`POST /api/tours`, AdminOnly):** Bốn bước kiểm tra tuần tự trước khi INSERT — Stops không rỗng, không trùng `StallId` (so sánh `Distinct().Count` với `Stops.Count`), tất cả `StallId` tồn tại trong DB (`COUNT(Stalls WHERE Id IN ...)`), và tên tour chưa bị dùng (`NameExistsAsync`). `CreatedByUserId` lấy từ claim `NameIdentifier` qua `TryGetUserId`. Controller **bỏ qua giá trị `Order` client gửi** và re-index lại 1..N dựa trên thứ tự client đưa vào — chủ ý để server luôn kiểm soát thứ tự, tránh client gửi `Order = 99` gây lỗ thứ tự.
+
+**Full replace stops khi update (`PUT /api/tours/{id}`):** Thay vì diff giữa stops cũ và stops mới, controller đơn giản hóa bằng cách xóa toàn bộ `tour.Stops` rồi thêm lại theo payload mới — tất cả trong một `SaveChangesAsync` (một transaction). Cách này dễ reason về hơn so với diff, và số stop mỗi tour thường nhỏ (< 50) nên chi phí không đáng lo. Validate cùng bộ rule như Create + kiểm tra trùng tên chỉ khi `Name` thực sự đổi (so sánh `StringComparison.Ordinal` và dùng `excludeId` để không tự conflict chính nó).
+
+**Reorder (`POST /api/tours/{id}/stops/reorder`):** Nhận `List<TourStopReorderDto>`. Ba check nghiêm ngặt: `Count` phải khớp `tour.Stops.Count` (không cho thêm/bớt stop qua endpoint này), và `request.StallIds.SetEquals(tour.StallIds)` phải true (chỉ đổi thứ tự, không đổi danh sách). Sau đó loop từng stop của tour, set `Order = i + 1` theo thứ tự client gửi. Đây là endpoint riêng biệt với `Update` để drag-drop thứ tự trên UI không phải gửi toàn bộ metadata tour.
+
+**Xóa:** `DELETE /api/tours/{id}` dùng FK `Cascade` trên `TourStop.TourId` nên EF tự xóa toàn bộ stops khi Tour bị remove. Không cần truy vấn phụ.
+
+---
+
+## SD-A09: Upload GPS Batch & Bản đồ nhiệt
+
+**Mobile upload batch (`POST /api/device-location-log/batch`, AllowAnonymous):** Mobile buffer các điểm GPS trong memory (`LocationLogService`) và flush mỗi ~20 giây hoặc khi connectivity change. Request body là `DeviceLocationLogBatchDto { DeviceId, Points[] }` với mỗi point gồm `Lat, Lng, AccuracyMeters?, CapturedAt`. API kiểm tra ba điều: `DeviceId` không rỗng, `Points` không rỗng, và `Points.Count <= 500` (giới hạn để một request xấu không flood DB). Sau đó `AddRange` tất cả entity mới (mỗi point sinh `Guid.NewGuid()`) và `SaveChangesAsync`.
+
+**Piggyback heartbeat:** Sau khi lưu xong, controller gọi `ExecuteUpdateAsync` trên `DevicePreferences` để set `LastSeenAt = now`. Đây là nguồn heartbeat chính (cùng cơ chế với SD-A07 Phần A nhưng tần suất cao hơn). Nếu thiết bị chưa có `DevicePreference` — ví dụ Mobile chưa mở `LanguagePage` lần nào — thì câu UPDATE đơn giản không match dòng nào, không lỗi.
+
+**Heatmap (`GET /api/device-location-log/heatmap`, AdminOnly):** Input là `from`, `to`, và `deviceId` tùy chọn. Mặc định: `to = now`, `from = to − 7 ngày`. Hai check bảo vệ: `from > to` trả 400, và `(to − from) > 90 ngày` cũng trả 400 (tránh query quá nặng). Sau đó `GROUP BY (Latitude, Longitude)` và `COUNT(*)` làm `Weight`. Vì cột `Latitude` / `Longitude` là `decimal(9, 6)` (~11cm precision), các điểm ghi ở cùng vị trí sẽ tự gom nhóm mà không cần làm tròn ở client — Leaflet.heat bên Web nhận thẳng `{ Lat, Lng, Weight }`. Không làm phân trang vì cache render heatmap client-side với gradient cần toàn bộ dataset.
+
+---
+
+## SD-A10: Cờ Reset Thiết bị & Offline Notification
+
+Đây là ba endpoint nhỏ nhưng phối hợp tạo thành pattern "push từ Admin về Mobile qua pull-based flag" — Mobile không có connection luôn kết nối với server, nên Admin không gọi trực tiếp Mobile được.
+
+**Admin gửi lệnh reset (`POST /api/device-preference/{id}/reset`, AdminOnly):** `ExecuteUpdateAsync` set `NeedsReset = true` cho thiết bị có `DeviceId` khớp. Nếu không tìm thấy (updated = 0) trả 404. Atomic UPDATE không load entity — an toàn với concurrent requests.
+
+**Mobile poll cờ (`GET /api/device-preference/reset-flag?deviceId=...`, AllowAnonymous):** `SyncBackgroundService` bên Mobile poll endpoint này mỗi chu kỳ sync (~3 phút). API đọc `NeedsReset` hiện tại, rồi nếu = true thì *ngay trong cùng response* gọi `ExecuteUpdateAsync` để set lại về `false`. Điều này quan trọng: clear atomic trong API đảm bảo Mobile không bị trigger reset hai lần nếu cờ chưa kịp về false khi Mobile lỡ poll lại. Trả về bool — Mobile thấy `true` thì tự clear Preferences (language, voice, qr_verified, qr_expiry, tour progress) và navigate về `LoadingPage`.
+
+**Nếu thiết bị chưa có DevicePreference (ví dụ vừa cài app):** Endpoint trả `200 false` ngay, không lỗi. Mobile chưa cần reset gì thì poll về false cũng là kết quả đúng.
+
+**Mobile báo offline (`POST /api/device-preference/{id}/offline`, AllowAnonymous):** Khi Mobile app thoát (hoặc `MapPage` unload), gọi endpoint này để set `LastSeenAt = DateTimeOffset.MinValue` (`0001-01-01T00:00:00Z`). Sentinel này đảm bảo thiết bị rơi ra khỏi danh sách `active-devices` (SD-A07) ngay lập tức, thay vì phải đợi hết cửa sổ 30 giây — Admin dashboard phản ánh trạng thái thực tế nhanh hơn. Endpoint không kiểm tra tồn tại (UPDATE miss cũng trả 200) vì gọi endpoint này là best-effort: nếu app bị kill mà không kịp gọi, thiết bị sẽ tự rớt khỏi list khi `LastSeenAt` cũ hơn threshold.

@@ -101,20 +101,23 @@
 
                 <!-- Phân trang (Pagination) -->
                 <Grid ColumnDefinitions="Auto,*,Auto" Padding="10,0" IsVisible="{Binding HasStalls}">
-                    <Button Text="← Trước" 
-                            BackgroundColor="White" 
+                    <Button Grid.Column="0"
+                            Text="← Trước"
+                            BackgroundColor="White"
                             TextColor="#64748B"
                             Command="{Binding PreviousPageCommand}"
                             IsEnabled="{Binding CanGoPrevious}"/>
 
-                    <Label Text="{Binding CurrentPageDisplay}" 
-                           HorizontalOptions="Center" 
+                    <Label Grid.Column="1"
+                           Text="{Binding CurrentPageDisplay}"
+                           HorizontalOptions="Center"
                            VerticalOptions="Center"
                            FontSize="15"
                            TextColor="#475569"/>
 
-                    <Button Text="Sau →" 
-                            BackgroundColor="White" 
+                    <Button Grid.Column="2"
+                            Text="Sau →"
+                            BackgroundColor="White"
                             TextColor="#64748B"
                             Command="{Binding NextPageCommand}"
                             IsEnabled="{Binding CanGoNext}"/>
@@ -145,6 +148,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- Bản đồ -->
@@ -162,8 +166,23 @@
                 <Label Text="Bản đồ" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
-            <!-- Ngôn ngữ -->
+            <!-- Tour -->
             <VerticalStackLayout Grid.Column="1" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
+                <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>
+                    </Frame.Shadow>
+                    <ImageButton BackgroundColor="Transparent" Command="{Binding ToursCommand}">
+                        <ImageButton.Source>
+                            <FontImageSource Glyph="🧭" Color="#F59E0B" Size="28"/>
+                        </ImageButton.Source>
+                    </ImageButton>
+                </Frame>
+                <Label Text="Tour" FontSize="11" TextColor="#475569" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- Ngôn ngữ -->
+            <VerticalStackLayout Grid.Column="2" Spacing="3" HorizontalOptions="Center" VerticalOptions="Center">
                 <Frame WidthRequest="54" HeightRequest="54" CornerRadius="16" BackgroundColor="#F1F5F9" HasShadow="True" Padding="0">
                     <Frame.Shadow>
                         <Shadow Brush="Black" Offset="0,2" Radius="8" Opacity="0.08"/>

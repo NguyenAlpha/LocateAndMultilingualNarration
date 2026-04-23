@@ -68,7 +68,7 @@ namespace Web.Controllers
                 : Array.Empty<Shared.DTOs.Stalls.StallDetailDto>();
 
             ViewBag.Stalls = stalls;
-            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "https://localhost:7188/";
+            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "http://localhost:5299/";
             ViewBag.Mode = "create";
             ViewBag.AllLocationsJson = await BuildAllLocationsJsonAsync(cancellationToken);
 
@@ -119,7 +119,7 @@ namespace Web.Controllers
             ViewBag.RadiusMeters = location.RadiusMeters;
             ViewBag.Address = location.Address;
             ViewBag.IsActive = location.IsActive;
-            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "https://localhost:7188/";
+            ViewBag.ApiBaseUrl = _configuration.GetValue<string>("Api:BaseUrl") ?? "http://localhost:5299/";
             ViewBag.AllLocationsJson = await BuildAllLocationsJsonAsync(cancellationToken);
 
             return View("StallLocationMap");
@@ -195,6 +195,40 @@ namespace Web.Controllers
 
             TempData["SuccessMessage"] = "Cập nhật vị trí thành công.";
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleActive(Guid id, int page = 1, int pageSize = 10, string? stallName = null, bool? isActive = null, CancellationToken cancellationToken = default)
+        {
+            var result = await _stallLocationApiClient.ToggleActiveAsync(id, cancellationToken);
+            if (result?.Success != true)
+            {
+                TempData["ErrorMessage"] = result?.Error?.Message ?? "Không thể thay đổi trạng thái vị trí.";
+                return RedirectToAction(nameof(Index), new { page, pageSize, stallName, isActive });
+            }
+
+            var isNowActive = result.Data?.IsActive ?? false;
+            TempData["SuccessMessage"] = isNowActive ? "Vị trí đã được kích hoạt." : "Vị trí đã được vô hiệu hóa.";
+            return RedirectToAction(nameof(Index), new { page, pageSize, stallName, isActive });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LocationByStall(Guid stallId, CancellationToken cancellationToken = default)
+        {
+            var result = await _stallLocationApiClient.GetLocationsAsync(1, 1, stallId, null, cancellationToken);
+            var item = result?.Success == true ? result.Data?.Items.FirstOrDefault() : null;
+            if (item == null) return Json(new { found = false });
+            return Json(new
+            {
+                found = true,
+                id = item.Id,
+                latitude = item.Latitude,
+                longitude = item.Longitude,
+                radiusMeters = item.RadiusMeters,
+                address = item.Address ?? "",
+                isActive = item.IsActive
+            });
         }
 
         private async Task<string> BuildAllLocationsJsonAsync(CancellationToken cancellationToken)

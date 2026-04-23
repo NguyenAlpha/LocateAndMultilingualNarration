@@ -24,6 +24,9 @@ namespace Api.Controllers
             _logger = logger;
         }
 
+        // Mobile gọi endpoint này mỗi 3 phút (SyncBackgroundService) để lấy danh sách stall cho bản đồ.
+        // AllowAnonymous vì Mobile không có user account — chỉ có DeviceId.
+        // deviceId là optional: khách chưa setup preference vẫn có thể xem stall.
         [HttpGet("stalls")]
         [AllowAnonymous]
         public async Task<IActionResult> GetAllStalls([FromQuery] string? deviceId, CancellationToken cancellationToken)
@@ -31,7 +34,9 @@ namespace Api.Controllers
             _logger.LogInformation("Bắt đầu lấy danh sách stall cho bản đồ - DeviceId: {DeviceId}", deviceId);
             var result = await _geoService.GetAllStallsAsync(deviceId, cancellationToken);
 
-            // Heartbeat: cập nhật LastSeenAt để tracking thiết bị đang hoạt động
+            // Tận dụng request này làm heartbeat — mỗi lần Mobile sync stall là cập nhật LastSeenAt.
+            // Dùng ExecuteUpdateAsync thay vì Load + SaveChanges để tránh load toàn bộ entity vào memory
+            // chỉ để update 1 field.
             if (!string.IsNullOrWhiteSpace(deviceId))
             {
                 await _context.DevicePreferences
@@ -45,21 +50,25 @@ namespace Api.Controllers
             return this.OkResult(result);
         }
 
+        // Chỉ Admin mới được xem — thiết bị nào đang online được xác định dựa vào LastSeenAt,
+        // tức là thiết bị nào ping server trong withinSeconds giây qua thì coi là đang hoạt động.
         [HttpGet("active-devices")]
         [Authorize(Policy = AppPolicies.AdminOnly)]
         public async Task<IActionResult> GetActiveDevices(
-            [FromQuery] int withinMinutes = 5,
+            [FromQuery] int withinSeconds = 30,
             CancellationToken cancellationToken = default)
         {
-            if (withinMinutes < 1) withinMinutes = 1;
-            if (withinMinutes > 60) withinMinutes = 60;
+            // Clamp: tối thiểu 10 giây, tối đa 300 giây (5 phút)
+            if (withinSeconds < 10)  withinSeconds = 10;
+            if (withinSeconds > 300) withinSeconds = 300;
 
-            var threshold = DateTimeOffset.UtcNow.AddMinutes(-withinMinutes);
+            // threshold là mốc thời gian: chỉ lấy device có LastSeenAt >= mốc này
+            var threshold = DateTimeOffset.UtcNow.AddSeconds(-withinSeconds);
 
             var devices = await _context.DevicePreferences
-                .AsNoTracking()
+                .AsNoTracking()                              // chỉ đọc, không cần tracking
                 .Where(d => d.LastSeenAt >= threshold)
-                .OrderByDescending(d => d.LastSeenAt)
+                .OrderByDescending(d => d.LastSeenAt)        // device hoạt động gần nhất lên đầu
                 .Select(d => new ActiveDeviceItemDto
                 {
                     DeviceId     = d.DeviceId,
@@ -73,8 +82,8 @@ namespace Api.Controllers
             var summary = new ActiveDevicesSummaryDto
             {
                 ActiveCount   = devices.Count,
-                WithinMinutes = withinMinutes,
-                AsOf          = DateTimeOffset.UtcNow,
+                WithinSeconds = withinSeconds,
+                AsOf          = DateTimeOffset.UtcNow,       // timestamp server tạo response, dùng để hiển thị "cập nhật lúc"
                 Devices       = devices
             };
 

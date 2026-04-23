@@ -25,16 +25,22 @@ public class SyncBackgroundService : ISyncBackgroundService
 {
     private readonly ISyncService _syncService;
     private readonly ILocationLogService _locationLogService;
+    private readonly IDevicePreferenceApiService _devicePreferenceApiService;
     private readonly ILogger<SyncBackgroundService> _logger;
 
     private CancellationTokenSource? _cts;
     private static readonly TimeSpan StallSyncInterval = TimeSpan.FromMinutes(3);
-    private static readonly TimeSpan FlushInterval = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(20);
 
-    public SyncBackgroundService(ISyncService syncService, ILocationLogService locationLogService, ILogger<SyncBackgroundService> logger)
+    public SyncBackgroundService(
+        ISyncService syncService,
+        ILocationLogService locationLogService,
+        IDevicePreferenceApiService devicePreferenceApiService,
+        ILogger<SyncBackgroundService> logger)
     {
         _syncService = syncService;
         _locationLogService = locationLogService;
+        _devicePreferenceApiService = devicePreferenceApiService;
         _logger = logger;
     }
 
@@ -44,7 +50,8 @@ public class SyncBackgroundService : ISyncBackgroundService
     public void Start()
     {
         // Đảm bảo không đăng ký trùng hoặc chạy song song nhiều instance.
-        Stop(); // tránh double-start
+        // KHÔNG gọi Stop() vì Stop() gửi NotifyOffline — chỉ cleanup nội bộ.
+        CleanupInternal();
         _cts = new CancellationTokenSource();
 
         // Lắng nghe thay đổi kết nối mạng
@@ -66,9 +73,22 @@ public class SyncBackgroundService : ISyncBackgroundService
     }
 
     /// <summary>
-    /// Dừng theo dõi mạng, hủy timer và giải phóng token nguồn.
+    /// Dừng theo dõi mạng, hủy timer và gửi tín hiệu offline cho admin dashboard.
+    /// Chỉ gọi khi thực sự thoát MapPage — KHÔNG gọi trong Start() để tránh gửi offline nhầm.
     /// </summary>
     public void Stop()
+    {
+        CleanupInternal();
+
+        // Thông báo offline để admin dashboard loại thiết bị ngay, không chờ hết cửa sổ 30 giây.
+        _ = _devicePreferenceApiService.NotifyOfflineAsync();
+    }
+
+    /// <summary>
+    /// Cleanup nội bộ: unsubscribe event + cancel token. Không gửi NotifyOffline.
+    /// Dùng bởi cả Start() (tránh double-start) và Stop() (phần dọn dẹp).
+    /// </summary>
+    private void CleanupInternal()
     {
         // Hủy đăng ký sự kiện để tránh leak và callback ngoài ý muốn.
         Connectivity.ConnectivityChanged -= OnConnectivityChanged;
@@ -109,6 +129,7 @@ public class SyncBackgroundService : ISyncBackgroundService
                     if (!await stallTask) break;
                     _logger.LogInformation("SyncBackgroundService: stall sync tick");
                     await _syncService.SyncAsync(ct);
+                    await CheckResetFlagAsync(ct);
                     stallTask = stallTimer.WaitForNextTickAsync(ct).AsTask();
                 }
 
@@ -124,20 +145,43 @@ public class SyncBackgroundService : ISyncBackgroundService
     }
 
     /// <summary>
-    /// Xử lý sự kiện thay đổi kết nối mạng và kích hoạt sync ngay khi có Internet.
+    /// Kiểm tra flag reset từ admin. Nếu có → clear Preferences và quay về LoadingPage.
     /// </summary>
-    /// <param name="sender">Nguồn phát sinh sự kiện.</param>
-    /// <param name="e">Thông tin thay đổi kết nối mạng.</param>
+    private async Task CheckResetFlagAsync(CancellationToken ct)
+    {
+        try
+        {
+            var needsReset = await _devicePreferenceApiService.CheckAndClearResetFlagAsync(ct);
+            if (!needsReset) return;
+
+            _logger.LogInformation("SyncBackgroundService: nhận lệnh reset từ admin — xóa Preferences và về LoadingPage");
+            Preferences.Clear();
+
+            var audioDir = Path.Combine(FileSystem.AppDataDirectory, "audio");
+            if (Directory.Exists(audioDir))
+                Directory.Delete(audioDir, recursive: true);
+
+            await MainThread.InvokeOnMainThreadAsync(() =>
+                Shell.Current.GoToAsync("//LoadingPage"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "SyncBackgroundService: lỗi khi kiểm tra reset flag");
+        }
+    }
+
     private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
     {
         // Chỉ sync khi mạng vừa được khôi phục.
         if (e.NetworkAccess != NetworkAccess.Internet) return;
-        // Nếu service đã bị dừng thì không chạy nữa.
-        if (_cts is null || _cts.IsCancellationRequested) return;
+
+        // Capture local để tránh race với Stop()/CleanupInternal() đang dispose _cts song song.
+        var cts = _cts;
+        if (cts is null || cts.IsCancellationRequested) return;
 
         // Khi có mạng trở lại, đồng bộ ngay để giảm độ trễ dữ liệu.
         _logger.LogInformation("SyncBackgroundService: mạng kết nối lại → sync ngay");
-        _ = _syncService.SyncAsync(_cts.Token);
+        _ = _syncService.SyncAsync(cts.Token);
         _ = _locationLogService.FlushAsync();
     }
 }

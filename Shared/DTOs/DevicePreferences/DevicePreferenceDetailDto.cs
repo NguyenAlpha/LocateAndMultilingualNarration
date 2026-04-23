@@ -6,6 +6,7 @@ namespace Shared.DTOs.DevicePreferences
         public string DeviceId { get; set; } = null!;
         public Guid LanguageId { get; set; }
         public Guid? VoiceId { get; set; }
+        public string? VoiceDisplayName { get; set; }
         public decimal SpeechRate { get; set; }
         public bool AutoPlay { get; set; }
         public string? Platform { get; set; }

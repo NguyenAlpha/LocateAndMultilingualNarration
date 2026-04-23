@@ -108,20 +108,31 @@ namespace Api.Application.Services
                 _logger.LogWarning("TtsBackgroundService: reset {Count} stale Processing jobs về Pending.", staleJobs.Count);
             }
 
-            // ── Bước 2: Claim batch Pending jobs ─────────────────────────────────
-            // Lấy tối đa 5 job cũ nhất, set Processing trước khi xử lý.
-            // Việc set Processing trước (optimistic claim) đảm bảo nếu có nhiều
-            // instance API chạy đồng thời, mỗi job chỉ được một instance xử lý.
-            var jobs = await db.StallNarrationContents
+            // ── Bước 2: Claim batch Pending jobs (atomic) ────────────────────────
+            // SELECT IDs trước, sau đó UPDATE với điều kiện WHERE TtsStatus='Pending'
+            // để đảm bảo chỉ một instance API claim được mỗi job khi scale-out.
+            var pendingIds = await db.StallNarrationContents
                 .Where(c => c.TtsStatus == TtsJobStatus.Pending)
                 .OrderBy(c => c.UpdatedAt)
                 .Take(5)
+                .Select(c => c.Id)
                 .ToListAsync(ct);
 
-            if (jobs.Count == 0) return;
+            if (pendingIds.Count == 0) return;
 
-            foreach (var job in jobs) job.TtsStatus = TtsJobStatus.Processing;
-            await db.SaveChangesAsync(ct); // commit claim trước khi gọi Azure
+            // ExecuteUpdateAsync sinh một câu UPDATE duy nhất — SQL Server tự lock row,
+            // instance khác UPDATE cùng ID sẽ thấy TtsStatus≠Pending và bỏ qua.
+            var claimed = await db.StallNarrationContents
+                .Where(c => pendingIds.Contains(c.Id) && c.TtsStatus == TtsJobStatus.Pending)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(c => c.TtsStatus, TtsJobStatus.Processing)
+                    .SetProperty(c => c.UpdatedAt, DateTimeOffset.UtcNow), ct);
+
+            if (claimed == 0) return;
+
+            var jobs = await db.StallNarrationContents
+                .Where(c => pendingIds.Contains(c.Id) && c.TtsStatus == TtsJobStatus.Processing)
+                .ToListAsync(ct);
 
             // ── Bước 3: Xử lý từng job tuần tự ──────────────────────────────────
             // Tuần tự thay vì song song để tránh bão request đồng thời lên Azure TTS.

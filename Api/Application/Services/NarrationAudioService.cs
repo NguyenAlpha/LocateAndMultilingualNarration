@@ -1,10 +1,11 @@
+using System.Security;
+using System.Text;
 using Api.Domain.Entities;
 using Api.Domain.Settings;
 using Api.Infrastructure.Persistence;
 using Api.Infrastructure.Persistence.Extensions;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Microsoft.CognitiveServices.Speech;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -30,17 +31,16 @@ namespace Api.Application.Services
         private readonly AzureSpeechSettings _speechSettings;
         private readonly BlobStorageSettings _blobSettings;
         private readonly ITranslationService _translationService;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<NarrationAudioService> _logger;
 
-        /// <summary>
-        /// Khởi tạo service với DbContext, cấu hình Speech/Blob và logger.
-        /// </summary>
-        public NarrationAudioService(AppDbContext context, IOptions<AzureSpeechSettings> speechSettings, IOptions<BlobStorageSettings> blobSettings, ITranslationService translationService, ILogger<NarrationAudioService> logger)
+        public NarrationAudioService(AppDbContext context, IOptions<AzureSpeechSettings> speechSettings, IOptions<BlobStorageSettings> blobSettings, ITranslationService translationService, IHttpClientFactory httpClientFactory, ILogger<NarrationAudioService> logger)
         {
             _context = context;
             _speechSettings = speechSettings.Value;
             _blobSettings = blobSettings.Value;
             _translationService = translationService;
+            _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
 
@@ -219,80 +219,59 @@ namespace Api.Application.Services
         /// </returns>
         private async Task<(string audioUrl, string blobId, int? durationSeconds, string voiceName)> SynthesizeAndUploadAsync(Guid narrationContentId, string scriptText, string languageCode, string? voice)
         {
-            // Kiểm tra cấu hình Azure Speech trước khi gọi dịch vụ bên ngoài.
-            // Nếu thiếu endpoint hoặc key, không nên synthesize vì sẽ lỗi ngay từ tầng SDK.
             if (string.IsNullOrWhiteSpace(_speechSettings.Endpoint) || string.IsNullOrWhiteSpace(_speechSettings.Key))
-            {
                 throw new InvalidOperationException("Thiếu cấu hình Azure Speech (Endpoint/Key).");
-            }
 
-            // Kiểm tra cấu hình Blob Storage trước khi upload file audio.
-            // Blob Storage là nơi lưu file nhị phân audio thay vì lưu trực tiếp trong database.
             if (string.IsNullOrWhiteSpace(_blobSettings.ConnectionString) || string.IsNullOrWhiteSpace(_blobSettings.ContainerName))
-            {
                 throw new InvalidOperationException("Thiếu cấu hình Blob Storage (ConnectionString/ContainerName).");
-            }
 
-            // Ưu tiên voice được truyền vào từ caller.
-            // Nếu caller không truyền, dùng voice mặc định để đảm bảo vẫn tạo được audio.
             var voiceName = !string.IsNullOrWhiteSpace(voice) ? voice : _speechSettings.DefaultVoice;
             if (string.IsNullOrWhiteSpace(voiceName))
-            {
                 throw new InvalidOperationException("Thiếu cấu hình DefaultVoice cho Azure Speech.");
-            }
 
-            // Tạo cấu hình cho Azure Speech SDK.
-            // Endpoint + key là credential để gọi dịch vụ TTS của Azure.
-            var speechConfig = SpeechConfig.FromEndpoint(new Uri(_speechSettings.Endpoint), _speechSettings.Key);
-            speechConfig.SpeechSynthesisVoiceName = voiceName;
-            speechConfig.SpeechSynthesisLanguage = languageCode;
+            // Derive TTS REST endpoint từ cognitive services endpoint.
+            // Ví dụ: https://eastasia.api.cognitive.microsoft.com/ → https://eastasia.tts.speech.microsoft.com/cognitiveservices/v1
+            var cogUri = new Uri(_speechSettings.Endpoint);
+            var region = cogUri.Host.Split('.')[0];
+            var ttsEndpoint = $"https://{region}.tts.speech.microsoft.com/cognitiveservices/v1";
 
-            // Chọn format đầu ra là MP3 mono 16Khz để file nhẹ và phù hợp cho phát lại trên web/mobile.
-            speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3);
+            var ssml = $"<speak version='1.0' xml:lang='{languageCode}'>" +
+                       $"<voice xml:lang='{languageCode}' name='{voiceName}'>" +
+                       SecurityElement.Escape(scriptText) +
+                       "</voice></speak>";
 
-            _logger.LogInformation("Bắt đầu synthesize TTS cho NarrationContentId: {NarrationContentId}", narrationContentId);
+            _logger.LogInformation("Bắt đầu synthesize TTS (REST) cho NarrationContentId: {NarrationContentId}, Endpoint: {Endpoint}", narrationContentId, ttsEndpoint);
 
-            // Gọi Azure Speech để sinh audio từ script text.
-            // Nếu dịch vụ trả về không thành công thì sẽ ném lỗi để tầng trên xử lý nghiệp vụ.
-            using var synthesizer = new SpeechSynthesizer(speechConfig);
-            var result = await synthesizer.SpeakTextAsync(scriptText);
+            using var httpClient = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(HttpMethod.Post, ttsEndpoint);
+            request.Headers.Add("Ocp-Apim-Subscription-Key", _speechSettings.Key);
+            request.Headers.Add("X-Microsoft-OutputFormat", "audio-16khz-32kbitrate-mono-mp3");
+            request.Headers.Add("User-Agent", "LocateAndMultilingualNarration");
+            request.Content = new StringContent(ssml, Encoding.UTF8, "application/ssml+xml");
 
-            // Nếu synthesize thất bại hoặc bị hủy, lấy chi tiết lỗi từ Azure để dễ debug.
-            if (result.Reason != ResultReason.SynthesizingAudioCompleted)
+            var response = await httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
             {
-                var details = SpeechSynthesisCancellationDetails.FromResult(result);
-                throw new InvalidOperationException($"TTS thất bại: {details.ErrorDetails}");
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"TTS REST API thất bại: {(int)response.StatusCode} {response.StatusCode} - {errorBody}");
             }
 
-            // Upload file mp3 đã synthesize lên Blob Storage.
-            // Mỗi narrationContentId sẽ có một nhánh blob riêng để dễ quản lý và ghi đè logic sau này.
+            var audioBytes = await response.Content.ReadAsByteArrayAsync();
+
             var blobServiceClient = new BlobServiceClient(_blobSettings.ConnectionString);
             var containerClient = blobServiceClient.GetBlobContainerClient(_blobSettings.ContainerName);
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
 
-            // Tên blob dùng timestamp để tránh trùng file khi tạo nhiều lần liên tiếp.
             var blobName = $"narration-audio/{narrationContentId}/{DateTime.UtcNow:yyyyMMddHHmmssfff}.mp3";
             var blobClient = containerClient.GetBlobClient(blobName);
 
-            // Upload audio bytes với content-type chuẩn cho file mp3.
-            await using (var stream = new MemoryStream(result.AudioData))
+            await using (var stream = new MemoryStream(audioBytes))
             {
-                await blobClient.UploadAsync(stream, new BlobHttpHeaders
-                {
-                    ContentType = "audio/mpeg"
-                });
+                await blobClient.UploadAsync(stream, new BlobHttpHeaders { ContentType = "audio/mpeg" });
             }
 
-            // Lấy duration nếu Azure trả về.
-            // Thông tin này hữu ích để hiển thị thời lượng audio trong UI hoặc để kiểm tra nghiệp vụ.
-            var durationSeconds = result.AudioDuration > TimeSpan.Zero
-                ? (int?)Math.Round(result.AudioDuration.TotalSeconds)
-                : null;
-
             _logger.LogInformation("Upload audio thành công - BlobName: {BlobName}", blobName);
-
-            // Trả về URL public của blob + blobName (BlobId) + duration + voice thực tế đã dùng.
-            return (blobClient.Uri.ToString(), blobName, durationSeconds, voiceName);
+            return (blobClient.Uri.ToString(), blobName, null, voiceName);
         }
     }
 }

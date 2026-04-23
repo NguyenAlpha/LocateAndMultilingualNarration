@@ -232,6 +232,43 @@ namespace Api.Controllers
             return this.OkResult(result);
         }
 
+        /// <summary>
+        /// Kích hoạt hoặc vô hiệu hóa vị trí gian hàng.
+        /// </summary>
+        [HttpPatch("{id:guid}/toggle-active")]
+        [Authorize(Policy = AppPolicies.AdminOrBusinessOwner)]
+        public async Task<IActionResult> ToggleActive(Guid id)
+        {
+            _logger.LogInformation("Bắt đầu toggle-active stall location - Id: {LocationId}", id);
+
+            if (!TryGetUserId(out var userId))
+            {
+                return this.UnauthorizedResult("Không xác thực");
+            }
+
+            var location = await _context.StallLocations
+                .Include(l => l.Stall)
+                .ThenInclude(s => s.Business)
+                .FirstOrDefaultAsync(l => l.Id == id);
+
+            if (location == null)
+            {
+                return this.NotFoundResult("Không tìm thấy stall location");
+            }
+
+            if (!IsAdmin() && location.Stall.Business.OwnerUserId != userId)
+            {
+                return this.ForbiddenResult("Không có quyền truy cập");
+            }
+
+            location.IsActive = !location.IsActive;
+            location.UpdatedAt = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var timeZone = GetTimeZone();
+            return this.OkResult(MapDetail(location, timeZone));
+        }
+
         private static StallLocationDetailDto MapDetail(Api.Domain.Entities.StallLocation location, TimeZoneInfo timeZone)
         {
             // Ánh xạ entity sang DTO và chuyển đổi thời gian theo múi giờ người dùng.

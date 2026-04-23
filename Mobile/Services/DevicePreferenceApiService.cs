@@ -24,12 +24,22 @@ public interface IDevicePreferenceApiService
     /// <param name="ct">Token hủy tác vụ.</param>
     /// <returns>Dữ liệu cấu hình sau khi lưu nếu thành công; ngược lại <c>null</c>.</returns>
     Task<Shared.DTOs.DevicePreferences.DevicePreferenceDetailDto?> UpsertAsync(Shared.DTOs.DevicePreferences.DevicePreferenceUpsertDto dto, CancellationToken ct = default);
-    Task SavePreferencesAsync(Shared.DTOs.DevicePreferences.DevicePreferencesRequest request, CancellationToken ct = default);
 
     // OLD CODE (kept for reference): service cũ chỉ expose GetAsync(deviceId)/UpsertAsync(sharedDto).
     // API mới cho ProfilePage: tự lấy deviceId hiện tại và trả về ApiResult wrapper.
     Task<DevicePreferenceDetailDto?> GetByDeviceIdAsync(CancellationToken ct = default);
     Task<ApiResult<DevicePreferenceDetailDto>> UpsertAsync(DevicePreferenceUpsertDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Kiểm tra cờ reset từ API. Nếu server đặt NeedsReset=true thì trả về true (API tự xóa cờ).
+    /// </summary>
+    Task<bool> CheckAndClearResetFlagAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Thông báo thiết bị offline — API set LastSeenAt về MinValue để admin dashboard
+    /// loại thiết bị khỏi danh sách active ngay lập tức thay vì chờ hết cửa sổ thời gian.
+    /// </summary>
+    Task NotifyOfflineAsync(CancellationToken ct = default);
 }
 
 /// <summary>
@@ -98,15 +108,6 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
         catch { return null; }
     }
 
-    public async Task SavePreferencesAsync(Shared.DTOs.DevicePreferences.DevicePreferencesRequest request, CancellationToken ct = default)
-    {
-        var client = _httpClientFactory.CreateClient();
-        Console.WriteLine($"[DEBUG] POST /api/device-preferences DeviceId={request.DeviceId}, LanguageId={request.LanguageId}, VoiceId={request.VoiceId}");
-        var response = await client.PostAsJsonAsync("api/device-preferences", request, ct);
-        Console.WriteLine($"[DEBUG] POST /api/device-preferences => {(int)response.StatusCode} {response.StatusCode}");
-        response.EnsureSuccessStatusCode();
-    }
-
     public async Task<DevicePreferenceDetailDto?> GetByDeviceIdAsync(CancellationToken ct = default)
     {
         try
@@ -131,6 +132,33 @@ public class DevicePreferenceApiService : IDevicePreferenceApiService
         {
             return null;
         }
+    }
+
+    public async Task<bool> CheckAndClearResetFlagAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.GetAsync(
+                $"api/device-preference/reset-flag?deviceId={Uri.EscapeDataString(deviceId)}", ct);
+            if (!response.IsSuccessStatusCode) return false;
+            var result = await response.Content.ReadFromJsonAsync<ApiResult<bool>>(cancellationToken: ct);
+            return result?.Data ?? false;
+        }
+        catch { return false; }
+    }
+
+    public async Task NotifyOfflineAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var deviceId = _deviceService.GetOrCreateDeviceId();
+            var client = _httpClientFactory.CreateClient();
+            await client.PostAsync(
+                $"api/device-preference/{Uri.EscapeDataString(deviceId)}/offline", null, ct);
+        }
+        catch { /* fire-and-forget — lỗi mạng khi offline là bình thường */ }
     }
 
     public async Task<ApiResult<DevicePreferenceDetailDto>> UpsertAsync(DevicePreferenceUpsertDto dto, CancellationToken ct = default)

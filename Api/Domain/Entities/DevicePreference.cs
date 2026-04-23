@@ -14,6 +14,7 @@ namespace Api.Domain.Entities
         public string? OsVersion { get; set; }           // nvarchar(64)
         public DateTimeOffset FirstSeenAt { get; set; }
         public DateTimeOffset LastSeenAt { get; set; }
+        public bool NeedsReset { get; set; } = false;
 
         // Navigation
         public Language Language { get; set; } = null!;

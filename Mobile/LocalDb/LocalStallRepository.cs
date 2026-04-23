@@ -18,6 +18,8 @@ public interface ILocalStallRepository
     Task UpdateLocalAudioPathAsync(string stallId, string localPath);
     // Kiểm tra bảng đã có dữ liệu hay chưa.
     Task<bool> HasDataAsync();
+    // Xóa toàn bộ dữ liệu trong bảng Stalls.
+    Task DeleteAllAsync();
 }
 
 // Triển khai repository, quản lý kết nối SQLite bất đồng bộ và bảo vệ quá trình khởi tạo DB.
@@ -133,7 +135,9 @@ public class LocalStallRepository : ILocalStallRepository
 
             // Giữ lại LocalAudioPath đã download — API không biết path local trên máy.
             foreach (var s in toWrite)
-                if (existing.TryGetValue(s.StallId, out var old) && old.LocalAudioPath is not null)
+                if (existing.TryGetValue(s.StallId, out var old)
+                    && old.LocalAudioPath is not null
+                    && old.AudioUrl == s.AudioUrl)
                     s.LocalAudioPath = old.LocalAudioPath;
 
             await db.RunInTransactionAsync(conn =>
@@ -153,8 +157,7 @@ public class LocalStallRepository : ILocalStallRepository
 
     // So sánh các trường đến từ API — bỏ qua LocalAudioPath vì đó là dữ liệu local.
     private static bool HasChanged(LocalStall old, LocalStall s) =>
-        old.LastUpdated      != s.LastUpdated
-        || old.StallName     != s.StallName
+        old.StallName        != s.StallName
         || old.Latitude      != s.Latitude
         || old.Longitude     != s.Longitude
         || old.RadiusMeters  != s.RadiusMeters
@@ -183,8 +186,15 @@ public class LocalStallRepository : ILocalStallRepository
     // Kiểm tra xem bảng Stalls đã có ít nhất một dòng dữ liệu chưa.
     public async Task<bool> HasDataAsync()
     {
-        // Đếm số bản ghi, chỉ cần lớn hơn 0 là đã có dữ liệu.
         var db = await GetDbAsync();
         return await db.Table<LocalStall>().CountAsync() > 0;
+    }
+
+    // Xóa toàn bộ dữ liệu trong bảng Stalls (dùng cho debug reset).
+    public async Task DeleteAllAsync()
+    {
+        var db = await GetDbAsync();
+        await db.DeleteAllAsync<LocalStall>();
+        _logger.LogInformation("[SQLite] DeleteAll: đã xóa toàn bộ stalls");
     }
 }

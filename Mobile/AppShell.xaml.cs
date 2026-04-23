@@ -30,6 +30,9 @@ namespace Mobile
             // Trang chọn ngôn ngữ thuyết minh — hiển thị sau khi quét thành công
             Routing.RegisterRoute(nameof(LanguagePage), typeof(LanguagePage));
 
+            // Trang chi tiết tour — nhận tourId qua query param, push lên từ TourListPage
+            Routing.RegisterRoute(nameof(TourDetailPage), typeof(TourDetailPage));
+
             // MapPage không đăng ký ở đây vì đã là ShellContent trong AppShell.xaml.
             // Đăng ký lại sẽ xung đột và tạo instance mới thay vì dùng instance ShellContent sẵn có.
         }

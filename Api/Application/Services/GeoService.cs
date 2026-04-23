@@ -174,22 +174,18 @@ namespace Api.Application.Services
         {
             if (audios is null) return null;
 
-            // Lọc ra các audio có URL hợp lệ (bỏ qua null/rỗng)
             var list = audios.Where(a => !string.IsNullOrWhiteSpace(a.AudioUrl)).ToList();
             if (list.Count == 0) return null;
 
-            // Ưu tiên 1: khớp voice preference của thiết bị (so sánh qua TtsVoiceProfileId)
             if (preferredVoice.HasValue)
             {
                 var voiceMatch = list.FirstOrDefault(a => a.TtsVoiceProfileId == preferredVoice.Value);
                 if (voiceMatch != null) return voiceMatch.AudioUrl;
             }
 
-            // Ưu tiên 2: audio TTS tự sinh (chất lượng đồng nhất, không cần upload thủ công)
             var tts = list.FirstOrDefault(a => a.IsTts);
             if (tts != null) return tts.AudioUrl;
 
-            // Ưu tiên 3: bất kỳ audio đầu tiên có URL (fallback cuối cùng)
             return list[0].AudioUrl;
         }
 

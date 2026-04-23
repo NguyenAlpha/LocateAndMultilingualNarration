@@ -56,8 +56,15 @@ public partial class StallPopup : Popup
                 _stall?.StallName ?? "(null)",
                 _stall?.NarrationContent?.AudioUrl ?? "(null)");
 
-        if (_stall is not null)
-            _viewModel.PlayStall(_stall);
+        try
+        {
+            if (_stall is not null)
+                await _viewModel.PlayStallAsync(_stall);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Popup] Lỗi khi phát audio");
+        }
 
         await CloseAsync();
     }

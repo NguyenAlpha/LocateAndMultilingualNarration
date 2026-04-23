@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
-using Mobile.Helpers;
 using Mobile.Models;
 using Mobile.Services;
 
@@ -294,7 +293,6 @@ public class LanguageViewModel : INotifyPropertyChanged
 
             if (result.Success)
             {
-                LanguageHelper.SetLanguage(SelectedLanguage.Code);
                 await Shell.Current.GoToAsync("//MapPage");
             }
             else

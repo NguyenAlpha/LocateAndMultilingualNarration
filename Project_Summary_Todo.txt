@@ -1,110 +1,285 @@
-========================================================================
-TÓM TẮT ĐỒ ÁN: LOCATE AND MULTILINGUAL NARRATION
-Hệ thống Bản đồ & Thuyết minh Đa ngôn ngữ cho Phố Ẩm Thực
-========================================================================
+=====================================================================
+TONG HOP FULL DO AN - LOCATEANDMULTILINGUALNARRATION
+Workspace: D:\University\Subject\C#\Exam
+Nhanh dev: dev
+=====================================================================
 
-1. MỤC TIÊU ĐỒ ÁN
-------------------------------------------------------------------------
-Xây dựng ứng dụng di động hỗ trợ du khách tham quan Phố Ẩm Thực một cách thông minh:
-- Định vị và hiển thị gian hàng trên bản đồ tương tác.
-- Nghe thuyết minh audio đa ngôn ngữ tự động hoặc thủ công.
-- Cá nhân hóa trải nghiệm theo thiết bị (DevicePreferences - không cần đăng nhập).
-- Hỗ trợ quét QR để nhanh chóng focus gian hàng.
+0) PHAM VI DOC VA TOM TAT
+---------------------------------------------------------------------
+Da tong hop tu source code va tai lieu hien co:
+- Api/ (ASP.NET Core Web API .NET 10)
+- Web/ (ASP.NET Core MVC .NET 10)
+- Mobile/ (.NET MAUI .NET 10)
+- Shared/DTOs (cac contract du lieu dung chung)
+- Tai lieu tham khao: Mobile/README.txt, Mobile/Sequence_UserFlow_Report.txt, doc/PRD.md
 
-Luồng chính: MainPage → Quét QR → Chọn ngôn ngữ & giọng đọc → Bản đồ + Nghe thuyết minh.
 
-2. KIẾN TRÚC & CÔNG NGHỆ
-------------------------------------------------------------------------
-- Mobile App     : .NET MAUI 10.0 (MVVM + Dependency Injection)
-- Bản đồ         : Mapsui + OpenStreetMap
-- Quét QR        : ZXing.Net.Maui
-- Âm thanh       : Plugin.Maui.Audio
-- Cache local    : SQLite (LocalStallRepository + AudioCacheService)
-- Backend        : ASP.NET Core 10.0 Web API + EF Core
-- Database       : SQL Server
-- TTS            : Azure Cognitive Services Speech (qua backend)
-- Storage        : Azure Blob Storage
+1) TONG QUAN CHUC NANG TOAN HE THONG
+---------------------------------------------------------------------
+Ten he thong: LocateAndMultilingualNarration
+Muc tieu chinh:
+- Ho tro du khach xem ban do gian hang va nghe thuyet minh da ngon ngu.
+- Quan tri noi dung gian hang/audio/media tren Web Admin.
+- Dong bo du lieu va ho tro cache/offline tren Mobile.
 
-3. CHỨC NĂNG ĐÃ HOÀN THÀNH
-------------------------------------------------------------------------
-[✓] MainPage với Quick Actions (Bản đồ, Ngôn ngữ, Âm thanh, Hồ sơ)
-[✓] Quét QR Code → điều hướng đến chọn ngôn ngữ → Map
-[✓] Chọn ngôn ngữ & giọng đọc (realtime search, load từ API)
-[✓] ProfilePage: quản lý DevicePreferences (Language, Voice, SpeechRate, AutoPlay)
-[✓] Bản đồ tương tác (hiển thị pin gian hàng, vị trí người dùng)
-[✓] "Khám phá gần tôi" (Nearest Stall)
-[✓] Phát audio thuyết minh (play/pause/stop)
-[✓] Cache-First + SQLite cho stalls
-[✓] Navigation guard & xử lý một số lỗi cơ bản
+1.1) Nhom chuc nang MOBILE
+- Startup routing bang LoadingPage:
+  + Co/khong DeviceId
+  + QR con han/het han
+  + Co/khong local preference
+- Quet QR:
+  + Camera scan + decode tu anh gallery
+  + Verify QR qua API
+  + Luu trang thai truy cap (expiry)
+- Chon ngon ngu + giong doc:
+  + Load language active
+  + Load voice theo language
+  + Upsert DevicePreference theo DeviceId
+- Ban do gian hang:
+  + Hien thi pin stall
+  + Chon pin -> popup chi tiet
+  + Play audio narration
+- Geofence auto-play queue:
+  + Poll GPS
+  + Enqueue stall moi vao vung
+  + Tu dong play tuan tu
+- Background sync + offline:
+  + Sync stalls ve SQLite
+  + Download/cache audio local
+  + Flush location log theo batch
+- Profile:
+  + Chinh language/voice/speechRate/autoPlay
+- Stall list:
+  + Search + pagination
 
-4. CƠ SỞ DỮ LIỆU & DEVICE PREFERENCES
-------------------------------------------------------------------------
-Sử dụng bảng DevicePreferences để lưu cấu hình theo thiết bị (anonymous):
-- DeviceId (unique)
-- LanguageId / LanguageCode
-- Voice (TtsVoiceProfileId)
-- SpeechRate
-- AutoPlay
-- Platform, DeviceModel, OsVersion, FirstSeenAt, LastSeenAt
+1.2) Nhom chuc nang WEB ADMIN
+- Auth:
+  + Login/Register/Logout
+- Quan tri nghiep vu:
+  + Business CRUD
+  + Stall CRUD
+  + StallLocation CRUD
+  + StallGeoFence CRUD
+  + StallMedia CRUD (upload)
+  + Narration content/audio management
+- Quan tri he thong:
+  + User/Role management
+  + Language management
+  + Subscription + order
+  + QR code admin/kiosk flow
 
-5. API ĐANG SỬ DỤNG TRONG MOBILE
-------------------------------------------------------------------------
-- GET  /api/geo/stalls?deviceId=...
-- GET  /api/languages/active
-- GET  /api/tts-voice-profiles/active?languageId=...
-- POST /api/device-preference
-- GET  /api/device-preference/{deviceId}
-- GET  /api/geo/nearest-stall
+1.3) Nhom chuc nang API
+- Auth API: login/register/refresh/logout
+- Geo API: stalls/nearest-stall
+- DevicePreference API: get/upsert theo DeviceId
+- QrCode API: verify + admin CRUD
+- CRUD API cho business/stall/location/geofence/media/narration
+- DeviceLocationLog API: nhan batch location tu mobile
 
-6. CÁC VẤN ĐỀ ĐÃ XỬ LÝ GẦN ĐÂY
-------------------------------------------------------------------------
-- Sửa lỗi XAML parse và crash ProfilePage
-- Cải thiện navigation MapCommand
-- Tối ưu LanguagePage + search realtime
-- Giảm conflict DI trong MauiProgram.cs
-- Cập nhật mapping StallItem từ GeoStallDto
 
-7. TODO LIST - CÔNG VIỆC CÒN LẠI (Ưu tiên theo thứ tự)
-------------------------------------------------------------------------
-[ ] 1. Fix hoàn chỉnh "Danh sách gian hàng" trên MainPage 
-     (hiển thị đúng stall từ DB, có ảnh, mô tả, khoảng cách)
+2) TOM TAT CAU TRUC FOLDER / THANH PHAN CODE
+---------------------------------------------------------------------
+2.1) API project
+- Thu muc chinh:
+  + Application/
+  + Authorization/
+  + Controllers/
+  + Domain/
+  + Extensions/
+  + Infrastructure/
+  + Migrations/
+- Controllers hien co:
+  + AppControllerBase.cs
+  + AuthController.cs
+  + BusinessController.cs
+  + DeviceLocationLogController.cs
+  + DevicePreferenceController.cs
+  + GeoController.cs
+  + LanguageController.cs
+  + NarrationAudioController.cs
+  + QrCodeController.cs
+  + StallController.cs
+  + StallGeoFenceController.cs
+  + StallLocationController.cs
+  + StallMediaController.cs
+  + StallNarrationContentController.cs
+  + SubscriptionOrderController.cs
+  + TtsVoiceProfileController.cs
+  + UserController.cs
+- Program.cs:
+  + JWT auth + Authorization policy
+  + CORS cho Web
+  + OpenAPI/Swagger
+  + DbContext + migration startup
+  + Hosted service TTS
 
-[ ] 2. Làm "Khám phá gần tôi" hoạt động thực sự 
-     (gọi /api/geo/nearest-stall + focus bản đồ)
+2.2) WEB project
+- Thu muc chinh:
+  + Controllers/
+  + Filters/
+  + Models/
+  + Services/
+  + Views/
+  + wwwroot/
+- Controllers hien co:
+  + AdminController.cs
+  + AuthController.cs
+  + BusinessController.cs
+  + DocsController.cs
+  + HomeController.cs
+  + NarrationController.cs
+  + StallController.cs
+  + StallGeoFenceController.cs
+  + StallLocationController.cs
+  + StallMediaController.cs
+  + SubscriptionController.cs
+- Program.cs:
+  + Session + TokenExpirationFilter
+  + HttpClientFactory + AuthTokenHandler cho cac ApiClient
+  + Routing MVC
 
-[ ] 3. Tính khoảng cách thực tế cho từng gian hàng (Haversine)
+2.3) MOBILE project
+- Thu muc chinh:
+  + Components/
+  + Converters/
+  + Helpers/
+  + LocalDb/
+  + Models/
+  + Pages/
+  + Platforms/
+  + Resources/
+  + Services/
+  + ViewModels/
+- Pages:
+  + LanguagePage
+  + LoadingPage
+  + MainPage
+  + MapPage
+  + ProfilePage
+  + ScanPage
+  + StallListPage
+  + StallPopup
+- ViewModels:
+  + LanguageViewModel
+  + MainViewModel
+  + MapViewModel
+  + ProfileViewModel
+  + ScanViewModel
+  + StallListViewModel
+- Services:
+  + AudioCacheService
+  + AudioGuideService
+  + AuthService
+  + DevicePreferenceApiService
+  + DeviceService
+  + GpsPollingService
+  + LanguageService
+  + LocalPreferenceService
+  + LocationLogService
+  + QrService
+  + StallService
+  + SyncBackgroundService
+  + SyncService
+  + VoiceService
+- Local DB:
+  + LocalStall + LocalStallRepository (SQLite)
 
-[ ] 4. Cải thiện StallPopup (thêm nút nghe ngay, rating, khoảng cách)
+2.4) SHARED project
+- DTO groups:
+  + Auth, Businesses, Common
+  + DeviceLocationLogs, DevicePreferences
+  + Geo, Languages, Narrations
+  + QrCodes
+  + StallGeoFences, StallLocations, StallMedia, Stalls
+  + SubscriptionOrders
+  + TtsVoiceProfiles
+  + Users
 
-[ ] 5. Hoàn thiện ProfilePage (thêm SpeechRate Slider + AutoPlay Switch)
+2.5) TESTAPI project
+- Thu muc Models/ (test support)
 
-[ ] 6. Xử lý lỗi 401 (token hết hạn) toàn cục + thông báo user
 
-[ ] 7. Cải thiện Offline mode & Audio lifecycle
+3) LUONG CHINH DANG CHAY TREN MOBILE (THEO CODE)
+---------------------------------------------------------------------
+Luong A - Startup:
+LoadingPage -> check DeviceId -> check QR access -> check local preference
+=> route ScanPage / MainPage / LanguagePage
 
-[ ] 8. Thêm tìm kiếm gian hàng trên MainPage/MapPage
+Luong B - QR:
+ScanPage -> ScanViewModel -> QrService.VerifyAsync
+=> SaveAccess(expiry) -> navigate LanguagePage
 
-[ ] 9. Kiểm thử trên thiết bị thật (GPS, Camera, Audio)
+Luong C - Preference:
+LanguageViewModel load language + voice
+=> DevicePreferenceApiService.UpsertAsync
+=> navigate MapPage
 
-[ ] 10. Hoàn thiện báo cáo đồ án (Sequence Diagram, Test Cases, Đánh giá)
+Luong D - Map/Narration:
+MapViewModel load stalls (cache-first)
+MapPage render pin + geofence
+Tap pin => StallPopup => play audio
 
-[ ] 11. Sử dụng QR tính toán sử dụng ( tính từ lúc quét sử dụng uược 7 ngày sau 7 ngày không sử dụng nữa, tính thời gian quét thời gian 24h, phải quet lại) 
+Luong E - Geofence queue:
+GpsPollingService tick -> MapViewModel.CheckGeofencesAsync
+-> enqueue stall moi trong vung
+-> neu khong dang phat thi play ngay
+-> playback complete thi play item tiep
 
-[ ] 12. Quét QR là lưu deviceID dù chưa chọn ngôn ngữ/voice/ tạo thêm 1 cột check xem đã quét hay chuaw quét QR rồi:true chưa quét: false
+Luong F - Background sync:
+SyncBackgroundService:
+- Every 3 min: SyncService.SyncAsync (stalls + audio cache)
+- Every 1 min: LocationLogService.FlushAsync (batch location)
+- Khi reconnect: trigger sync + flush ngay
 
-8. ĐÁNH GIÁ TIẾN ĐỘ HIỆN TẠI
-------------------------------------------------------------------------
-- Core flow người dùng đã chạy được end-to-end.
-- Mức độ hoàn thiện: ~75-80% (đủ demo chức năng chính).
-- Điểm mạnh: Kiến trúc MVVM rõ ràng, Device-based preferences, tích hợp Mapsui + Audio.
-- Hạn chế hiện tại: Featured Stalls chưa load đúng, khoảng cách chưa thực, UX một số trang chưa mượt.
 
-9. GHI CHÚ
-------------------------------------------------------------------------
-- Tài liệu này phản ánh trạng thái thực tế của dự án tại thời điểm cập nhật.
-- Ưu tiên fix các bug hiển thị (Featured Stalls, Nearest Stall) trước khi thêm tính năng mới.
-- Cập nhật sau mỗi lần hoàn thành tính năng quan trọng.
+4) FILE TODO THAM KHAO DA DOC
+---------------------------------------------------------------------
+TODO tham khao da doc trong:
+- Mobile/README.txt (muc "10) TODO / ROADMAP")
 
-========================================================================
-END OF PROJECT SUMMARY & TODO LIST
-========================================================================
+Noi dung tham khao tu README:
+P1:
+1. Hoan tat fix compile sau merge (DTO, Guid/string, interface signatures)
+2. 401 Global Handler cho API calls
+3. On dinh audio lifecycle (foreground/background/navigation)
+
+P2:
+4. UX khi thieu permission (Camera/Location + Settings shortcut)
+5. Chinh sach sync offline->online ro rang
+6. Chuan hoa BaseUrl/config theo moi truong
+
+P3:
+7. Web Admin cho CRUD + Generate QR
+8. Tinh chinh zoom map theo DPI thiet bi
+
+
+5) TODO CAP NHAT LAI (DE XUAT HIEN TAI)
+---------------------------------------------------------------------
+[HIGH]
+- Chuan hoa tai lieu flow hien tai (LoadingPage/LanguagePage/MapPage) de khop code.
+- Bo sung test cho flow quan trong:
+  + Startup routing
+  + QR verify
+  + Geofence queue
+  + Background sync + flush
+- Chuan hoa HttpClient usage (named/default) de de maintain.
+
+[MEDIUM]
+- Toi uu pin cho GPS polling (can nhac geofencing native).
+- Persist location buffer khi can (neu can an toan du lieu hon khi app bi kill).
+- Chuan hoa config endpoint theo dev/staging/prod.
+
+[LOW]
+- Hoan thien dashboard/tai lieu van hanh.
+- Bo sung guideline release/checklist regression.
+
+
+6) KET LUAN NHANH
+---------------------------------------------------------------------
+Do an da co day du 3 lop (Mobile - Web - API),
+co bo source ro rang theo module,
+Mobile da co flow chinh: QR -> Preference -> Map -> Narration,
+va da co nen tang offline/sync/geofence queue.
+
+File nay da tong hop lai toan bo de team de doc va tiep tuc trien khai.
+=====================================================================

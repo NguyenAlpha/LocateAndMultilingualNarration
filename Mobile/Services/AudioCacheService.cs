@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace Mobile.Services;
 
 /// <summary>
@@ -44,6 +46,17 @@ public interface IAudioCacheService
 /// </summary>
 public class AudioCacheService : IAudioCacheService
 {
+    private const string DownloadHttpClientName = "download";
+
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<AudioCacheService> _logger;
+
+    public AudioCacheService(IHttpClientFactory httpClientFactory, ILogger<AudioCacheService> logger)
+    {
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
+    }
+
     // Path: {AppDataDirectory}/audio/{languageCode}/{stallId}.mp3
     private static string AudioRootDir =>
         Path.Combine(FileSystem.AppDataDirectory, "audio");
@@ -81,24 +94,25 @@ public class AudioCacheService : IAudioCacheService
         CancellationToken ct = default)
     {
         var path = GetFilePath(stallId, languageCode);
-        // Nếu đã có file thì không tải lại.
-        if (File.Exists(path)) return path;
 
         try
         {
             // Đảm bảo thư mục theo ngôn ngữ đã tồn tại trước khi ghi file.
             Directory.CreateDirectory(GetAudioDir(languageCode));
 
-            // Tạo HttpClient tạm thời để tải file audio từ URL.
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            _logger.LogInformation("[AudioCache] Đang tải: {StallId} ({Lang})", stallId, languageCode);
+            // Dùng named HttpClient "download" từ factory — timeout 30s, pool socket handler.
+            var client = _httpClientFactory.CreateClient(DownloadHttpClientName);
             // Tải dữ liệu nhị phân của file audio.
             var bytes = await client.GetByteArrayAsync(audioUrl, ct);
             // Ghi toàn bộ bytes xuống file local.
             await File.WriteAllBytesAsync(path, bytes, ct);
+            _logger.LogInformation("[AudioCache] Tải xong: {StallId} — {Bytes} bytes", stallId, bytes.Length);
             return path;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "[AudioCache] Lỗi tải audio stall {StallId}", stallId);
             // Xóa file corrupt nếu download lỗi giữa chừng.
             if (File.Exists(path)) File.Delete(path);
             return null;

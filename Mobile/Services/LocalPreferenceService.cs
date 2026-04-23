@@ -1,9 +1,10 @@
+using System.Text.Json;
 using Shared.DTOs.DevicePreferences;
 
 namespace Mobile.Services;
 
 /// <summary>
-/// Lưu và đọc preference của thiết bị (ngôn ngữ, giọng đọc, tốc độ...)
+/// Lưu và đọc preference của thiết bị (ngôn ngữ, giọng đọc, tốc độ, tour đang chạy...)
 /// từ Preferences cục bộ — không cần mạng.
 /// </summary>
 public interface ILocalPreferenceService
@@ -16,6 +17,23 @@ public interface ILocalPreferenceService
 
     /// <summary>Xóa toàn bộ preference đã lưu (vd: khi reset thiết bị).</summary>
     void Clear();
+
+    // ====== Tour progress ======
+
+    /// <summary>Lấy tour đang chạy (null nếu không có).</summary>
+    Guid? GetActiveTourId();
+
+    /// <summary>Đặt tour đang chạy; truyền null để clear.</summary>
+    void SetActiveTourId(Guid? tourId);
+
+    /// <summary>Lấy danh sách stall đã hoàn tất của tour đang chạy.</summary>
+    HashSet<Guid> GetCompletedStops();
+
+    /// <summary>Đánh dấu 1 stall đã hoàn tất.</summary>
+    void AddCompletedStop(Guid stallId);
+
+    /// <summary>Xóa toàn bộ tiến độ tour (active tour + completed stops).</summary>
+    void ClearTourProgress();
 }
 
 /// <summary>
@@ -30,8 +48,12 @@ public class LocalPreferenceService : ILocalPreferenceService
     private const string KeyLanguageDisplayName = "pref_language_display_name";
     private const string KeyLanguageFlagCode    = "pref_language_flag_code";
     private const string KeyVoiceId             = "pref_voice_id";
+    private const string KeyVoiceDisplayName    = "pref_voice_display_name";
     private const string KeySpeechRate          = "pref_speech_rate";
     private const string KeyAutoPlay            = "pref_auto_play";
+
+    private const string KeyActiveTourId        = "pref_active_tour_id";
+    private const string KeyCompletedStops      = "pref_tour_completed_stops";
 
     public void Save(DevicePreferenceDetailDto dto)
     {
@@ -41,6 +63,7 @@ public class LocalPreferenceService : ILocalPreferenceService
         Preferences.Set(KeyLanguageDisplayName, dto.LanguageDisplayName ?? string.Empty);
         Preferences.Set(KeyLanguageFlagCode,    dto.LanguageFlagCode    ?? string.Empty);
         Preferences.Set(KeyVoiceId,             dto.VoiceId?.ToString() ?? string.Empty);
+        Preferences.Set(KeyVoiceDisplayName,    dto.VoiceDisplayName    ?? string.Empty);
         Preferences.Set(KeySpeechRate,          dto.SpeechRate.ToString());
         Preferences.Set(KeyAutoPlay,            dto.AutoPlay);
     }
@@ -70,6 +93,7 @@ public class LocalPreferenceService : ILocalPreferenceService
             LanguageDisplayName = Preferences.Get(KeyLanguageDisplayName, null),
             LanguageFlagCode    = Preferences.Get(KeyLanguageFlagCode,    null),
             VoiceId             = voiceId,
+            VoiceDisplayName    = Preferences.Get(KeyVoiceDisplayName, null),
             SpeechRate          = speechRate <= 0 ? 1.0m : speechRate,
             AutoPlay            = Preferences.Get(KeyAutoPlay, true)
         };
@@ -83,7 +107,55 @@ public class LocalPreferenceService : ILocalPreferenceService
         Preferences.Remove(KeyLanguageDisplayName);
         Preferences.Remove(KeyLanguageFlagCode);
         Preferences.Remove(KeyVoiceId);
+        Preferences.Remove(KeyVoiceDisplayName);
         Preferences.Remove(KeySpeechRate);
         Preferences.Remove(KeyAutoPlay);
+        ClearTourProgress();
+    }
+
+    // ====== Tour progress ======
+
+    public Guid? GetActiveTourId()
+    {
+        var raw = Preferences.Get(KeyActiveTourId, null);
+        return Guid.TryParse(raw, out var id) ? id : null;
+    }
+
+    public void SetActiveTourId(Guid? tourId)
+    {
+        if (tourId is null)
+            Preferences.Remove(KeyActiveTourId);
+        else
+            Preferences.Set(KeyActiveTourId, tourId.Value.ToString());
+    }
+
+    public HashSet<Guid> GetCompletedStops()
+    {
+        var raw = Preferences.Get(KeyCompletedStops, null);
+        if (string.IsNullOrEmpty(raw)) return new HashSet<Guid>();
+        try
+        {
+            var ids = JsonSerializer.Deserialize<List<Guid>>(raw);
+            return ids is null ? new HashSet<Guid>() : new HashSet<Guid>(ids);
+        }
+        catch
+        {
+            return new HashSet<Guid>();
+        }
+    }
+
+    public void AddCompletedStop(Guid stallId)
+    {
+        var set = GetCompletedStops();
+        if (set.Add(stallId))
+        {
+            Preferences.Set(KeyCompletedStops, JsonSerializer.Serialize(set.ToList()));
+        }
+    }
+
+    public void ClearTourProgress()
+    {
+        Preferences.Remove(KeyActiveTourId);
+        Preferences.Remove(KeyCompletedStops);
     }
 }

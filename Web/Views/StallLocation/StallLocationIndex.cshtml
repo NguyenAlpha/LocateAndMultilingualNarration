@@ -103,10 +103,32 @@
                                         }
                                     </td>
                                     <td>
-                                        <a href="@Url.Action("EditMap", new { id = item.Id })"
-                                           class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
-                                            <i class="ti ti-pencil"></i>
-                                        </a>
+                                        <div class="btn-list flex-nowrap">
+                                            <a href="@Url.Action("EditMap", new { id = item.Id })"
+                                               class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
+                                                <i class="ti ti-pencil"></i>
+                                            </a>
+                                            @{
+                                                var toggleTitle = item.IsActive ? "Vô hiệu hóa" : "Kích hoạt";
+                                                var toggleIcon = item.IsActive ? "ti ti-ban" : "ti ti-check";
+                                                var toggleCss = item.IsActive ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-outline-success";
+                                                var toggleConfirm = item.IsActive
+                                                    ? "Bạn chắc chắn muốn vô hiệu hóa vị trí này?"
+                                                    : "Bạn chắc chắn muốn kích hoạt vị trí này?";
+                                            }
+                                            <form asp-action="ToggleActive" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@item.Id" />
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                                <input type="hidden" name="stallName" value="@Model.StallName" />
+                                                <input type="hidden" name="isActive" value="@Model.IsActive" />
+                                                <button type="submit" class="@toggleCss" title="@toggleTitle"
+                                                        onclick="return confirm('@toggleConfirm');">
+                                                    <i class="@toggleIcon"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             }

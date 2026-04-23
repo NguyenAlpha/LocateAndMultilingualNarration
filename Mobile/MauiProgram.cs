@@ -21,7 +21,9 @@ namespace Mobile;
 public static class MauiProgram
 {
     private const string ApiHttpClientName = "ApiHttp";
+    private const string DownloadHttpClientName = "download";
     private static readonly TimeSpan DefaultHttpTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan DownloadHttpTimeout = TimeSpan.FromSeconds(30);
 
     public static MauiApp CreateMauiApp()
     {
@@ -56,6 +58,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IStallService, StallService>();
         builder.Services.AddSingleton<ISyncBackgroundService, SyncBackgroundService>();
         builder.Services.AddSingleton<ISyncService, SyncService>();
+        builder.Services.AddSingleton<ITourService, TourService>();
         builder.Services.AddSingleton<IVoiceService, VoiceService>();
 
         builder.Services.AddSingleton<ILocalStallRepository, LocalStallRepository>();
@@ -68,17 +71,22 @@ public static class MauiProgram
         ServiceCollectionServiceExtensions.AddTransient<LanguageViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MainViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<MapViewModel>(builder.Services);
-        ServiceCollectionServiceExtensions.AddTransient<ProfileViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<ScanViewModel>(builder.Services);
         ServiceCollectionServiceExtensions.AddTransient<StallListViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddTransient<TourListViewModel>(builder.Services);
+        ServiceCollectionServiceExtensions.AddTransient<TourDetailViewModel>(builder.Services);
 
         // ---- PAGES (Transient — chỉ đăng ký page nào cần inject service vào constructor) ----
         // Các page không cần DI thì KHÔNG cần đăng ký ở đây — MAUI tự tạo khi điều hướng
         builder.Services.AddTransient<LanguagePage>();
         builder.Services.AddTransient<LoadingPage>();
+        builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<MapPage>();
-        builder.Services.AddTransient<ProfilePage>();
+        builder.Services.AddTransient<ScanPage>();
+        builder.Services.AddTransient<StallListPage>();
         builder.Services.AddTransient<StallPopup>();
+        builder.Services.AddTransient<TourListPage>();
+        builder.Services.AddTransient<TourDetailPage>();
 
         ConfigureLogging(builder.Logging);
 
@@ -102,6 +110,12 @@ public static class MauiProgram
         {
             client.BaseAddress = baseUri;
             client.Timeout = DefaultHttpTimeout;
+        });
+
+        // HttpClient chuyên cho tải file audio — URL là absolute Blob URL, timeout dài hơn.
+        services.AddHttpClient(DownloadHttpClientName, client =>
+        {
+            client.Timeout = DownloadHttpTimeout;
         });
     }
 
@@ -132,12 +146,14 @@ public static class MauiProgram
 #if DEBUG
         // Chỉ bật logging chi tiết trong DEBUG để không ảnh hưởng hiệu năng Release.
         logging.AddDebug();
-        logging.SetMinimumLevel(LogLevel.Debug);
+        // OLD CODE (kept for reference): //logging.SetMinimumLevel(LogLevel.Debug);
+        // Bật mức Information để chắc chắn log từ ScanPage/ScanViewModel hiện trên thiết bị thật.
+        logging.SetMinimumLevel(LogLevel.Information);
 
         // Hạ xuống Debug cho MapViewModel để thấy log polling GPS mỗi tick
-        logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
-        logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
-        logging.AddFilter("Mobile.Services.GpsPollingService", LogLevel.Debug);
+        //logging.AddFilter("Mobile.ViewModels.MapViewModel", LogLevel.Debug);
+        //logging.AddFilter("Mobile.Services.LocationLogService", LogLevel.Debug);
+        //logging.AddFilter("Mobile.Services.GpsPollingService", LogLevel.Debug);
 #else
         // Release chỉ giữ mức cảnh báo để giảm log nhiễu và rủi ro lộ thông tin.
         logging.SetMinimumLevel(LogLevel.Warning);
