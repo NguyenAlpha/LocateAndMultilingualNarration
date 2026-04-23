@@ -31,14 +31,18 @@ namespace Mobile.Pages;
 /// <summary>
 /// Code-behind của MapPage.
 /// Chịu trách nhiệm về các tác vụ UI thuần túy mà ViewModel không được chạm vào:
-///   - Khởi tạo và cấu hình MapView (tile layer, circle layer)
+///   - Khởi tạo và cấu hình MapView (tile layer, circle layer, tour polyline)
 ///   - Vẽ/xóa Pin và vòng tròn geofence trên bản đồ
 ///   - Xử lý sự kiện tap vào Pin → hiện action sheet
 ///   - Yêu cầu quyền GPS và lấy vị trí hiện tại
-///
+///   - Nhận tourId qua query param và uỷ thác cho ViewModel
 /// </summary>
+[QueryProperty(nameof(TourId), "tourId")]
 public partial class MapPage : ContentPage
 {
+    /// <summary>Query param "tourId" — set khi điều hướng tới MapPage với ?tourId=...</summary>
+    public string? TourId { get; set; }
+
     private readonly MapViewModel _viewModel;
     private readonly ILogger<MapPage> _logger;
     private readonly StallPopup _stallPopup;
@@ -57,6 +61,9 @@ public partial class MapPage : ContentPage
     // Layer riêng để vẽ vòng tròn geofence (bán kính phủ sóng) của từng gian hàng
     // Style = null để mỗi feature tự mang style riêng (màu khác nhau khi selected/unselected)
     private readonly WritableLayer _circlesLayer = new() { Name = "StallCircles", Style = null };
+
+    // Layer vẽ đường nối các stop trong tour (polyline xanh đậm).
+    private readonly WritableLayer _tourRouteLayer = new() { Name = "TourRoute", Style = null };
 
     // Tái sử dụng factory thay vì new mỗi lần gọi BuildCirclePolygon
     private static readonly GeometryFactory GeomFactory = new();
@@ -93,12 +100,15 @@ public partial class MapPage : ContentPage
         _viewModel.FocusStallRequested += OnFocusStallRequested; // Di chuyển camera bản đồ
         _viewModel.PinsRefreshRequested += RenderPins;           // Vẽ lại toàn bộ pin
         _viewModel.LocationUpdated += OnLocationUpdated;         // Cập nhật pin vị trí người dùng
+        _viewModel.TourRouteChanged += RenderTourRoute;          // Vẽ lại polyline tour
 
 
         // Thêm tile layer OSM (hình ảnh bản đồ nền từ OpenStreetMap)
         mapView.Map?.Layers.Add(OpenStreetMap.CreateTileLayer());
         // Thêm layer vòng tròn geofence (hiển thị phía trên tile layer)
         mapView.Map?.Layers.Add(_circlesLayer);
+        // Thêm layer vẽ tour polyline (hiển thị phía trên circle layer)
+        mapView.Map?.Layers.Add(_tourRouteLayer);
 
         // Ẩn widget debug log và performance overlay của Mapsui
         Mapsui.Widgets.InfoWidgets.LoggingWidget.ShowLoggingInMap = Mapsui.Widgets.ActiveMode.No;
@@ -125,6 +135,7 @@ public partial class MapPage : ContentPage
         _viewModel.FocusStallRequested -= OnFocusStallRequested;
         _viewModel.PinsRefreshRequested -= RenderPins;
         _viewModel.LocationUpdated -= OnLocationUpdated;
+        _viewModel.TourRouteChanged -= RenderTourRoute;
         _viewModel.Dispose();
     }
 
@@ -155,6 +166,29 @@ public partial class MapPage : ContentPage
         _lastPrefHash = currentHash;
 
         _ = InitializePageAsync(forceReload: prefChanged);
+        _ = ResolveTourAsync();
+    }
+
+    /// <summary>
+    /// Ưu tiên 1: query param ?tourId=... từ TourDetailPage.
+    /// Ưu tiên 2: active_tour_id đã lưu trong LocalPreference (resume sau khi kill app).
+    /// Nếu cả 2 không có → tắt tour mode (MapPage bình thường).
+    /// </summary>
+    private async Task ResolveTourAsync()
+    {
+        Guid? desiredTourId = null;
+        if (Guid.TryParse(TourId, out var fromQuery))
+            desiredTourId = fromQuery;
+        else
+            desiredTourId = _localPreference.GetActiveTourId();
+
+        // Reset query sau lần dùng đầu để lần Appearing tiếp theo (popup close) không đụng tour mode.
+        TourId = null;
+
+        if (_viewModel.ActiveTourId == desiredTourId && desiredTourId is not null)
+            return;
+
+        await _viewModel.SetActiveTourAsync(desiredTourId);
     }
 
     /// <summary>
@@ -446,5 +480,45 @@ public partial class MapPage : ContentPage
     {
         _gpsPollingService.Stop();
         await Shell.Current.GoToAsync("//MainPage");
+    }
+
+    /// <summary>
+    /// Vẽ lại polyline nối các stop trong tour theo thứ tự. Clear layer khi không ở tour mode.
+    /// </summary>
+    private void RenderTourRoute()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                _tourRouteLayer.Clear();
+
+                var coords = _viewModel.GetTourRouteCoordinates();
+                if (coords.Count >= 2)
+                {
+                    var mercator = new Coordinate[coords.Count];
+                    for (int i = 0; i < coords.Count; i++)
+                    {
+                        var (x, y) = SphericalMercator.FromLonLat(coords[i].Lng, coords[i].Lat);
+                        mercator[i] = new Coordinate(x, y);
+                    }
+
+                    var line = GeomFactory.CreateLineString(mercator);
+                    var feature = new GeometryFeature { Geometry = line };
+                    feature.Styles.Add(new VectorStyle
+                    {
+                        Line = new Pen(new Mapsui.Styles.Color(79, 70, 229, 220), 5.0),
+                        Outline = new Pen(new Mapsui.Styles.Color(79, 70, 229, 220), 5.0)
+                    });
+                    _tourRouteLayer.Add(feature);
+                }
+
+                _tourRouteLayer.DataHasChanged();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RenderTourRoute thất bại");
+            }
+        });
     }
 }

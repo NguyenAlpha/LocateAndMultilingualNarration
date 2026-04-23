@@ -28,6 +28,8 @@ namespace Api.Infrastructure.Persistence
         public DbSet<ScanLog> ScanLogs => Set<ScanLog>();
         public DbSet<SubscriptionOrder> SubscriptionOrders => Set<SubscriptionOrder>();
         public DbSet<DeviceLocationLog> DeviceLocationLogs => Set<DeviceLocationLog>();
+        public DbSet<Tour> Tours => Set<Tour>();
+        public DbSet<TourStop> TourStops => Set<TourStop>();
 
         //protected override void OnModelCreating(ModelBuilder modelBuilder)
         //{

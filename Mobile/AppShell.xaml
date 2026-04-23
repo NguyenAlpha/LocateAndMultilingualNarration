@@ -49,8 +49,14 @@
 
 
     <!-- StallListPage Route -->
-    <ShellContent 
+    <ShellContent
     Title="Gian hàng"
     Route="StallListPage"
     ContentTemplate="{DataTemplate pages:StallListPage}" />
+
+    <!-- TourListPage Route (absolute: //TourListPage) -->
+    <ShellContent
+    Title="Tour"
+    Route="TourListPage"
+    ContentTemplate="{DataTemplate pages:TourListPage}" />
 </Shell>

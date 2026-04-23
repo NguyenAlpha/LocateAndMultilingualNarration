@@ -25,7 +25,7 @@
           Row 2 (Auto) : Điều khiển audio — Phát / Tạm dừng / Dừng
           Row 3 (Auto) : Trạng thái — loading indicator + thông báo lỗi
     -->
-    <Grid RowDefinitions="Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
 
         <!-- ===== ROW 0: HEADER ===== -->
         <!-- Thanh tiêu đề tùy chỉnh với nền xanh đậm, gồm tiêu đề bên trái và nút Làm mới bên phải -->
@@ -64,13 +64,36 @@
                     Padding="0" />
         </Grid>
 
-        <!-- ===== ROW 1: BẢN ĐỒ + DANH SÁCH GIAN HÀNG ===== -->
+        <!-- ===== ROW 1: TOUR BANNER (chỉ hiển thị khi đang chạy tour) ===== -->
+        <Grid Grid.Row="1"
+              BackgroundColor="#4F46E5"
+              Padding="16,10"
+              IsVisible="{Binding IsTourMode}"
+              ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                <Label Text="{Binding TourName, StringFormat='Tour: {0}'}"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="White"/>
+                <Label Text="{Binding NextStopName, StringFormat='Điểm kế tiếp: {0}'}"
+                       FontSize="12"
+                       TextColor="#E0E7FF"/>
+            </VerticalStackLayout>
+            <Label Grid.Column="1"
+                   Text="{Binding TourProgressText}"
+                   FontSize="11"
+                   FontAttributes="Bold"
+                   TextColor="#C4D0FF"
+                   VerticalOptions="Center"/>
+        </Grid>
+
+        <!-- ===== ROW 2: BẢN ĐỒ + DANH SÁCH GIAN HÀNG ===== -->
         <!--
             Grid dọc chia 2 phần:
               Row 0 (2*) : Bản đồ chiếm 2/3 chiều cao
               Row 1 (*)  : Danh sách gian hàng chiếm 1/3 chiều cao
         -->
-        <Grid Grid.Row="1" RowDefinitions="2*,*">
+        <Grid Grid.Row="2" RowDefinitions="2*,*">
 
             <!--
                 MapView: Control bản đồ của thư viện Mapsui
@@ -157,12 +180,12 @@
             </CollectionView>
         </Grid>
 
-        <!-- ===== ROW 2: ĐIỀU KHIỂN AUDIO ===== -->
+        <!-- ===== ROW 3: ĐIỀU KHIỂN AUDIO ===== -->
         <!--
             3 nút điều khiển phát audio thuyết minh của gian hàng đang chọn
             Mỗi nút bind đến ICommand tương ứng trong ViewModel
         -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10" Padding="8"
+        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="10" Padding="8"
               IsVisible="{Binding HasSelectedStall}">
 
             <!-- Phát audio — gọi PlayAudioCommand, phát file audio thuyết minh -->
@@ -190,14 +213,14 @@
                     CornerRadius="12" />
         </Grid>
 
-        <!-- ===== ROW 3: TRẠNG THÁI ===== -->
+        <!-- ===== ROW 4: TRẠNG THÁI ===== -->
         <!--
             Hiển thị loading indicator hoặc thông báo lỗi
             Cả hai cùng nằm trong một Grid (chồng lên nhau),
             nhưng ActivityIndicator chỉ hiện khi IsBusy = true,
             còn Label lỗi chỉ hiện khi ErrorMessage có nội dung
         -->
-        <Grid Grid.Row="3" Padding="0,0,0,10">
+        <Grid Grid.Row="4" Padding="0,0,0,10">
 
             <!-- Vòng tròn loading — hiển thị và quay khi ViewModel đang tải dữ liệu -->
             <ActivityIndicator IsVisible="{Binding IsBusy}"

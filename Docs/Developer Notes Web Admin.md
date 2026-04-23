@@ -25,6 +25,8 @@ Tài liệu giải thích luồng hoạt động và các quyết định kỹ t
 - [SD-W17: Admin cập nhật Subscription Business](#sd-w17-admin-cập-nhật-subscription-business)
 - [SD-W18: Lịch sử Đơn đăng ký](#sd-w18-lịch-sử-đơn-đăng-ký)
 - [SD-W19: Theo dõi Thiết bị Online](#sd-w19-theo-dõi-thiết-bị-online)
+- [SD-W20: Quản lý Tour](#sd-w20-quản-lý-tour)
+- [SD-W21: Bản đồ nhiệt Vị trí Người dùng](#sd-w21-bản-đồ-nhiệt-vị-trí-người-dùng)
 
 ---
 
@@ -216,14 +218,55 @@ Trang chỉ Admin xem được. Controller gọi `GetOrdersAsync` của **Subscr
 
 ## SD-W19: Theo dõi Thiết bị Online
 
-Trang real-time cho Admin xem có bao nhiêu thiết bị Mobile đang sử dụng app tại thời điểm hiện tại.
+Trang real-time cho Admin xem có bao nhiêu thiết bị Mobile đang sử dụng app tại thời điểm hiện tại, kèm khả năng reset thiết bị từ xa.
 
-**Tải trang lần đầu:** **AdminController** gọi `GetActiveDevicesAsync` của **DeviceApiClient** với tham số `withinMinutes` (mặc định 5). Service gọi `GET /api/geo/active-devices?withinMinutes=5`, API trả về `ActiveDevicesSummaryDto` gồm tổng số thiết bị active, danh sách chi tiết từng thiết bị (DeviceId, Platform, Model, LastSeenAt), và thời điểm truy vấn. Controller render View với model ban đầu này.
+**Tải trang lần đầu:** **AdminController** gọi `GetActiveDevicesAsync` của **DeviceApiClient** với tham số `withinSeconds` (mặc định 30). Cả controller và API đều clamp giá trị này vào khoảng `[10, 300]` — tối thiểu 10 giây, tối đa 5 phút. Service gọi `GET /api/geo/active-devices?withinSeconds=30`, API trả về `ActiveDevicesSummaryDto` gồm tổng số thiết bị active, danh sách chi tiết từng thiết bị (DeviceId, Platform, Model, LastSeenAt), `WithinSeconds` (echo lại giá trị đã clamp), và `AsOf` (timestamp server tạo response). Controller render View với model ban đầu này; nếu API lỗi, fallback về model rỗng thay vì crash trang.
 
-**Tự động làm mới (mỗi 20 giây):** JavaScript khởi động đồng thời một countdown đếm ngược và một progress bar lấp đầy dần. Sau mỗi 20 giây, JS gọi `GET /Admin/ActiveDevicesData?withinMinutes={current}` — đây là action riêng biệt trong **AdminController** trả về JSON thay vì render View. JS nhận JSON, cập nhật trực tiếp trên DOM (số đếm, bảng thiết bị, timestamp "Cập nhật lúc"), rồi reset countdown và progress bar về 0, bắt đầu chu kỳ mới.
+**Tự động làm mới (mỗi 5 giây):** JavaScript khởi động đồng thời một countdown đếm ngược (`REFRESH_INTERVAL = 5`) và một progress bar lấp đầy dần. Sau mỗi 5 giây, JS gọi `GET /Admin/ActiveDevicesData?withinSeconds={current}` — đây là action riêng biệt trong **AdminController** trả về JSON thay vì render View. JS nhận JSON `{success, data: {activeCount, withinSeconds, asOf, devices[]}}`, cập nhật trực tiếp trên DOM (số đếm, bảng thiết bị, timestamp "Cập nhật lúc"), rồi reset countdown và progress bar về 0, bắt đầu chu kỳ mới.
 
-**Thay đổi cửa sổ thời gian:** Admin có thể chọn dropdown để thay đổi cửa sổ thời gian (1, 2, 5, 10, 15, 30 phút). Khi thay đổi, JS cập nhật biến `withinMinutes` nội bộ rồi gọi `ActiveDevicesData` ngay lập tức để lấy dữ liệu mới — không cần reload trang, không cần submit form.
+**Thay đổi cửa sổ thời gian:** Dropdown có 5 lựa chọn cố định — 30 giây, 1 phút (60), 2 phút (120), 3 phút (180), 5 phút (300). Khi thay đổi, JS cập nhật biến `withinSeconds` nội bộ rồi gọi `ActiveDevicesData` ngay lập tức để lấy dữ liệu mới — không cần reload trang, không cần submit form.
 
-**Hai action trong AdminController:**
+**Reset thiết bị từ xa:** Mỗi dòng trong bảng có nút Reset. Khi Admin xác nhận, JS build `FormData` gồm `deviceId` và `__RequestVerificationToken` (đọc từ `@Html.AntiForgeryToken()` trên trang), POST tới `/Admin/ResetDevice` (action có `[ValidateAntiForgeryToken]`). Controller gọi `ResetDeviceAsync` của **DeviceApiClient**, service POST tới `/api/device-preference/{deviceId}/reset` (endpoint Admin-only). API set cờ `NeedsReset = true` trên `DevicePreference`. Thiết bị Mobile sẽ phát hiện cờ này qua `SyncBackgroundService` (chu kỳ ~3 phút), tự xóa toàn bộ Preferences và điều hướng về `LoadingPage`. JS trả về kết quả UI: thành công thì nút đổi icon check xanh, thất bại thì alert lỗi + enable lại nút.
+
+**Ba action trong AdminController:**
 - `GET /Admin/ActiveDevices` — render View với model ban đầu (dùng khi mở trang)
 - `GET /Admin/ActiveDevicesData` — trả về JSON (dùng bởi JS polling)
+- `POST /Admin/ResetDevice` — nhận `deviceId` từ form, `[ValidateAntiForgeryToken]`, trả JSON `{success, message}`
+
+---
+
+## SD-W20: Quản lý Tour
+
+Tour là tuyến tham quan có thứ tự các gian hàng do Admin tạo — khách Mobile chọn tour để app dẫn đường và tự động phát narration theo đúng sequence. Toàn bộ module này chỉ Admin truy cập được — mọi action trong **TourController** đều gọi `EnsureAdmin()` ở đầu; nếu role trong Session không phải `Admin` thì redirect về trang chủ kèm `ErrorMessage`.
+
+**Xem danh sách:** Khi truy cập `/Tour`, controller gọi `GetToursAsync` của **TourApiClient** với phân trang và search. View `TourManagement.cshtml` hiển thị bảng tour kèm các nút Tạo/Sửa/Toggle/Xóa.
+
+**Mở Designer để tạo mới:** Nhấn "Tạo Tour mới" sẽ vào `GET /Tour/Designer` (không có `id`). Controller gọi `GetStallsForMapAsync` của **GeoApiClient** để lấy danh sách gian hàng, rồi render `TourDesigner.cshtml` với `IsEdit = false` và `Tour = null`. JavaScript khởi tạo Leaflet map, render tất cả gian hàng dưới dạng marker xám (chưa thuộc tour nào).
+
+**Mở Designer để chỉnh sửa:** Khi nhấn "Sửa" trên một tour, request `GET /Tour/Designer?id=X`. Controller load song song — `GetStallsForMapAsync` để có danh sách stall và `GetTourDetailAsync` để có chi tiết tour hiện có, dùng `Task.WhenAll` hoặc tương đương. View nhận `IsEdit = true` và model `TourDetailDto` đầy đủ, JavaScript vẽ polyline theo thứ tự stops + tô xanh các marker thuộc tour.
+
+**Tương tác trên map (client-side):** Toàn bộ thao tác thêm/bỏ stop và đổi thứ tự đều xảy ra ở client — click marker xám để thêm, click marker xanh để bỏ, drag-drop danh sách (dùng SortableJS) để đổi thứ tự. Server không được gọi cho đến khi Admin nhấn Lưu.
+
+**Lưu tour:** Khi Admin submit, JavaScript build `TourSavePayload` (Name, Description, EstimatedMinutes, IsActive, Stops) rồi `POST /Tour/Save?id={optional}` với body JSON. Controller (có `[ValidateAntiForgeryToken]`) validate `Stops != null && Stops.Count > 0` trước khi gọi API — thiếu stop trả 400 ngay. Nếu có `id` thì gọi `UpdateTourAsync` (`PUT /api/tours/{id}`), không thì `CreateTourAsync` (`POST /api/tours`). API tự re-index `Order` về 1..N và kiểm tra unique `(TourId, StallId)`. Thành công trả `200 {success, id}` và set `TempData["SuccessMessage"]`; thất bại trả 400 với message từ API.
+
+**Toggle Active và Xóa:** Cả hai đều là form POST từ `TourManagement.cshtml` với `[ValidateAntiForgeryToken]`. Toggle gọi `ToggleActiveAsync` (`PATCH /api/tours/{id}/toggle-active`), Xóa gọi `DeleteTourAsync` (`DELETE /api/tours/{id}` — cascade xóa toàn bộ stops). Cả hai redirect về `/Tour` kèm thông báo.
+
+---
+
+## SD-W21: Bản đồ nhiệt Vị trí Người dùng
+
+Trang phân tích mật độ GPS từ `DeviceLocationLog` — Admin xem khách tập trung ở đâu nhiều nhất trong khoảng thời gian chọn, overlay lên bản đồ Leaflet bằng plugin `leaflet.heat`.
+
+**Tải trang lần đầu:** Request `GET /Admin/Heatmap?from=&to=&deviceId=`. **AdminController** tính mặc định `from = now - 7 days` và `to = now` (cả hai convert sang UTC trước khi gọi API). Controller load song song bằng `Task.WhenAll`:
+- `GetHeatmapAsync` của **DeviceLocationLogApiClient** → `GET /api/device-location-log/heatmap?from=...&to=...&deviceId=...` (Admin-only). API group các điểm theo `(Lat, Lng)` đã làm tròn 5 chữ số (~1.1m) và trả `HeatmapPointDto{Latitude, Longitude, Weight}`. API từ chối khoảng thời gian lớn hơn 90 ngày.
+- `GetStallsForMapAsync` của **GeoApiClient** → `GET /api/geo/stalls` để lấy danh sách gian hàng overlay lên bản đồ.
+
+Controller build `HeatmapViewModel` gồm `Points`, `Stalls`, `From`, `To`, `DeviceId`, `TotalPoints` (số điểm unique), `TotalWeight` (tổng số lần ghi nhận). View `Heatmap.cshtml` serialize cả `Points` và `Stalls` thành JSON camelCase và nhúng trực tiếp vào biến `rawPoints` / `rawStalls` ở client — **không fetch API lần nữa** để tránh vấn đề CORS khi Web và API khác origin.
+
+**Render bản đồ:** JavaScript khởi tạo Leaflet map với OSM tile, center mặc định ở HCMC (cùng tọa độ với `StallLocationMap`). Nếu có điểm, JS normalize `weight` về `[0, 1]` bằng cách chia cho `maxWeight` (tránh outlier làm lệch gradient), build mảng `[lat, lng, intensity]`, gọi `L.heatLayer(...)` với gradient blue → cyan → lime → yellow → red, rồi `map.fitBounds(...)` để zoom vừa khít vùng có dữ liệu. Nếu không có điểm, chỉ render tile và markers gian hàng, giữ view mặc định.
+
+**Overlay gian hàng:** Mỗi stall được vẽ bằng `L.circleMarker` (chấm xanh) kèm `L.circle` với `radiusMeters` từ API (hiển thị geofence). Tooltip tên gian hàng có thể bật/tắt bằng nút "Ẩn/Hiện tên" — thao tác này thuần client-side, không gọi API.
+
+**Lọc lại theo thời gian/device:** Form filter dùng `method=get` với `asp-action="Heatmap"`, submit sẽ reload toàn bộ trang với query mới — lặp lại toàn bộ flow trên. Đây là chủ ý để mọi lần filter đều đi qua cùng một code path, dễ debug hơn so với AJAX.
+
+**Endpoint JSON dự phòng:** Controller có sẵn action `GET /Admin/HeatmapData` trả JSON (tương tự cặp `ActiveDevices` / `ActiveDevicesData` ở SD-W19), dành cho trường hợp sau này cần refresh heat layer không reload trang. View hiện tại chưa dùng endpoint này.

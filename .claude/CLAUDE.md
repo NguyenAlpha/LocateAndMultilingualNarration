@@ -39,7 +39,7 @@ Web (MVC)      ──HTTP──▶  API (ASP.NET Core)  ──Azure SDK──▶
 
 ## Các Module Chính
 
-### API – Controllers (18 controllers + 1 base, `Api/Controllers/`)
+### API – Controllers (19 controllers + 1 base, `Api/Controllers/`)
 
 | Controller | Route | Auth |
 |-----------|-------|------|
@@ -60,6 +60,7 @@ Web (MVC)      ──HTTP──▶  API (ASP.NET Core)  ──Azure SDK──▶
 | StallNarrationContentController | `/api/stall-narration-content` | `[Authorize]` – có `GET {id}/tts-status`, `POST {id}/retry-tts` |
 | NarrationAudioController | `/api/narration-audio` | `[Authorize]` – chỉ có `PUT {id}/upload` (upload audio người thật) |
 | SubscriptionOrderController | `/api/subscription-orders` | `POST` = AdminOrBusinessOwner; `GET` = AdminOnly |
+| TourController | `/api/tours` | `GET` = AllowAnonymous (Mobile dùng); `POST`/`PUT`/`DELETE`/`PATCH` = AdminOnly |
 
 **Application Services** (`Api/Application/Services/`):
 - `JwtService` – sinh JWT HS256, refresh token 64-byte random, hash SHA256
@@ -68,7 +69,7 @@ Web (MVC)      ──HTTP──▶  API (ASP.NET Core)  ──Azure SDK──▶
 - `AzureTranslationService` – wrapper Azure Translator v3.0 (chuẩn hoá code về 2 ký tự)
 - `TtsBackgroundService` – **Hosted service** `PeriodicTimer(5s)`, claim batch 5 job Pending → Processing, retry sau `StaleThreshold=10min`
 
-### API – Entities (22 entities, `Api/Domain/Entities/`)
+### API – Entities (24 entities, `Api/Domain/Entities/`)
 
 ```
 User, Role, UserRole, RefreshToken,
@@ -76,7 +77,8 @@ Business, BusinessOwnerProfile, EmployeeProfile,
 Stall, StallLocation, StallGeoFence, StallMedia,
 Language, TtsVoiceProfile, StallNarrationContent, NarrationAudio,
 DevicePreference, DeviceLocationLog, ScanLog,
-SubscriptionOrder, QrCode, QrCodeConfiguration
+SubscriptionOrder, QrCode, QrCodeConfiguration,
+Tour, TourStop
 ```
 
 Ngoài ra: `TtsJobStatus` là **static class hằng số** (`None/Pending/Processing/Completed/Failed`), không phải entity. `ScanLog` đã có migration nhưng chưa controller nào dùng.
@@ -122,9 +124,29 @@ var effectivePlan = (planIsExpired && business.Plan != "Free") ? "Free" : busine
 - `POST /api/subscription-orders` [AdminOrBusinessOwner]: Mock payment — strip spaces, nếu đúng 16 chữ số → `Completed`, else → `Failed`. Khi thành công: cập nhật `business.Plan` và `business.PlanExpiresAt`. Nếu business đang có plan active, extend từ `PlanExpiresAt` hiện tại.
 - `GET /api/subscription-orders` [AdminOnly]: Phân trang, filter `plan` / `status` / `businessId`.
 
+### API – TourController (`/api/tours`)
+
+Tour = **tuyến tham quan có sequence stalls** do Admin tạo. Khách Mobile chọn tour → app dẫn đường + auto-play narration theo thứ tự khi tới gần từng stall.
+
+- `GET /api/tours` [AllowAnonymous]: Phân trang tours `IsActive=true`, query `page`/`pageSize`/`search` — Mobile gọi không token.
+- `GET /api/tours/{id}` [AllowAnonymous]: Detail + stops đã order + tọa độ (cần `StallLocation`).
+- `POST /api/tours` [AdminOnly]: Tạo tour + stops (validate: Stops không rỗng, không trùng StallId, Order re-index về 1..N).
+- `PUT /api/tours/{id}` [AdminOnly]: Cập nhật metadata + full replace stops.
+- `DELETE /api/tours/{id}` [AdminOnly]: Cascade xóa stops.
+- `PATCH /api/tours/{id}/toggle-active` [AdminOnly]: Bật/tắt.
+- `POST /api/tours/{id}/stops/reorder` [AdminOnly]: Nhận `List<TourStopReorderDto>`, cập nhật Order.
+
+**Entities** (`Api/Domain/Entities/Tour.cs`, `TourStop.cs`):
+- `Tour` – Id, Name, Description, EstimatedMinutes, IsActive, CreatedAt/UpdatedAt, CreatedByUserId (FK User, Restrict), `ICollection<TourStop> Stops`.
+- `TourStop` – Id, TourId (FK Tour, Cascade), StallId (FK Stall, Restrict), Order, Note, CreatedAt. Unique `(TourId, StallId)`, index `(TourId, Order)`.
+
+**Query Extensions** (`Api/Infrastructure/Persistence/Extensions/TourQueryExtensions.cs`): `GetByIdAsync`, `GetByIdReadOnlyAsync`, `GetWithStopsAsync` (Include Stops OrderBy Order → Stall → Locations), `NameExistsAsync`.
+
+**Migration:** `AddTourTables`.
+
 ### Shared – DTOs (`Shared/DTOs/`)
 
-Nhóm: Auth, Businesses, Common, DeviceLocationLogs, DevicePreferences, Geo, Languages, Narrations, QrCodes, StallGeoFences, StallLocations, StallMedia, Stalls, SubscriptionOrders, TtsVoiceProfiles, Users.
+Nhóm: Auth, Businesses, Common, DeviceLocationLogs, DevicePreferences, Geo, Languages, Narrations, QrCodes, StallGeoFences, StallLocations, StallMedia, Stalls, SubscriptionOrders, Tours, TtsVoiceProfiles, Users.
 
 **QrCodes**:
 - `QrCodeCreateDto` – `ValidDays` (số ngày hiệu lực), `Note`
@@ -134,6 +156,14 @@ Nhóm: Auth, Businesses, Common, DeviceLocationLogs, DevicePreferences, Geo, Lan
 **SubscriptionOrders**:
 - `SubscriptionOrderCreateDto` – BusinessId, Plan, CardNumber, CardExpiry, CardCvv, CardHolder
 - `SubscriptionOrderDetailDto` – Id, BusinessId, BusinessName, Plan, Amount, Status, CardLastFour, PaidAt, PlanStartAt, PlanEndAt
+
+**Tours** (`Shared/DTOs/Tours/`):
+- `TourCreateDto` / `TourUpdateDto` – Name, Description, EstimatedMinutes, IsActive, `List<TourStopCreateDto> Stops`.
+- `TourStopCreateDto` – StallId, Order, Note.
+- `TourDetailDto` – Id, Name, Description, EstimatedMinutes, IsActive, CreatedAt, UpdatedAt, StopCount, `List<TourStopDetailDto> Stops`.
+- `TourStopDetailDto` – Id, StallId, StallName, StallSlug, Order, Note, Latitude, Longitude, ThumbnailUrl.
+- `TourListItemDto` – Id, Name, Description, EstimatedMinutes, IsActive, StopCount, CreatedAt.
+- `TourStopReorderDto` – StallId, Order.
 
 **Users**:
 - `UserListItemDto` – Id, UserName, Email, Roles, IsActive, LastLoginAt, CreatedAt
@@ -156,13 +186,13 @@ Nhóm: Auth, Businesses, Common, DeviceLocationLogs, DevicePreferences, Geo, Lan
 **DeviceLocationLogs**:
 - `DeviceLocationLogBatchDto` – DeviceId, list `LocationPointDto` (Lat/Lng/At)
 
-### Web – Controllers (`Web/Controllers/`) – 11 controllers
+### Web – Controllers (`Web/Controllers/`) – 12 controllers
 
-`AuthController`, `HomeController`, `AdminController` (tích hợp: Dashboard, UserRoleManagement, QrCodes, AutoQr, ActiveDevices, Subscription, SubscriptionOrders), `BusinessController`, `StallController`, `StallLocationController`, `StallGeoFenceController`, `StallMediaController`, `NarrationController`, `SubscriptionController`, `DocsController`.
+`AuthController`, `HomeController`, `AdminController` (tích hợp: Dashboard, UserRoleManagement, QrCodes, AutoQr, ActiveDevices, Subscription, SubscriptionOrders), `BusinessController`, `StallController`, `StallLocationController`, `StallGeoFenceController`, `StallMediaController`, `NarrationController`, `SubscriptionController`, `TourController`, `DocsController`.
 
 Web giao tiếp API qua `Web/Services/` – mỗi domain có `*ApiClient.cs` riêng. `AuthTokenHandler` (DelegatingHandler) tự inject JWT + header `X-TimeZoneId: SE Asia Standard Time` vào mọi request. `TokenExpirationFilter` (global filter) kiểm token còn hạn với path không public, nếu hết hạn thì gọi `RefreshAsync`.
 
-### Web – Services (`Web/Services/`) – 15 files
+### Web – Services (`Web/Services/`) – 16 files
 
 | Service | Mục đích |
 |---------|---------|
@@ -181,6 +211,7 @@ Web giao tiếp API qua `Web/Services/` – mỗi domain có `*ApiClient.cs` ri�
 | `UserApiClient` | Users & roles – Admin |
 | `QrCodeApiClient` | QR CRUD + `GetQrCodeImageAsync` |
 | `DeviceApiClient` | `GetActiveDevicesAsync` → `/api/geo/active-devices` |
+| `TourApiClient` | `GetTours/GetTourDetail/CreateTour/UpdateTour/DeleteTour/ToggleActive/ReorderStops` |
 
 **Session keys** (hằng số trong `ApiClient`):
 - `TokenSessionKey` = `"AuthToken"`, `TokenExpiresAtSessionKey` = `"AuthTokenExpiresAt"`
@@ -212,6 +243,7 @@ Session config: `IdleTimeout = 30 phút`, `HttpOnly`, `IsEssential`, `SecurePoli
 - `StallLocation/`: `StallLocationIndex.cshtml`, `StallLocationMap.cshtml`
 - `StallMedia/`: `StallMediaManagement.cshtml`
 - `Subscription/`: `Plans.cshtml`, `Checkout.cshtml`, `Success.cshtml`
+- `Tour/`: `TourManagement.cshtml` (list + toggle/delete), `TourDesigner.cshtml` (Leaflet map + SortableJS drag-drop stops)
 - `Shared/`: `_Layout.cshtml`, `Error.cshtml`, `_ValidationScriptsPartial.cshtml`
 
 **Home** (`Home/Index.cshtml`):
@@ -229,25 +261,28 @@ Session config: `IdleTimeout = 30 phút`, `HttpOnly`, `IsEssential`, `SecurePoli
 | LoadingPage | – (code-behind) | Quyết định điều hướng splash |
 | ScanPage | ScanViewModel | Quét QR để active app |
 | LanguagePage | LanguageViewModel | Chọn ngôn ngữ + voice trong cùng trang, lưu DevicePreference + LocalPreference |
-| MainPage | MainViewModel | Shell home; quick action → StallListPage |
-| MapPage | MapViewModel | Bản đồ + geofence (qua `GeofenceEngine`) + audio queue; lifecycle qua `_appearingDepth` + pref hash |
+| MainPage | MainViewModel | Shell home; bottom nav 3 nút (Bản đồ / Tour / Ngôn ngữ); list featured stalls có phân trang |
+| MapPage | MapViewModel | Bản đồ + geofence (qua `GeofenceEngine`) + audio queue; lifecycle qua `_appearingDepth` + pref hash; `[QueryProperty("TourId", "tourId")]` → tour mode nếu có |
 | StallListPage | StallListViewModel | Search + phân trang |
 | StallPopup | dùng chung MapViewModel | Popup chi tiết gian hàng; gọi `PlayStallAsync(stall)` |
+| TourListPage | TourListViewModel | List tours active, tap → TourDetailPage |
+| TourDetailPage | TourDetailViewModel | `[QueryProperty("TourId", "tourId")]`; Start/Cancel tour, list stops có số thứ tự; điều hướng `//MapPage?tourId={id}` |
 
-**Geofence Engine** (`Mobile/ViewModels/GeofenceEngine.cs`): class thuần (không DI), sở hữu bởi `MapViewModel`. Giữ state `_triggeredIds` + `_queue`, compute Haversine. Event `AutoPlayRequested: Func<GeoStallDto, Task>` — **không chạm `SelectedStall`** (tách UI selection khỏi audio target).
+**Geofence Engine** (`Mobile/ViewModels/GeofenceEngine.cs`): class thuần (không DI), sở hữu bởi `MapViewModel`. Giữ state `_triggeredIds` + `_queue`, compute Haversine. Event `AutoPlayRequested: Func<GeoStallDto, Task>` — **không chạm `SelectedStall`** (tách UI selection khỏi audio target). **Tour mode:** `SetActiveTour(IEnumerable<Guid>? tourStallIds)` — null = tắt, có giá trị = chỉ trigger auto-play cho stalls nằm trong set.
 
 **MapViewModel state machine:** enum `MapState { Uninitialized, Syncing, Loading, Ready, Error }`; method idempotent `EnsureReadyAsync(bool forceReload = false)` guard bằng `SemaphoreSlim(1,1)`; implement `IDisposable` để unsubscribe event Singleton. MapPage dispose VM trong `Unloaded` handler.
 
-**Mobile Services** (`Mobile/Services/`) – 13 services:
+**Mobile Services** (`Mobile/Services/`) – 14 services:
 
 ```
 DeviceService              – GetOrCreateDeviceId (Preferences key "device_id") + GetDeviceInfo
 DevicePreferenceApiService – GET/POST /api/device-preference
-LocalPreferenceService     – Lưu DevicePreference vào Preferences (8 key "pref_*"), offline-first
+LocalPreferenceService     – Lưu DevicePreference vào Preferences (8 key "pref_*") + tour progress (2 key "pref_active_tour_id"/"pref_tour_completed_stops"), offline-first
 QrService                  – Verify QR qua API + lưu "qr_verified"/"qr_expiry" (Preferences)
 LanguageService            – GET /api/languages/active, cache 15 phút
 VoiceService               – GET /api/tts-voice-profiles/active?languageId=...
 StallService               – Cache-first: memory → SQLite → API /api/geo/stalls, cache 10 phút
+TourService                – Cache-first memory only (không SQLite): GET /api/tours + /api/tours/{id}, cache 10 phút
 AudioGuideService          – Wrap Plugin.Maui.Audio; event PlaybackCompleted (dùng HttpClient "download")
 AudioCacheService          – Download MP3 về {AppDataDirectory}/audio/{lang}/{stallId}.mp3 (dùng HttpClient "download")
 SyncService                – Orchestrate API → SQLite → audio (semaphore 3 song song); `EnsureSyncedAsync` cho rule sync-before-map; `IsSyncing` atomic (Interlocked)
@@ -258,17 +293,26 @@ LocalStallRepository       – SQLite stalls.db3 (LocalDb/), upsert batch có di
 ```
 
 **Interfaces** (`Mobile/Services/`):
-- `IStallService`, `ILanguageService`, `IVoiceService`, `IAudioGuideService`, `IAudioCacheService`, `ISyncService`, `ISyncBackgroundService`, `ILocationLogService`, `IGpsPollingService`, `IQrService`, `ILocalPreferenceService`, `IDeviceService`, `IDevicePreferenceApiService`, `ILocalStallRepository`.
+- `IStallService`, `ITourService`, `ILanguageService`, `IVoiceService`, `IAudioGuideService`, `IAudioCacheService`, `ISyncService`, `ISyncBackgroundService`, `ILocationLogService`, `IGpsPollingService`, `IQrService`, `ILocalPreferenceService`, `IDeviceService`, `IDevicePreferenceApiService`, `ILocalStallRepository`.
+
+**Tour progress trong LocalPreferenceService:**
+- `GetActiveTourId()` / `SetActiveTourId(Guid?)` — khóa `pref_active_tour_id`.
+- `GetCompletedStops()` / `AddCompletedStop(Guid stallId)` — khóa `pref_tour_completed_stops` (JSON array of Guid).
+- `ClearTourProgress()` — xoá cả 2 khoá; `Clear()` cũng tự gọi `ClearTourProgress()`.
 
 **HttpClient factory** (`MauiProgram.cs` – `ConfigureHttpClients`):
 - Default + `"ApiHttp"` (BaseAddress = API, timeout 10s) — cho gọi REST.
 - `"download"` (không BaseAddress, timeout 30s) — cho `AudioCacheService` & `AudioGuideService` tải file audio từ Blob URL tuyệt đối.
 
 **DI Registration** (`MauiProgram.cs`):
-- **Singleton** cho tất cả 13 services trên + `IAudioManager`.
-- **Transient ViewModel**: LanguageViewModel, MainViewModel, MapViewModel, ScanViewModel, StallListViewModel.
-- **Transient Page**: LanguagePage, LoadingPage, MainPage, MapPage, ScanPage, StallListPage, StallPopup.
+- **Singleton** cho tất cả 14 services trên + `IAudioManager`.
+- **Transient ViewModel**: LanguageViewModel, MainViewModel, MapViewModel, ScanViewModel, StallListViewModel, TourListViewModel, TourDetailViewModel.
+- **Transient Page**: LanguagePage, LoadingPage, MainPage, MapPage, ScanPage, StallListPage, StallPopup, TourListPage, TourDetailPage.
 - MapViewModel/MapPage/StallPopup là Transient (đổi từ Singleton) để VM không giữ state cũ qua điều hướng; geofence state live theo VM, sync state live ở Singleton `SyncService` nên không mất.
+
+**AppShell routes** (`AppShell.xaml` absolute + `AppShell.xaml.cs` relative):
+- Absolute (ShellContent): `LoadingPage`, `ScanPage`, `MainPage`, `MapPage`, `StallListPage`, `TourListPage`.
+- Relative (`Routing.RegisterRoute`): `LanguagePage`, `TourDetailPage`.
 
 **Mobile Local DB** (`Mobile/LocalDb/`): SQLite via `sqlite-net-pcl`. `LocalStall` schema, `LocalStallRepository` upsert batch.
 
@@ -279,9 +323,19 @@ LocalStallRepository       – SQLite stalls.db3 (LocalDb/), upsert batch có di
 
 **Phân biệt Preference storage:**
 - `DeviceService` → lưu 1 key `device_id` (GUID) trong `Preferences`.
-- `LocalPreferenceService` → 8 key `pref_language_id / pref_language_code / pref_language_name / pref_language_display_name / pref_language_flag_code / pref_voice_id / pref_speech_rate / pref_auto_play` – snapshot DevicePreferenceDetailDto. **Single source of truth** cho language/voice ở Mobile.
+- `LocalPreferenceService` → 8 key `pref_language_*` / `pref_voice_id` / `pref_speech_rate` / `pref_auto_play` – snapshot DevicePreferenceDetailDto. **Single source of truth** cho language/voice ở Mobile. + 2 key `pref_active_tour_id` / `pref_tour_completed_stops` cho tour progress.
 - `QrService` → `qr_verified`, `qr_expiry`.
 - **Không dùng `SecureStorage`** ở đâu.
+
+**Mobile Tour flow:**
+1. MainPage → nút "Tour" (`ToursCommand`) → `Shell.Current.GoToAsync("//TourListPage")`.
+2. TourListPage → tap tour → `Shell.Current.GoToAsync($"TourDetailPage?tourId={id}")`.
+3. TourDetailPage → nút "Bắt đầu" → `ILocalPreferenceService.SetActiveTourId(id)` → `Shell.Current.GoToAsync($"//MapPage?tourId={id}")`.
+4. MapPage `OnAppearing` → `ResolveTourAsync()` đọc query hoặc fallback `GetActiveTourId()` → `MapViewModel.SetActiveTourAsync(tourId)`.
+5. `MapViewModel.SetActiveTourAsync` → fetch tour chi tiết → `GeofenceEngine.SetActiveTour(stallIds)` → vẽ polyline qua `TourRouteChanged` event.
+6. Geofence auto-play cho stall trong tour → `LocalPreferenceService.AddCompletedStop(stallId)` → `RecomputeNextStop()`.
+7. Khi hoàn tất mọi stop → `CompleteTourAsync()` hiện alert + `ClearTourProgress()` + `SetActiveTour(null)`.
+8. Resume: kill/mở lại app, `LoadingPage` → `MainPage` hoặc vào MapPage, `GetActiveTourId()` còn giá trị → tour mode tự kích hoạt lại.
 
 ---
 
@@ -464,6 +518,11 @@ Khi cần query lặp lại trên một entity → thêm method vào file extens
 - `Api/Domain/Entities/ScanLog.cs` – có migration, không controller nào dùng
 
 ### Đã fix (commit gần đây)
+- ✅ **Thêm tính năng Tour Management** (theo plan `l-n-paln-i-hi-n-parsed-nova.md`):
+  - API: 2 entity `Tour`/`TourStop` + `TourController` (AllowAnonymous GET, AdminOnly POST/PUT/DELETE/PATCH) + migration `AddTourTables`.
+  - Shared: 6 DTO trong `Shared/DTOs/Tours/`.
+  - Web: `TourApiClient` + `TourController` + views `TourManagement.cshtml`, `TourDesigner.cshtml` (Leaflet + SortableJS drag-drop) + menu sidebar.
+  - Mobile: `ITourService/TourService` (cache-first memory only) + `TourListViewModel/TourDetailViewModel` + `TourListPage/TourDetailPage` + patch `LocalPreferenceService` (2 key tour progress) + patch `GeofenceEngine` (`SetActiveTour`) + patch `MapViewModel` (`SetActiveTourAsync`, `RecomputeNextStop`, `CompleteTourAsync`, `TourRouteChanged` event) + patch `MapPage` (`QueryProperty tourId`, polyline layer) + patch `MainPage` bottom nav 3 nút (Bản đồ/Tour/Ngôn ngữ).
 - ✅ **Refactor MapPage + Mobile services** (commit `22a0179`):
   - `SyncService.IsSyncing` giờ atomic qua `Interlocked.CompareExchange` + `Volatile.Read/Write`.
   - `SyncBackgroundService.OnConnectivityChanged` capture local `_cts` tránh race với `Stop()`.

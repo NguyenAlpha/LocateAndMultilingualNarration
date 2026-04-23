@@ -21,6 +21,9 @@ public class GeofenceEngine
     private readonly HashSet<Guid> _triggeredIds = [];
     private Queue<GeoStallDto> _queue = new();
 
+    // Tour mode: khi != null thì chỉ cho phép trigger stall có StallId trong set.
+    private HashSet<Guid>? _tourStallIds;
+
     /// <summary>
     /// Fire khi engine quyết định phát một stall (vào vùng mới hoặc dequeue sau khi audio trước kết thúc).
     /// Subscriber phải trả Task để engine có thể await — tránh fire-and-forget gây race với IsPlaying.
@@ -37,6 +40,15 @@ public class GeofenceEngine
     /// Cập nhật danh sách stall hiện có (sau khi load/reload). Không reset triggered — caller gọi Reset nếu cần.
     /// </summary>
     public void SetStalls(IReadOnlyList<GeoStallDto> stalls) => _stalls = stalls;
+
+    /// <summary>
+    /// Bật/tắt chế độ tour. Truyền tập StallId của các stop trong tour để giới hạn auto-play
+    /// chỉ trigger những stall đó. Truyền null để tắt tour mode.
+    /// </summary>
+    public void SetActiveTour(IEnumerable<Guid>? tourStallIds)
+    {
+        _tourStallIds = tourStallIds is null ? null : new HashSet<Guid>(tourStallIds);
+    }
 
     /// <summary>
     /// Reset toàn bộ state để lần tick tiếp theo re-enqueue mọi stall trong vùng.
@@ -78,6 +90,9 @@ public class GeofenceEngine
         {
             if (_triggeredIds.Contains(stall.StallId)) continue;
             if (string.IsNullOrWhiteSpace(stall.NarrationContent?.AudioUrl)) continue;
+
+            // Tour mode: bỏ qua stall không nằm trong tour.
+            if (_tourStallIds is not null && !_tourStallIds.Contains(stall.StallId)) continue;
 
             _triggeredIds.Add(stall.StallId);
             _queue.Enqueue(stall);
