@@ -19,6 +19,13 @@
                    FontSize="15"
                    TextColor="#6B7280"
                    HorizontalOptions="Center"/>
+
+            <!-- Hiển thị mode offline để user biết đang dùng dữ liệu cache local -->
+            <Label Text="Đang ở chế độ offline - dùng dữ liệu đã tải trước đó"
+                   FontSize="12"
+                   TextColor="#9A3412"
+                   HorizontalOptions="Center"
+                   IsVisible="{Binding IsOfflineMode}"/>
         </VerticalStackLayout>
 
         <!-- Vùng hiển thị ngôn ngữ đã chọn + nút mở Popup -->

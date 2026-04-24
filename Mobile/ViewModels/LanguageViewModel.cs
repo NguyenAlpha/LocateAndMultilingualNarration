@@ -15,7 +15,13 @@ public class LanguageViewModel : INotifyPropertyChanged
     private readonly IVoiceService _voiceService;
     private readonly IDeviceService _deviceService;
     private readonly IDevicePreferenceApiService _devicePreferenceApiService;
+    private readonly ILocalPreferenceService _localPreference;
     private readonly ILogger<LanguageViewModel> _logger;
+
+    // Lưu lựa chọn local gần nhất để tự động restore khi mở lại LanguagePage.
+    private readonly Guid? _preferredLanguageId;
+    private readonly string _preferredLanguageCode = string.Empty;
+    private readonly Guid? _preferredVoiceId;
 
     private int _navigationGuard;
 
@@ -136,6 +142,18 @@ public class LanguageViewModel : INotifyPropertyChanged
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool IsReadyToContinue => SelectedLanguage != null && SelectedVoice != null && !IsBusy;
 
+    private bool _isOfflineMode;
+    public bool IsOfflineMode
+    {
+        get => _isOfflineMode;
+        set
+        {
+            if (_isOfflineMode == value) return;
+            _isOfflineMode = value;
+            OnPropertyChanged();
+        }
+    }
+
     public ICommand LoadDataCommand { get; }
     public ICommand ConfirmSelectionCommand { get; }
 
@@ -144,13 +162,28 @@ public class LanguageViewModel : INotifyPropertyChanged
         IVoiceService voiceService,
         IDeviceService deviceService,
         IDevicePreferenceApiService devicePreferenceApiService,
+        ILocalPreferenceService localPreference,
         ILogger<LanguageViewModel> logger)
     {
         _languageService = languageService;
         _voiceService = voiceService;
         _deviceService = deviceService;
         _devicePreferenceApiService = devicePreferenceApiService;
+        _localPreference = localPreference;
         _logger = logger;
+
+        // Đọc preference local để khôi phục lựa chọn cũ cho UX mượt hơn.
+        var preferred = _localPreference.Load();
+        _preferredLanguageId = preferred?.LanguageId;
+        _preferredLanguageCode = preferred?.LanguageCode ?? string.Empty;
+        _preferredVoiceId = preferred?.VoiceId;
+
+        if (preferred is not null)
+        {
+            // Khôi phục thêm các setting phụ từ local để UI đồng nhất ngay khi mở trang.
+            SpeechRate = preferred.SpeechRate;
+            AutoPlay = preferred.AutoPlay;
+        }
 
         LoadDataCommand = new Command(async () => await LoadLanguagesAsync());
         ConfirmSelectionCommand = new Command(async () => await ConfirmSelectionAsync());
@@ -167,6 +200,7 @@ public class LanguageViewModel : INotifyPropertyChanged
 
             IsBusy = true;
             ErrorMessage = string.Empty;
+            IsOfflineMode = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
 
             var languages = await _languageService.GetActiveLanguagesAsync();
 
@@ -190,19 +224,28 @@ public class LanguageViewModel : INotifyPropertyChanged
 
             if (Languages.Count == 0)
             {
-                ErrorMessage = "Không có ngôn ngữ khả dụng. Vui lòng kiểm tra lại kết nối.";
+                ErrorMessage = IsOfflineMode
+                    ? "Không có ngôn ngữ trong bộ nhớ offline. Hãy kết nối mạng để tải dữ liệu lần đầu."
+                    : "Không có ngôn ngữ khả dụng. Vui lòng kiểm tra lại kết nối.";
                 return;
             }
 
             FilterLanguages();
 
             // Chọn ngôn ngữ đầu tiên làm mặc định
-            SelectedLanguage = Languages.FirstOrDefault();
+            // OLD CODE (kept for reference): SelectedLanguage = Languages.FirstOrDefault();
+            // Ưu tiên ngôn ngữ đã lưu local (ID -> Code), fallback về item đầu tiên như cũ.
+            SelectedLanguage = Languages.FirstOrDefault(x => _preferredLanguageId.HasValue && x.Id == _preferredLanguageId.Value)
+                ?? Languages.FirstOrDefault(x => !string.IsNullOrWhiteSpace(_preferredLanguageCode)
+                    && string.Equals(x.Code, _preferredLanguageCode, StringComparison.OrdinalIgnoreCase))
+                ?? Languages.FirstOrDefault();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Không thể tải danh sách ngôn ngữ");
-            ErrorMessage = "Tải danh sách ngôn ngữ thất bại. Vui lòng kiểm tra kết nối.";
+            ErrorMessage = IsOfflineMode
+                ? "Không tải được ngôn ngữ offline. Hãy mở mạng để đồng bộ dữ liệu lần đầu."
+                : "Tải danh sách ngôn ngữ thất bại. Vui lòng kiểm tra kết nối.";
         }
         finally
         {
@@ -242,6 +285,7 @@ public class LanguageViewModel : INotifyPropertyChanged
             IsBusy = true;
             Voices.Clear();
             ErrorMessage = string.Empty;
+            IsOfflineMode = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
 
             var voiceList = await _voiceService.GetVoicesByLanguageAsync(SelectedLanguage.Id);
 
@@ -257,7 +301,25 @@ public class LanguageViewModel : INotifyPropertyChanged
             }
 
             // Tự động chọn giọng mặc định nếu có, ngược lại chọn giọng đầu tiên
-            SelectedVoice = Voices.FirstOrDefault(v => v.IsDefault) ?? Voices.FirstOrDefault();
+            // OLD CODE (kept for reference): SelectedVoice = Voices.FirstOrDefault(v => v.IsDefault) ?? Voices.FirstOrDefault();
+            // Ưu tiên voice đã lưu local khi khớp language hiện tại.
+            var shouldUsePreferredVoice = _preferredVoiceId.HasValue
+                && ((_preferredLanguageId.HasValue && _preferredLanguageId.Value == SelectedLanguage.Id)
+                    || (!string.IsNullOrWhiteSpace(_preferredLanguageCode)
+                        && string.Equals(_preferredLanguageCode, SelectedLanguage.Code, StringComparison.OrdinalIgnoreCase)));
+
+            SelectedVoice = shouldUsePreferredVoice
+                ? Voices.FirstOrDefault(v => v.Id == _preferredVoiceId!.Value)
+                    ?? Voices.FirstOrDefault(v => v.IsDefault)
+                    ?? Voices.FirstOrDefault()
+                : Voices.FirstOrDefault(v => v.IsDefault) ?? Voices.FirstOrDefault();
+
+            if (Voices.Count == 0)
+            {
+                ErrorMessage = IsOfflineMode
+                    ? "Ngôn ngữ này chưa có giọng đọc trong cache offline."
+                    : "Ngôn ngữ này hiện chưa có giọng đọc khả dụng.";
+            }
         }
         catch (Exception ex)
         {
@@ -279,15 +341,36 @@ public class LanguageViewModel : INotifyPropertyChanged
             IsBusy = true;
             ErrorMessage = string.Empty;
 
-            var deviceId = _deviceService.GetOrCreateDeviceId();
+            // OLD CODE (kept for reference): var deviceId = _deviceService.GetOrCreateDeviceId();
+            var isOffline = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
 
-            var upsertDto = new DevicePreferenceUpsertDto
+            var upsertDto = new Mobile.Models.DevicePreferenceUpsertDto
             {
                 LanguageId = SelectedLanguage.Id,
                 VoiceId = SelectedVoice.Id,
                 SpeechRate = SpeechRate,
                 AutoPlay = AutoPlay
             };
+
+            // Offline mode: lưu local để user vẫn đổi ngôn ngữ/voice được ngay.
+            if (isOffline)
+            {
+                _localPreference.Save(new Shared.DTOs.DevicePreferences.DevicePreferenceDetailDto
+                {
+                    DeviceId = _deviceService.GetOrCreateDeviceId(),
+                    LanguageId = SelectedLanguage.Id,
+                    LanguageCode = SelectedLanguage.Code,
+                    LanguageName = SelectedLanguage.Name,
+                    LanguageDisplayName = SelectedLanguage.NativeName,
+                    VoiceId = SelectedVoice.Id,
+                    VoiceDisplayName = SelectedVoice.DisplayName,
+                    SpeechRate = SpeechRate,
+                    AutoPlay = AutoPlay
+                });
+
+                await Shell.Current.GoToAsync("//MapPage");
+                return;
+            }
 
             var result = await _devicePreferenceApiService.UpsertAsync(upsertDto);
 

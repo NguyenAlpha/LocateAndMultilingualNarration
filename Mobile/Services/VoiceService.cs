@@ -24,6 +24,9 @@ public class VoiceService : IVoiceService
 {
     private readonly IHttpClientFactory _httpClientFactory;
 
+    // Cache local giọng đọc theo languageId để đổi ngôn ngữ offline vẫn chọn được voice.
+    private static string VoiceCacheRootDir => Path.Combine(FileSystem.AppDataDirectory, "voice-cache");
+
     /// <summary>
     /// Khởi tạo service với factory tạo HttpClient.
     /// </summary>
@@ -41,6 +44,14 @@ public class VoiceService : IVoiceService
     /// <returns>Danh sách voice profile phù hợp với ngôn ngữ; nếu lỗi thì trả về danh sách rỗng.</returns>
     public async Task<IReadOnlyList<TtsVoiceProfileListItemDto>> GetVoicesByLanguageAsync(Guid languageId, CancellationToken cancellationToken = default)
     {
+        var cachePath = GetVoiceCachePath(languageId);
+
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet)
+        {
+            // Offline: đọc giọng từ cache local nếu có.
+            return await LoadVoicesFromDiskAsync(cachePath, cancellationToken);
+        }
+
         try
         {
             // Tạo client để gọi endpoint voice theo ngôn ngữ.
@@ -48,18 +59,47 @@ public class VoiceService : IVoiceService
             // Gọi API lấy danh sách voice đang active.
             var response = await client.GetAsync($"api/tts-voice-profiles/active?languageId={languageId}", cancellationToken);
             if (!response.IsSuccessStatusCode)
-                return [];
+            {
+                // API lỗi: fallback cache local.
+                return await LoadVoicesFromDiskAsync(cachePath, cancellationToken);
+            }
 
             // Đọc chuỗi JSON trả về từ API.
             var raw = await response.Content.ReadAsStringAsync(cancellationToken);
             // Parse JSON thành danh sách DTO.
-            return ParseVoices(raw);
+            var voices = ParseVoices(raw);
+
+            await SaveVoicesToDiskAsync(cachePath, voices, cancellationToken);
+            return voices;
         }
         catch
         {
-            // Nếu có lỗi thì trả về danh sách rỗng để UI không bị gián đoạn.
-            return [];
+            // Nếu có lỗi thì fallback cache local.
+            return await LoadVoicesFromDiskAsync(cachePath, cancellationToken);
         }
+    }
+
+    private static string GetVoiceCachePath(Guid languageId)
+        => Path.Combine(VoiceCacheRootDir, $"voices_{languageId:N}.json");
+
+    private static async Task SaveVoicesToDiskAsync(string cachePath, IReadOnlyList<TtsVoiceProfileListItemDto> voices, CancellationToken cancellationToken)
+    {
+        var dir = Path.GetDirectoryName(cachePath);
+        if (!string.IsNullOrWhiteSpace(dir))
+            Directory.CreateDirectory(dir);
+
+        await using var stream = File.Create(cachePath);
+        await JsonSerializer.SerializeAsync(stream, voices, cancellationToken: cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<TtsVoiceProfileListItemDto>> LoadVoicesFromDiskAsync(string cachePath, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(cachePath))
+            return [];
+
+        await using var stream = File.OpenRead(cachePath);
+        var voices = await JsonSerializer.DeserializeAsync<List<TtsVoiceProfileListItemDto>>(stream, cancellationToken: cancellationToken);
+        return voices ?? [];
     }
 
     /// <summary>
