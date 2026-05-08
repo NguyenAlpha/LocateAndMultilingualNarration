@@ -81,7 +81,7 @@ namespace Api.Controllers
 
             var summary = new ActiveDevicesSummaryDto
             {
-                ActiveCount   = devices.Count * 2,
+                ActiveCount   = devices.Count,
                 WithinSeconds = withinSeconds,
                 AsOf          = DateTimeOffset.UtcNow,       // timestamp server tạo response, dùng để hiển thị "cập nhật lúc"
                 Devices       = devices
