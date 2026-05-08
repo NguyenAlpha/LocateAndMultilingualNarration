@@ -13,6 +13,7 @@ namespace Api.Domain.Entities
         public string Slug { get; set; } = null!;                 // nvarchar(256) UNIQUE NOT NULL
         public string? ContactEmail { get; set; }                 // nvarchar(256)
         public string? ContactPhone { get; set; }                 // nvarchar(16)
+        public string? Category { get; set; }                     // nvarchar(64) - Thức ăn, Vui chơi, Lễ hội...
         public bool IsActive { get; set; }                        // bit NOT NULL DEFAULT 1
         public DateTimeOffset CreatedAt { get; set; }             // datetimeoffset NOT NULL DEFAULT SYSDATETIMEOFFSET()
         public DateTimeOffset? UpdatedAt { get; set; }            // datetimeoffset
