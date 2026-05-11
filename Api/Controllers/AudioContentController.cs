@@ -35,8 +35,7 @@ public class AudioContentController : ControllerBase
             {
                 ServerId = s.Id.ToString(),
                 Name = s.Name,
-                Category = s.Category ?? "Vui chơi", // Đồng bộ danh mục từ Web
-                Description = s.Description,
+                Address = s.StallLocations.Where(l => l.IsActive).Select(l => l.Address).FirstOrDefault() ?? "",
                 ImageUrl = s.StallMedia.Where(m => m.IsActive).OrderBy(m => m.SortOrder).Select(m => m.MediaUrl).FirstOrDefault(),
                 Latitude = s.StallLocations.Where(l => l.IsActive).Select(l => (double)l.Latitude).FirstOrDefault(),
                 Longitude = s.StallLocations.Where(l => l.IsActive).Select(l => (double)l.Longitude).FirstOrDefault(),
@@ -44,13 +43,17 @@ public class AudioContentController : ControllerBase
             })
             .ToListAsync();
 
+        // Thêm FlagCode để mobile hiển thị cờ quốc gia khi chọn ngôn ngữ thuyết minh.
+        // FlagCode dạng ISO-2 lowercase (vn, us, fr, jp, kr, cn...) - mobile sẽ
+        // tự convert sang emoji 🇻🇳, 🇺🇸... bằng regional indicator symbols.
         var languages = await _context.Languages
             .Where(l => l.IsActive)
             .Select(l => new
             {
                 ServerId = l.Id.ToString(),
                 Code = l.Code,
-                Name = l.DisplayName ?? l.Name
+                Name = l.DisplayName ?? l.Name,
+                FlagCode = l.FlagCode
             })
             .ToListAsync();
 
