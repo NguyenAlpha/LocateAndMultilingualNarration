@@ -21,14 +21,6 @@ namespace Api.Infrastructure.Persistence.Seeds
             var alreadySeeded = await db.Businesses.AnyAsync(b => b.Id == SystemBusinessId);
             if (alreadySeeded) return;
 
-            // Buoc 1: don du lieu cu (cascade tu Stall xuong cac bang con)
-            var oldStalls = await db.Stalls.ToListAsync();
-            if (oldStalls.Count > 0)
-            {
-                db.Stalls.RemoveRange(oldStalls);
-                await db.SaveChangesAsync();
-            }
-
             // Buoc 2: tao business he thong, Plan=Pro de TTS service chap nhan
             var now = DateTimeOffset.UtcNow;
             var business = new Business
