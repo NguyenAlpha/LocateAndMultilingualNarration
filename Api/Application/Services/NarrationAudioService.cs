@@ -235,10 +235,21 @@ namespace Api.Application.Services
             var region = cogUri.Host.Split('.')[0];
             var ttsEndpoint = $"https://{region}.tts.speech.microsoft.com/cognitiveservices/v1";
 
-            var ssml = $"<speak version='1.0' xml:lang='{languageCode}'>" +
-                       $"<voice xml:lang='{languageCode}' name='{voiceName}'>" +
+            // Suy ra mã ngôn ngữ từ voiceName để xml:lang khớp chính xác với voice.
+            // VD: "en-US-AvaMultilingualNeural" → voiceLocale = "en-US".
+            // Tránh trường hợp xml:lang không khớp voice → Azure phát giọng fallback "lơ lớ".
+            var voiceLocale = ExtractLocaleFromVoice(voiceName) ?? languageCode;
+
+            // SSML chuẩn theo Azure Speech:
+            // - Bắt buộc xmlns + xml:lang trên <speak>.
+            // - xml:lang trên <voice> trùng với locale của voice để chọn đúng giọng bản xứ.
+            // - Bọc text trong <prosody rate="-5%"> để giảm tốc độ một chút,
+            //   khiến giọng đọc tự nhiên hơn (đặc biệt với các ngôn ngữ châu Á).
+            var ssml = $"<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='{voiceLocale}'>" +
+                       $"<voice xml:lang='{voiceLocale}' name='{voiceName}'>" +
+                       $"<prosody rate='-5%'>" +
                        SecurityElement.Escape(scriptText) +
-                       "</voice></speak>";
+                       "</prosody></voice></speak>";
 
             _logger.LogInformation("Bắt đầu synthesize TTS (REST) cho NarrationContentId: {NarrationContentId}, Endpoint: {Endpoint}", narrationContentId, ttsEndpoint);
 
@@ -272,6 +283,23 @@ namespace Api.Application.Services
 
             _logger.LogInformation("Upload audio thành công - BlobName: {BlobName}", blobName);
             return (blobClient.Uri.ToString(), blobName, null, voiceName);
+        }
+
+        /// <summary>
+        /// Trích locale ("xx-YY") từ tên voice Azure dạng "xx-YY-VoiceNameNeural".
+        /// Vd: "vi-VN-HoaiMyNeural" -> "vi-VN", "en-US-AvaMultilingualNeural" -> "en-US".
+        /// Trả null nếu định dạng không khớp.
+        /// </summary>
+        private static string? ExtractLocaleFromVoice(string voiceName)
+        {
+            if (string.IsNullOrWhiteSpace(voiceName)) return null;
+            var parts = voiceName.Split('-');
+            if (parts.Length < 3) return null;
+            // parts[0] = ngôn ngữ (vi/en/zh...), parts[1] = vùng (VN/US/CN...).
+            // Yêu cầu cả 2 đều có 2 ký tự để đảm bảo đúng định dạng BCP-47.
+            if (parts[0].Length is < 2 or > 3) return null;
+            if (parts[1].Length != 2) return null;
+            return $"{parts[0].ToLowerInvariant()}-{parts[1].ToUpperInvariant()}";
         }
     }
 }
